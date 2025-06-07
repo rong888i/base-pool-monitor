@@ -9,6 +9,7 @@ const PoolCard = ({ poolAddress, lpInfo, isLoading, error, onRefresh }) => {
   const [nftInfo, setNftInfo] = useState(null);
   const [isLoadingNft, setIsLoadingNft] = useState(false);
   const [nftError, setNftError] = useState(null);
+  const [showReversedPrice, setShowReversedPrice] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -201,9 +202,40 @@ const PoolCard = ({ poolAddress, lpInfo, isLoading, error, onRefresh }) => {
 
                 {nftInfo.isValid && (
                   <>
+                    {/* 价格方向选择 */}
+                    <div className="bg-white p-2 rounded border mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-700">价格显示方向:</span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setShowReversedPrice(false)}
+                            className={`px-2 py-1 text-xs rounded ${
+                              !showReversedPrice 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                            }`}
+                          >
+                            {lpInfo.token0.symbol}/{lpInfo.token1.symbol}
+                          </button>
+                          <button
+                            onClick={() => setShowReversedPrice(true)}
+                            className={`px-2 py-1 text-xs rounded ${
+                              showReversedPrice 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                            }`}
+                          >
+                            {lpInfo.token1.symbol}/{lpInfo.token0.symbol}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* 价格范围可视化 */}
                     <div className="bg-white p-2 rounded border">
-                      <div className="text-xs font-medium text-gray-700 mb-2">价格范围可视化:</div>
+                      <div className="text-xs font-medium text-gray-700 mb-2">
+                        价格范围可视化 ({showReversedPrice ? `${lpInfo.token1.symbol}/${lpInfo.token0.symbol}` : `${lpInfo.token0.symbol}/${lpInfo.token1.symbol}`}):
+                      </div>
                       
                       {/* 价格范围条 */}
                       <div className="relative mb-3">
@@ -224,7 +256,11 @@ const PoolCard = ({ poolAddress, lpInfo, isLoading, error, onRefresh }) => {
                           <div 
                             className={`absolute top-0 w-1 h-full ${nftInfo.isInRange ? 'bg-green-600' : 'bg-red-600'} shadow-lg z-10`}
                             style={{
-                              left: `${calculatePricePosition(nftInfo.currentPrice, nftInfo.priceRange.lower, nftInfo.priceRange.upper)}%`,
+                              left: `${calculatePricePosition(
+                                showReversedPrice ? (1 / nftInfo.currentPrice) : nftInfo.currentPrice,
+                                showReversedPrice ? (1 / nftInfo.priceRange.upper) : nftInfo.priceRange.lower,
+                                showReversedPrice ? (1 / nftInfo.priceRange.lower) : nftInfo.priceRange.upper
+                              )}%`,
                               transform: 'translateX(-50%)'
                             }}
                           ></div>
@@ -254,7 +290,12 @@ const PoolCard = ({ poolAddress, lpInfo, isLoading, error, onRefresh }) => {
                       <div className="space-y-1 text-xs">
                         <div className="flex items-center justify-between p-1 bg-green-50 rounded">
                           <span className="text-green-700 font-medium">📉 下限:</span>
-                          <span className="font-mono text-green-800">{nftInfo.priceRange.lower.toFixed(6)}</span>
+                          <span className="font-mono text-green-800">
+                            {showReversedPrice 
+                              ? (1 / nftInfo.priceRange.upper).toFixed(6)
+                              : nftInfo.priceRange.lower.toFixed(6)
+                            }
+                          </span>
                         </div>
                         
                         <div className={`flex items-center justify-between p-1 rounded ${nftInfo.isInRange ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -262,13 +303,36 @@ const PoolCard = ({ poolAddress, lpInfo, isLoading, error, onRefresh }) => {
                             {nftInfo.isInRange ? '✅ 当前:' : '❌ 当前:'}
                           </span>
                           <span className={`font-mono ${nftInfo.isInRange ? 'text-green-800' : 'text-red-800'}`}>
-                            {nftInfo.currentPrice.toFixed(6)}
+                            {showReversedPrice 
+                              ? (1 / nftInfo.currentPrice).toFixed(6)
+                              : nftInfo.currentPrice.toFixed(6)
+                            }
                           </span>
                         </div>
                         
                         <div className="flex items-center justify-between p-1 bg-red-50 rounded">
                           <span className="text-red-700 font-medium">📈 上限:</span>
-                          <span className="font-mono text-red-800">{nftInfo.priceRange.upper.toFixed(6)}</span>
+                          <span className="font-mono text-red-800">
+                            {showReversedPrice 
+                              ? (1 / nftInfo.priceRange.lower).toFixed(6)
+                              : nftInfo.priceRange.upper.toFixed(6)
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 双向价格对比 */}
+                      <div className="mt-2 p-2 bg-blue-50 rounded border">
+                        <div className="text-xs font-medium text-blue-700 mb-1">📊 当前价格对比:</div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">{lpInfo.token0.symbol}/{lpInfo.token1.symbol}:</span>
+                            <span className="font-mono text-blue-800">{nftInfo.currentPrice.toFixed(6)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">{lpInfo.token1.symbol}/{lpInfo.token0.symbol}:</span>
+                            <span className="font-mono text-blue-800">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
+                          </div>
                         </div>
                       </div>
 
