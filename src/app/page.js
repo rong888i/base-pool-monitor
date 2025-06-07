@@ -17,7 +17,11 @@ export default function Home() {
     address,
     lpInfo: null,
     isLoading: false,
-    error: null
+    error: null,
+    nftId: '',
+    nftInfo: null,
+    isLoadingNft: false,
+    nftError: null
   })));
 
   const [customAddress, setCustomAddress] = useState('');
@@ -64,7 +68,11 @@ export default function Home() {
       address: customAddress.trim(),
       lpInfo: null,
       isLoading: false,
-      error: null
+      error: null,
+      nftId: '',
+      nftInfo: null,
+      isLoadingNft: false,
+      nftError: null
     };
 
     setPools(prev => [...prev, newPool]);

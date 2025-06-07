@@ -93,6 +93,36 @@ const ERC20_ABI = [
   }
 ];
 
+// Uniswap V3 NonfungiblePositionManager ABI（用于获取NFT位置信息）
+const POSITION_MANAGER_ABI = [
+  {
+    inputs: [{ internalType: 'uint256', name: 'tokenId', type: 'uint256' }],
+    name: 'positions',
+    outputs: [
+      { internalType: 'uint96', name: 'nonce', type: 'uint96' },
+      { internalType: 'address', name: 'operator', type: 'address' },
+      { internalType: 'address', name: 'token0', type: 'address' },
+      { internalType: 'address', name: 'token1', type: 'address' },
+      { internalType: 'uint24', name: 'fee', type: 'uint24' },
+      { internalType: 'int24', name: 'tickLower', type: 'int24' },
+      { internalType: 'int24', name: 'tickUpper', type: 'int24' },
+      { internalType: 'uint128', name: 'liquidity', type: 'uint128' },
+      { internalType: 'uint256', name: 'feeGrowthInside0LastX128', type: 'uint256' },
+      { internalType: 'uint256', name: 'feeGrowthInside1LastX128', type: 'uint256' },
+      { internalType: 'uint128', name: 'tokensOwed0', type: 'uint128' },
+      { internalType: 'uint128', name: 'tokensOwed1', type: 'uint128' }
+    ],
+    stateMutability: 'view',
+    type: 'function'
+  }
+];
+
+// BSC上的Position Manager地址
+const POSITION_MANAGER_ADDRESSES = {
+  PANCAKESWAP_V3: '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364',
+  UNISWAP_V3: '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613', // Uniswap V3在BSC上的Position Manager
+};
+
 /**
  * 识别协议类型
  * @param {string} factoryAddress - Factory合约地址
@@ -298,4 +328,125 @@ async function getLPInfo(poolAddress) {
   }
 }
 
-export { getLPInfo, calculatePriceFromSqrtPriceX96 }; 
+/**
+ * 根据协议获取Position Manager地址
+ * @param {string} factoryAddress - Factory合约地址
+ * @returns {string} Position Manager地址
+ */
+function getPositionManagerAddress(factoryAddress) {
+  const upperFactory = factoryAddress.toUpperCase();
+  
+  if (upperFactory === PROTOCOL_FACTORIES.PANCAKESWAP_V3.toUpperCase()) {
+    return POSITION_MANAGER_ADDRESSES.PANCAKESWAP_V3;
+  } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3.toUpperCase()) {
+    return POSITION_MANAGER_ADDRESSES.UNISWAP_V3;
+  } else {
+    // 默认使用PancakeSwap V3的Position Manager
+    return POSITION_MANAGER_ADDRESSES.PANCAKESWAP_V3;
+  }
+}
+
+/**
+ * 从tick计算价格
+ * @param {number} tick - tick值
+ * @param {number} decimals0 - token0的小数位数
+ * @param {number} decimals1 - token1的小数位数
+ * @returns {number} 价格
+ */
+function calculatePriceFromTick(tick, decimals0, decimals1) {
+  const price = Math.pow(1.0001, tick);
+  return price * Math.pow(10, decimals0 - decimals1);
+}
+
+/**
+ * 获取NFT位置信息
+ * @param {string} nftId - NFT ID
+ * @param {string} poolAddress - 池子地址
+ * @param {Object} lpInfo - 池子信息
+ * @returns {Object} NFT位置信息
+ */
+async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
+  try {
+    console.log(`🔍 正在获取NFT位置信息: ${nftId}`);
+
+    // 获取Position Manager地址
+    const positionManagerAddress = getPositionManagerAddress(lpInfo.factoryAddress);
+
+    // 获取NFT位置信息
+    const positionData = await client.readContract({
+      address: positionManagerAddress,
+      abi: POSITION_MANAGER_ABI,
+      functionName: 'positions',
+      args: [BigInt(nftId)]
+    });
+
+    const [
+      nonce,
+      operator,
+      token0,
+      token1,
+      fee,
+      tickLower,
+      tickUpper,
+      liquidity,
+      feeGrowthInside0LastX128,
+      feeGrowthInside1LastX128,
+      tokensOwed0,
+      tokensOwed1
+    ] = positionData;
+
+    // 验证NFT是否属于当前池子
+    const isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
+                       token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
+                       Number(fee) === lpInfo.fee;
+
+    if (!isValidPool) {
+      throw new Error('NFT不属于当前池子');
+    }
+
+    // 计算价格范围
+    const priceLower = calculatePriceFromTick(Number(tickLower), lpInfo.token0.decimals, lpInfo.token1.decimals);
+    const priceUpper = calculatePriceFromTick(Number(tickUpper), lpInfo.token0.decimals, lpInfo.token1.decimals);
+
+    // 检查当前价格是否在范围内
+    const currentPrice = lpInfo.price.token1PerToken0;
+    const isInRange = currentPrice >= priceLower && currentPrice <= priceUpper;
+
+    // 计算流动性状态
+    const hasLiquidity = Number(liquidity) > 0;
+
+    return {
+      nftId,
+      isValid: true,
+      isValidPool: true,
+      hasLiquidity,
+      isInRange,
+      liquidity: liquidity.toString(),
+      tickLower: Number(tickLower),
+      tickUpper: Number(tickUpper),
+      priceRange: {
+        lower: priceLower,
+        upper: priceUpper,
+        lowerFormatted: `1 ${lpInfo.token0.symbol} = ${priceLower.toFixed(6)} ${lpInfo.token1.symbol}`,
+        upperFormatted: `1 ${lpInfo.token0.symbol} = ${priceUpper.toFixed(6)} ${lpInfo.token1.symbol}`
+      },
+      currentPrice: currentPrice,
+      tokensOwed: {
+        token0: tokensOwed0.toString(),
+        token1: tokensOwed1.toString()
+      },
+      status: isInRange ? (hasLiquidity ? '✅ 活跃' : '⚠️ 无流动性') : '❌ 超出范围'
+    };
+
+  } catch (error) {
+    console.error('❌ 获取NFT位置信息时出错:', error.message);
+    return {
+      nftId,
+      isValid: false,
+      error: error.message,
+      status: '❌ 错误'
+    };
+  }
+}
+
+export { getLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo }; 
