@@ -126,16 +126,36 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
             {formatAddress(pool.address)}
           </a>
         </div>
-        {/* 删除按钮 */}
-        <button
-          onClick={onRemove}
-          className="text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full hover:bg-error-50"
-          title="删除此池子"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        {/* 操作按钮组 */}
+        <div className="flex items-center gap-1">
+          {/* 一键添加按钮 */}
+          {pool.lpInfo && (
+            <a
+              href={pool.lpInfo.protocol.name.toLowerCase().includes('pancake')
+                ? `https://pancakeswap.finance/add/${pool.lpInfo.token0.address}/${pool.lpInfo.token1.address}/${pool.lpInfo.fee}?chain=bsc`
+                : `https://app.uniswap.org/add/${pool.lpInfo.token0.address}/${pool.lpInfo.token1.address}/${pool.lpInfo.fee}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-400 hover:text-primary-500 transition-colors p-1 rounded-full hover:bg-primary-50"
+              title={`一键添加流动性 (费率: ${pool.lpInfo.feePercentage}%)`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </a>
+          )}
+          {/* 删除按钮 */}
+          <button
+            onClick={onRemove}
+            className="text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full hover:bg-error-50"
+            title="删除此池子"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
         {/* 协议标识 */}
         {pool.lpInfo && pool.lpInfo.protocol && (
           <div className={`px-2 py-1 rounded-full text-xs font-medium ${pool.lpInfo.protocol.color} ${pool.lpInfo.protocol.borderColor} border`}>

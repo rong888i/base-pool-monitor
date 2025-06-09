@@ -497,6 +497,8 @@ async function getBatchLPInfo(poolAddresses) {
         price: {
           token1PerToken0: price,
           token0PerToken1: reversePrice,
+          // formatted: `${price.toFixed(6)} ${token1Symbol}`,
+          // formattedReverse: `${reversePrice.toFixed(6)} ${token0Symbol}`
           formatted: `1 ${token0Symbol} = ${price.toFixed(6)} ${token1Symbol}`,
           formattedReverse: `1 ${token1Symbol} = ${reversePrice.toFixed(6)} ${token0Symbol}`
         },
