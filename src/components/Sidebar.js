@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Sidebar = ({ onAddPool, pools }) => {
+const Sidebar = ({ onAddPool, pools, onToggle }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchAddress, setSearchAddress] = useState('');
@@ -119,11 +119,21 @@ const Sidebar = ({ onAddPool, pools }) => {
         setSearchResults(prev => prev.filter(p => p.address !== pool.address));
     };
 
+    // 处理侧边栏切换
+    const handleToggle = () => {
+        const newCollapsedState = !isCollapsed;
+        setIsCollapsed(newCollapsedState);
+        // 通知父组件侧边栏状态变化
+        if (onToggle) {
+            onToggle(!newCollapsedState); // 传递的是isOpen状态
+        }
+    };
+
     return (
         <div className={`${isCollapsed ? 'w-0' : 'w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 h-screen overflow-hidden transition-all duration-300 relative`}>
             {/* 收起/展开按钮 */}
             <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={handleToggle}
                 className="fixed top-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md z-50"
                 style={{ left: isCollapsed ? '0.5rem' : 'calc(24rem - 1rem)' }}
             >
@@ -141,21 +151,59 @@ const Sidebar = ({ onAddPool, pools }) => {
             <div className={`${isCollapsed ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 overflow-y-auto h-full`}>
                 {/* 头部区域 */}
                 <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 p-4 backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80">
-                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">搜索池子</h2>
+                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+                        <div className="p-2 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg">
+                            <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        搜索池子
+                    </h2>
 
-                    {/* 搜索框 */}
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="输入代币合约地址 (0x...)"
-                            value={searchAddress}
-                            onChange={(e) => setSearchAddress(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-                        />
+                    {/* 搜索框组 */}
+                    <div className="space-y-3">
+                        {/* 搜索输入框 */}
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="w-5 h-5 text-neutral-400 dark:text-neutral-500 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="输入代币合约地址 (0x...)"
+                                value={searchAddress}
+                                onChange={(e) => setSearchAddress(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && searchPools()}
+                                className="w-full pl-10 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl 
+                                    text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 
+                                    hover:border-primary-300 dark:hover:border-primary-600 hover:bg-white dark:hover:bg-neutral-700
+                                    focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:focus:border-primary-400
+                                    focus:bg-white dark:focus:bg-neutral-700
+                                    transition-all duration-200 text-sm font-medium"
+                            />
+                            {searchAddress && (
+                                <button
+                                    onClick={() => setSearchAddress('')}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 搜索按钮 */}
                         <button
                             onClick={searchPools}
-                            disabled={isLoading}
-                            className="w-full mt-3 bg-primary-500 hover:bg-primary-600 text-white font-medium py-2.5 px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm flex items-center justify-center gap-2"
+                            disabled={isLoading || !searchAddress.trim()}
+                            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 
+                                disabled:from-neutral-300 disabled:to-neutral-400 dark:disabled:from-neutral-600 dark:disabled:to-neutral-700
+                                text-white font-medium py-3 px-4 rounded-xl 
+                                disabled:opacity-50 disabled:cursor-not-allowed 
+                                hover:shadow-lg hover:shadow-primary-500/25 active:scale-[0.98]
+                                transition-all duration-200 text-sm flex items-center justify-center gap-2 group"
                         >
                             {isLoading ? (
                                 <>
@@ -167,7 +215,7 @@ const Sidebar = ({ onAddPool, pools }) => {
                                 </>
                             ) : (
                                 <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                     <span>搜索池子</span>
@@ -179,18 +227,47 @@ const Sidebar = ({ onAddPool, pools }) => {
 
                 {/* 错误提示 */}
                 {error && !isCollapsed && (
-                    <div className="mx-4 mt-4 p-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 text-error-600 dark:text-error-400 rounded-xl text-sm flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {error}
+                    <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-error-50 to-orange-50 dark:from-error-900/20 dark:to-orange-900/20 
+                        border border-error-200 dark:border-error-800/50 text-error-700 dark:text-error-400 
+                        rounded-xl text-sm flex items-start gap-3 shadow-sm animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex-shrink-0 mt-0.5">
+                            <div className="p-1 bg-error-100 dark:bg-error-900/30 rounded-full">
+                                <svg className="w-4 h-4 text-error-600 dark:text-error-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-medium text-error-800 dark:text-error-300 mb-1">搜索失败</p>
+                            <p className="text-error-600 dark:text-error-400 text-xs leading-relaxed">{error}</p>
+                        </div>
+                        <button
+                            onClick={() => setError(null)}
+                            className="flex-shrink-0 text-error-400 hover:text-error-600 dark:hover:text-error-300 transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 )}
 
                 {/* 搜索结果 */}
                 {searchResults.length > 0 && !isCollapsed && (
                     <div className="p-4 space-y-3">
-                        <h3 className="text-sm font-medium text-neutral-600 dark:text-neutral-400">搜索结果</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-gradient-to-br from-success-50 to-emerald-50 dark:from-success-900/20 dark:to-emerald-900/20 rounded-lg">
+                                    <svg className="w-4 h-4 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">搜索结果</h3>
+                            </div>
+                            <div className="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-full">
+                                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">{searchResults.length}个</span>
+                            </div>
+                        </div>
                         {searchResults.map((pool) => (
                             <div key={pool.address} className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
                                 {/* 池子信息头部 */}

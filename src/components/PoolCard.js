@@ -284,12 +284,12 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
             </div>
 
             {/* NFT信息显示 */}
-            {isLoadingNft && (
+            {/* {isLoadingNft && (
               <div className="flex items-center justify-center py-3">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500"></div>
                 <span className="ml-2 text-primary-600 text-xs">查询中...</span>
               </div>
-            )}
+            )} */}
 
             {nftError && (
               <div className="bg-error-50 border border-error-200 text-error-700 px-3 py-2 rounded text-xs">
@@ -300,24 +300,24 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
             {nftInfo && nftInfo.isValid && (
               <>
                 {/* 价格方向选择 */}
-                <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="bg-white dark:bg-neutral-900 p-2.5 my-3 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
+                  <div className="flex items-center justify-between w-full">
                     <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">价格显示方向:</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setShowReversedPrice(false)}
-                        className={`px-2 py-1 text-xs rounded-lg transition-colors ${!showReversedPrice
+                        className={`px-3 py-1 text-xs rounded-lg transition-colors ${!showReversedPrice
                           ? 'bg-primary-500 text-white'
-                          : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                           }`}
                       >
                         {pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}
                       </button>
                       <button
                         onClick={() => setShowReversedPrice(true)}
-                        className={`px-2 py-1 text-xs rounded-lg transition-colors ${showReversedPrice
+                        className={`px-3 py-1 text-xs rounded-lg transition-colors ${showReversedPrice
                           ? 'bg-primary-500 text-white'
-                          : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                           }`}
                       >
                         {pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}
@@ -330,6 +330,13 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                 <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
                   <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
+                  </div>
+
+                  {/* 标签（横排，带颜色，紧贴可视化条上方） */}
+                  <div className="flex justify-between text-xs font-medium px-1 mb-1">
+                    <span className="w-1/3 text-center text-success-500">下限</span>
+                    <span className="w-1/3 text-center text-neutral-500">中心</span>
+                    <span className="w-1/3 text-center text-error-500">上限</span>
                   </div>
 
                   {/* 价格范围条 */}
@@ -367,77 +374,36 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                       <div className="absolute top-0 left-[80%] w-0.5 h-full bg-error-500"></div>
                     </div>
 
-                    {/* 标签 */}
-                    <div className="flex justify-between text-xs mt-1 px-1">
-                      <span className="text-success-500 font-medium">下限</span>
-                      <span className="text-neutral-500 dark:text-neutral-400">中心</span>
-                      <span className="text-error-500 font-medium">上限</span>
-                    </div>
-
-                    {/* 当前价格位置标签 */}
-                    <div className="text-center mt-2">
-                      <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
-                        {nftInfo.isInRange ? '✅ 当前价格在范围内' : '❌ 当前价格超出范围'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 价格数值 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-success-50 dark:bg-success-900/20 rounded-lg">
-                      <span className="text-success-700 dark:text-success-300 font-medium">📉 下限:</span>
-                      <span className="font-mono text-success-800 dark:text-success-200">
+                    {/* 数值（横排，带颜色，紧贴可视化条下方） */}
+                    <div className="flex justify-between text-xs font-mono px-1 mt-1">
+                      <span className="w-1/3 text-center font-mono text-xs !text-success-500">
                         {showReversedPrice
                           ? (1 / nftInfo.priceRange.upper).toFixed(6)
                           : nftInfo.priceRange.lower.toFixed(6)
                         }
                       </span>
-                    </div>
-
-                    <div className={`flex items-center justify-between p-2 rounded-lg ${nftInfo.isInRange
-                      ? 'bg-success-50 dark:bg-success-900/20'
-                      : 'bg-error-50 dark:bg-error-900/20'
-                      }`}>
-                      <span className={`font-medium ${nftInfo.isInRange
-                        ? 'text-success-700 dark:text-success-300'
-                        : 'text-error-700 dark:text-error-300'
-                        }`}>
-                        {nftInfo.isInRange ? '✅ 当前:' : '❌ 当前:'}
-                      </span>
-                      <span className={`font-mono ${nftInfo.isInRange
-                        ? 'text-success-800 dark:text-success-200'
-                        : 'text-error-800 dark:text-error-200'
-                        }`}>
+                      <span className="w-1/3 text-center font-mono text-xs text-neutral-500">
                         {showReversedPrice
-                          ? (1 / nftInfo.currentPrice).toFixed(6)
-                          : nftInfo.currentPrice.toFixed(6)
+                          ? (1 / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)).toFixed(6)
+                          : ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2).toFixed(6)
                         }
                       </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2 bg-error-50 dark:bg-error-900/20 rounded-lg">
-                      <span className="text-error-700 dark:text-error-300 font-medium">📈 上限:</span>
-                      <span className="font-mono text-error-800 dark:text-error-200">
+                      <span className="w-1/3 text-center font-mono text-xs text-error-500">
                         {showReversedPrice
                           ? (1 / nftInfo.priceRange.lower).toFixed(6)
                           : nftInfo.priceRange.upper.toFixed(6)
                         }
                       </span>
                     </div>
-                  </div>
 
-                  {/* 双向价格对比 */}
-                  <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
-                    <div className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">📊 当前价格对比:</div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}:</span>
-                        <span className="font-mono text-primary-800 dark:text-primary-200">{nftInfo.currentPrice.toFixed(6)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}:</span>
-                        <span className="font-mono text-primary-800 dark:text-primary-200">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
-                      </div>
+                    {/* 当前价格位置标签 */}
+                    <div className="text-center mt-3">
+                      <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
+                        {nftInfo.isInRange
+                          ? `✅ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 在范围内`
+                          : `❌ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 超出范围`
+                        }
+                      </span>
                     </div>
                   </div>
 
@@ -447,7 +413,21 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                     : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
                     }`}>
                     {nftInfo.isInRange
-                      ? '🎯 价格在范围内，正在赚取手续费'
+                      ? <>
+                        🎯 价格在范围内，正在赚取手续费
+                        {/* 合并未领取手续费 */}
+                        <div className="mt-2 flex flex-col items-center gap-1 text-xs font-normal text-success-700 dark:text-success-200">
+                          {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>未领取手续费</span></div> */}
+                          <div className="flex gap-4 mt-1">
+                            <span>{pool.lpInfo.token0.symbol}: <span className="font-mono font-bold">{(
+                              Number(nftInfo.tokensOwed.token0) / Math.pow(10, pool.lpInfo.token0.decimals)
+                            ).toFixed(6)}</span></span>
+                            <span>{pool.lpInfo.token1.symbol}: <span className="font-mono font-bold">{(
+                              Number(nftInfo.tokensOwed.token1) / Math.pow(10, pool.lpInfo.token1.decimals)
+                            ).toFixed(6)}</span></span>
+                          </div>
+                        </div>
+                      </>
                       : nftInfo.currentPrice < nftInfo.priceRange.lower
                         ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
                         : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
@@ -460,8 +440,23 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                   </div>
                 </div>
 
+                {/* 双向价格对比 */}
+                {/* <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                  <div className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">📊 当前价格对比:</div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}:</span>
+                      <span className="font-mono text-primary-800 dark:text-primary-200">{nftInfo.currentPrice.toFixed(6)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}:</span>
+                      <span className="font-mono text-primary-800 dark:text-primary-200">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
+                    </div>
+                  </div>
+                </div> */}
+
                 {/* 流动性和收益信息 */}
-                <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
+                {/* <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
                   <div className="flex items-center gap-1">
                     <span className="text-neutral-600 dark:text-neutral-400">💧 流动性:</span>
                     <span className={`font-medium ${nftInfo.hasLiquidity ? 'text-success-500' : 'text-error-500'}`}>
@@ -474,27 +469,29 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                       {nftInfo.isInRange ? '活跃' : '非活跃'}
                     </span>
                   </div>
-                </div>
+                </div> */}
+
+
               </>
             )}
           </div>
-
           {/* 技术指标 - 所有信息一行显示 */}
           <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
             <div className="flex justify-between items-center text-xs text-neutral-600 dark:text-neutral-400">
               <span>Tick: <span className="font-medium text-neutral-700 dark:text-neutral-300">{pool.lpInfo.tick}</span></span>
+              {outOfRangeCount > 0 ? <span className="text-center"><span className="font-medium text-neutral-700 dark:text-neutral-300">已连续 {outOfRangeCount} 次超出区间</span></span> : ''}
               <span className="text-center">更新: <span className="font-medium text-neutral-700 dark:text-neutral-300">{pool.lpInfo.lastUpdated}</span></span>
             </div>
           </div>
+
+          {/* 超出区间警告 */}
+          {/* {outOfRangeCount > 0 && (
+            <div className="mt-2 text-sm text-red-500">
+              已连续 {outOfRangeCount} 次超出区间
+            </div>
+          )} */}
         </div>
       )}
-
-      {/* 超出区间警告 */}
-      {/* {outOfRangeCount > 0 && (
-        <div className="mt-2 text-sm text-red-500">
-          已连续 {outOfRangeCount} 次超出区间
-        </div>
-      )} */}
     </div>
   );
 };
