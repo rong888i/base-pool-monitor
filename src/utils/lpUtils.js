@@ -284,7 +284,7 @@ async function getBatchLPInfo(poolAddresses) {
     });
 
     // 2. 执行批量RPC调用
-    const response = await fetch('http://birdonline.xyz:8501/bsc', {
+    const response = await fetch('https://bsc-dataseed1.binance.org/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -427,7 +427,7 @@ async function getBatchLPInfo(poolAddresses) {
     }
 
     // 4. 执行代币信息的批量RPC调用
-    const tokenResponse = await fetch('http://birdonline.xyz:8501/bsc', {
+    const tokenResponse = await fetch('https://bsc-dataseed1.binance.org/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
