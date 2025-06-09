@@ -114,6 +114,28 @@ const POSITION_MANAGER_ABI = [
     ],
     stateMutability: 'view',
     type: 'function'
+  },
+  {
+    inputs: [
+      {
+        components: [
+          { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+          { internalType: 'address', name: 'recipient', type: 'address' },
+          { internalType: 'uint128', name: 'amount0Max', type: 'uint128' },
+          { internalType: 'uint128', name: 'amount1Max', type: 'uint128' }
+        ],
+        internalType: 'struct INonfungiblePositionManager.CollectParams',
+        name: 'params',
+        type: 'tuple'
+      }
+    ],
+    name: 'collect',
+    outputs: [
+      { internalType: 'uint256', name: 'amount0', type: 'uint256' },
+      { internalType: 'uint256', name: 'amount1', type: 'uint256' }
+    ],
+    stateMutability: 'payable',
+    type: 'function'
   }
 ];
 
@@ -568,13 +590,82 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     // 获取Position Manager地址
     const positionManagerAddress = getPositionManagerAddress(lpInfo.factoryAddress);
 
-    // 获取NFT位置信息
-    const positionData = await client.readContract({
-      address: positionManagerAddress,
-      abi: POSITION_MANAGER_ABI,
-      functionName: 'positions',
-      args: [BigInt(nftId)]
+    // 准备批量调用
+    const calls = [
+      // 获取NFT位置基本信息
+      {
+        jsonrpc: '2.0',
+        id: 0,
+        method: 'eth_call',
+        params: [{
+          to: positionManagerAddress,
+          data: encodeFunctionData({
+            abi: POSITION_MANAGER_ABI,
+            functionName: 'positions',
+            args: [BigInt(nftId)]
+          })
+        }, 'latest']
+      },
+      // 使用collect函数的staticcall获取真实手续费
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_call',
+        params: [{
+          to: positionManagerAddress,
+          data: encodeFunctionData({
+            abi: POSITION_MANAGER_ABI,
+            functionName: 'collect',
+            args: [{
+              tokenId: BigInt(nftId),
+              recipient: '0x0000000000000000000000000000000000000000', // 使用零地址进行staticcall
+              amount0Max: BigInt('340282366920938463463374607431768211455'), // uint128 max
+              amount1Max: BigInt('340282366920938463463374607431768211455')  // uint128 max
+            }]
+          })
+        }, 'latest']
+      }
+    ];
+
+    // 执行批量RPC调用
+    const response = await fetch('https://bsc-dataseed1.binance.org/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(calls)
     });
+
+    const results = await response.json();
+    if (!Array.isArray(results) || results.length !== 2) {
+      throw new Error('Invalid RPC response');
+    }
+
+    const [positionResult, collectResult] = results;
+
+    if (positionResult.error) {
+      throw new Error(`Position call failed: ${positionResult.error.message}`);
+    }
+
+    if (collectResult.error) {
+      throw new Error(`Collect call failed: ${collectResult.error.message}`);
+    }
+
+    // 解码position数据
+    const positionData = decodeAbiParameters([
+      { type: 'uint96' },   // nonce
+      { type: 'address' },  // operator
+      { type: 'address' },  // token0
+      { type: 'address' },  // token1
+      { type: 'uint24' },   // fee
+      { type: 'int24' },    // tickLower
+      { type: 'int24' },    // tickUpper
+      { type: 'uint128' },  // liquidity
+      { type: 'uint256' },  // feeGrowthInside0LastX128
+      { type: 'uint256' },  // feeGrowthInside1LastX128
+      { type: 'uint128' },  // tokensOwed0
+      { type: 'uint128' }   // tokensOwed1
+    ], positionResult.result);
 
     const [
       nonce,
@@ -590,6 +681,14 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
       tokensOwed0,
       tokensOwed1
     ] = positionData;
+
+    // 解码collect数据（真实的手续费金额）
+    const collectData = decodeAbiParameters([
+      { type: 'uint256' }, // amount0
+      { type: 'uint256' }  // amount1
+    ], collectResult.result);
+
+    const [collectableAmount0, collectableAmount1] = collectData;
 
     // 验证NFT是否属于当前池子
     const isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
@@ -611,6 +710,22 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     // 计算流动性状态
     const hasLiquidity = Number(liquidity) > 0;
 
+    // 格式化手续费金额
+    const formatFee = (amount, decimals, symbol) => {
+      const feeAmount = Number(amount) / Math.pow(10, decimals);
+      if (feeAmount >= 1000000) {
+        return `${(feeAmount / 1000000).toFixed(4)}M ${symbol}`;
+      } else if (feeAmount >= 1000) {
+        return `${(feeAmount / 1000).toFixed(4)}K ${symbol}`;
+      } else if (feeAmount >= 1) {
+        return `${feeAmount.toFixed(6)} ${symbol}`;
+      } else if (feeAmount >= 0.000001) {
+        return `${feeAmount.toFixed(8)} ${symbol}`;
+      } else {
+        return `${feeAmount.toExponential(2)} ${symbol}`;
+      }
+    };
+
     return {
       nftId,
       isValid: true,
@@ -627,9 +742,19 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
         upperFormatted: `1 ${lpInfo.token0.symbol} = ${priceUpper.toFixed(6)} ${lpInfo.token1.symbol}`
       },
       currentPrice: currentPrice,
-      tokensOwed: {
-        token0: tokensOwed0.toString(),
-        token1: tokensOwed1.toString()
+      fees: {
+        // 真实可领取的手续费（通过collect staticcall获取）
+        collectable: {
+          token0: collectableAmount0.toString(),
+          token1: collectableAmount1.toString(),
+          token0Formatted: formatFee(collectableAmount0, lpInfo.token0.decimals, lpInfo.token0.symbol),
+          token1Formatted: formatFee(collectableAmount1, lpInfo.token1.decimals, lpInfo.token1.symbol)
+        },
+        // 从positions函数获取的tokensOwed（仅供参考）
+        tokensOwed: {
+          token0: tokensOwed0.toString(),
+          token1: tokensOwed1.toString()
+        }
       },
       status: isInRange ? (hasLiquidity ? '✅ 活跃' : '⚠️ 无流动性') : '❌ 超出范围'
     };

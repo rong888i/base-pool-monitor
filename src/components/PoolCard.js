@@ -417,14 +417,14 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                         🎯 价格在范围内，正在赚取手续费
                         {/* 合并未领取手续费 */}
                         <div className="mt-2 flex flex-col items-center gap-1 text-xs font-normal text-success-700 dark:text-success-200">
-                          {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>未领取手续费</span></div> */}
+                          {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>可领取手续费</span></div> */}
                           <div className="flex gap-4 mt-1">
-                            <span>{pool.lpInfo.token0.symbol}: <span className="font-mono font-bold">{(
-                              Number(nftInfo.tokensOwed.token0) / Math.pow(10, pool.lpInfo.token0.decimals)
-                            ).toFixed(6)}</span></span>
-                            <span>{pool.lpInfo.token1.symbol}: <span className="font-mono font-bold">{(
-                              Number(nftInfo.tokensOwed.token1) / Math.pow(10, pool.lpInfo.token1.decimals)
-                            ).toFixed(6)}</span></span>
+                            <span className="font-mono font-bold">
+                              {nftInfo.fees?.collectable?.token0Formatted || '0.000000'}
+                            </span>
+                            <span className="font-mono font-bold">
+                              {nftInfo.fees?.collectable?.token1Formatted || '0.000000'}
+                            </span>
                           </div>
                         </div>
                       </>
