@@ -23,10 +23,7 @@ import { sendBarkNotification, isNFTInRange, getNotificationSettings } from '../
 
 // 预设的池子地址
 const DEFAULT_POOLS = [
-  '0xD317B5480faf6Ef228C502d9c4D0c04599C5B74b',
-  '0x099f84de4fb511e861ca8f635623eae409405873',
-  '0xafeCDd2Fc04F0939d7B6835529677608470c063d',
-  '0x3FF1B7b1d2516a981670a9fF0B485e7c905b2400'
+  '0x099F84dE4Fb511e861cA8F635623Eae409405873',
 ];
 
 export default function Home() {
