@@ -517,7 +517,7 @@ export default function Home() {
                     )}
                   </div>
                   <div className="text-gray-500 dark:text-gray-400">
-                    🚀 BSC 主网
+                    BSC 主网
                   </div>
                 </div>
               </div>
@@ -558,10 +558,10 @@ export default function Home() {
             )}
 
             {/* 页脚信息 - 手机端优化 */}
-            <div className="mt-6 text-center text-gray-500 text-xs px-4">
+            {/* <div className="mt-6 text-center text-gray-500 text-xs px-4">
               <p>🔗 BSC 主网 | 💡 Viem</p>
               <p className="mt-1">⚡ BSC DataSeed</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
