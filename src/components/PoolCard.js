@@ -225,10 +225,10 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                         style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
                       ></div>
                     </div>
-                    <div className="flex justify-between text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
+                    {/* <div className="flex justify-between text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
                       <span>{pool.lpInfo.token0.symbol}</span>
                       <span>{pool.lpInfo.token1.symbol}</span>
-                    </div>
+                    </div> */}
                   </>
                 );
               })()}
@@ -251,7 +251,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
           {/* NFT位置查询 */}
           <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs text-neutral-700 dark:text-neutral-300 font-medium">🎯 NFT位置查询</div>
+              <div className="text-xs text-neutral-700 dark:text-neutral-300 font-medium">🎯 V3 NFT 查询</div>
               {nftId.trim() && (
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                   {isLoadingNft ? '🔄 刷新中' : '🔄 自动刷新'}
@@ -334,9 +334,9 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
 
                   {/* 标签（横排，带颜色，紧贴可视化条上方） */}
                   <div className="flex justify-between text-xs font-medium px-1 mb-1">
-                    <span className="w-1/3 text-center text-success-500">下限</span>
-                    <span className="w-1/3 text-center text-neutral-500">中心</span>
-                    <span className="w-1/3 text-center text-error-500">上限</span>
+                    <span className="w-1/3 text-center font-bold text-success-500">下限</span>
+                    <span className="w-1/3 text-center font-bold text-neutral-500">中心</span>
+                    <span className="w-1/3 text-center font-bold text-error-500">上限</span>
                   </div>
 
                   {/* 价格范围条 */}
@@ -376,19 +376,19 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
 
                     {/* 数值（横排，带颜色，紧贴可视化条下方） */}
                     <div className="flex justify-between text-xs font-mono px-1 mt-1">
-                      <span className="w-1/3 text-center font-mono text-xs !text-success-500">
+                      <span className="w-1/3 text-center font-mono font-bold text-xs !text-success-500">
                         {showReversedPrice
                           ? (1 / nftInfo.priceRange.upper).toFixed(6)
                           : nftInfo.priceRange.lower.toFixed(6)
                         }
                       </span>
-                      <span className="w-1/3 text-center font-mono text-xs text-neutral-500">
+                      <span className="w-1/3 text-center font-mono font-bold text-xs text-neutral-500">
                         {showReversedPrice
                           ? (1 / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)).toFixed(6)
                           : ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2).toFixed(6)
                         }
                       </span>
-                      <span className="w-1/3 text-center font-mono text-xs text-error-500">
+                      <span className="w-1/3 text-center font-mono font-bold text-xs text-error-500">
                         {showReversedPrice
                           ? (1 / nftInfo.priceRange.lower).toFixed(6)
                           : nftInfo.priceRange.upper.toFixed(6)

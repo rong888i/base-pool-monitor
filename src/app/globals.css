@@ -89,20 +89,51 @@ body {
 
 /* Sidebar 滚动条美化 */
 .w-96::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
 }
 
 .w-96::-webkit-scrollbar-thumb {
-  background: #bdbdbd;
-  border-radius: 8px;
+  background: linear-gradient(to bottom,
+      rgba(99, 102, 241, 0.2),
+      rgba(99, 102, 241, 0.4));
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.w-96::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom,
+      rgba(99, 102, 241, 0.4),
+      rgba(99, 102, 241, 0.6));
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .w-96::-webkit-scrollbar-track {
   background: transparent;
+  margin: 2px 0;
 }
 
 /* 兼容 Firefox */
 .w-96 {
   scrollbar-width: thin;
-  scrollbar-color: #bdbdbd transparent;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+/* 暗色模式适配 */
+.dark .w-96::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom,
+      rgba(99, 102, 241, 0.15),
+      rgba(99, 102, 241, 0.3));
+  border: 1px solid rgba(99, 102, 241, 0.05);
+}
+
+.dark .w-96::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom,
+      rgba(99, 102, 241, 0.3),
+      rgba(99, 102, 241, 0.45));
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.dark .w-96 {
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
 }

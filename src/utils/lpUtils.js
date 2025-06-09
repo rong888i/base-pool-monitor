@@ -682,6 +682,8 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
       tokensOwed1
     ] = positionData;
 
+    console.log('positionData', positionData);
+
     // 解码collect数据（真实的手续费金额）
     const collectData = decodeAbiParameters([
       { type: 'uint256' }, // amount0
