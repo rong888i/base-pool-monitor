@@ -351,12 +351,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex overflow-x-hidden">
       {/* 侧边栏 */}
       <Sidebar onAddPool={handleAddPoolFromSidebar} pools={pools} onToggle={handleSidebarToggle} />
 
       {/* 主内容区 */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-x-hidden">
         <div className="container mx-auto px-3 py-4">
           {/* 控制面板 - 在移动端侧边栏打开时隐藏 */}
           <div className={`${isSidebarOpen ? 'hidden lg:block' : 'block'} relative bg-gradient-to-r from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/20 dark:to-purple-950/20 
