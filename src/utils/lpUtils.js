@@ -1,4 +1,4 @@
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, encodeFunctionData, decodeAbiParameters } from 'viem';
 import { bsc } from 'viem/chains';
 
 // BSC主网配置
@@ -130,17 +130,17 @@ const POSITION_MANAGER_ADDRESSES = {
  */
 function identifyProtocol(factoryAddress) {
   const upperFactory = factoryAddress.toUpperCase();
-  
+
   if (upperFactory === PROTOCOL_FACTORIES.PANCAKESWAP_V3.toUpperCase()) {
     return {
-      name: 'PancakeSwap V3',
+      name: 'PanCake V3',
       icon: '🥞',
       color: 'bg-yellow-100 text-yellow-800',
       borderColor: 'border-yellow-300'
     };
   } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3.toUpperCase()) {
     return {
-      name: 'Uniswap V3',
+      name: 'Uni V3',
       icon: '🦄',
       color: 'bg-pink-100 text-pink-800',
       borderColor: 'border-pink-300'
@@ -163,7 +163,7 @@ function identifyProtocol(factoryAddress) {
  */
 function formatBalance(balance, decimals) {
   const balanceNumber = Number(balance) / Math.pow(10, decimals);
-  
+
   if (balanceNumber >= 1000000) {
     return `${(balanceNumber / 1000000).toFixed(2)}M`;
   } else if (balanceNumber >= 1000) {
@@ -192,140 +192,334 @@ function calculatePriceFromSqrtPriceX96(sqrtPriceX96, decimals0, decimals1) {
 }
 
 /**
- * 获取LP池的详细信息
- * @param {string} poolAddress - LP池地址
- * @returns {Object} 包含价格、tick等信息的对象
+ * 批量获取LP池的详细信息
+ * @param {string[]} poolAddresses - LP池地址数组
+ * @returns {Promise<Object[]>} 包含价格、tick等信息的对象数组
  */
-async function getLPInfo(poolAddress) {
+async function getBatchLPInfo(poolAddresses) {
   try {
-    console.log(`🔍 正在获取LP池信息: ${poolAddress}`);
+    console.log(`🔍 正在批量获取LP池信息: ${poolAddresses.length}个池子`);
 
-    // 1. 获取池子的基本信息（包括factory地址）
-    const [factoryAddress, slot0Data, token0Address, token1Address, fee, liquidity] = await Promise.all([
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'factory'
-      }),
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'slot0'
-      }),
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'token0'
-      }),
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'token1'
-      }),
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'fee'
-      }),
-      client.readContract({
-        address: poolAddress,
-        abi: POOL_ABI,
-        functionName: 'liquidity'
-      })
-    ]);
+    // 1. 准备所有池子的基本信息请求
+    const batchRequests = poolAddresses.flatMap(poolAddress => {
+      const factoryData = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-factory`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'factory'
+          })
+        }, 'latest']
+      };
 
-    // 2. 识别协议
-    const protocol = identifyProtocol(factoryAddress);
+      const slot0Data = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-slot0`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'slot0'
+          })
+        }, 'latest']
+      };
 
-    // 3. 获取代币信息和余额
-    const [token0Info, token1Info, token0Balance, token1Balance] = await Promise.all([
-      Promise.all([
-        client.readContract({
-          address: token0Address,
-          abi: ERC20_ABI,
-          functionName: 'symbol'
-        }),
-        client.readContract({
-          address: token0Address,
-          abi: ERC20_ABI,
-          functionName: 'decimals'
-        })
-      ]),
-      Promise.all([
-        client.readContract({
-          address: token1Address,
-          abi: ERC20_ABI,
-          functionName: 'symbol'
-        }),
-        client.readContract({
-          address: token1Address,
-          abi: ERC20_ABI,
-          functionName: 'decimals'
-        })
-      ]),
-      client.readContract({
-        address: token0Address,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [poolAddress]
-      }),
-      client.readContract({
-        address: token1Address,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [poolAddress]
-      })
-    ]);
+      const token0Data = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-token0`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'token0'
+          })
+        }, 'latest']
+      };
 
-    const [token0Symbol, token0Decimals] = token0Info;
-    const [token1Symbol, token1Decimals] = token1Info;
+      const token1Data = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-token1`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'token1'
+          })
+        }, 'latest']
+      };
 
-    // 4. 解析slot0数据
-    const [sqrtPriceX96, tick] = slot0Data;
+      const feeData = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-fee`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'fee'
+          })
+        }, 'latest']
+      };
 
-    // 5. 计算价格
-    const price = calculatePriceFromSqrtPriceX96(sqrtPriceX96, token0Decimals, token1Decimals);
-    const reversePrice = 1 / price;
+      const liquidityData = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-liquidity`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: POOL_ABI,
+            functionName: 'liquidity'
+          })
+        }, 'latest']
+      };
 
-    // 6. 格式化结果
-    const result = {
-      poolAddress,
-      protocol, // 添加协议信息
-      factoryAddress,
-      token0: {
-        address: token0Address,
-        symbol: token0Symbol,
-        decimals: token0Decimals,
-        balance: formatBalance(token0Balance, token0Decimals),
-        rawBalance: token0Balance.toString()
+      return [factoryData, slot0Data, token0Data, token1Data, feeData, liquidityData];
+    });
+
+    // 2. 执行批量RPC调用
+    const response = await fetch('http://birdonline.xyz:8501/bsc', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      token1: {
-        address: token1Address,
-        symbol: token1Symbol,
-        decimals: token1Decimals,
-        balance: formatBalance(token1Balance, token1Decimals),
-        rawBalance: token1Balance.toString()
-      },
-      fee: Number(fee),
-      feePercentage: Number(fee) / 10000, // 费率百分比
-      tick: Number(tick),
-      liquidity: liquidity.toString(),
-      sqrtPriceX96: sqrtPriceX96.toString(),
-      price: {
-        token1PerToken0: price,
-        token0PerToken1: reversePrice,
-        formatted: `1 ${token0Symbol} = ${price.toFixed(6)} ${token1Symbol}`,
-        formattedReverse: `1 ${token1Symbol} = ${reversePrice.toFixed(6)} ${token0Symbol}`
-      },
-      lastUpdated: new Date().toLocaleTimeString()
-    };
+      body: JSON.stringify(batchRequests)
+    });
 
-    return result;
+    const basicInfoResults = await response.json();
+    if (!Array.isArray(basicInfoResults)) {
+      throw new Error('Invalid RPC response');
+    }
+
+    // 3. 处理结果并准备代币信息请求
+    const tokenRequests = [];
+    const poolInfos = [];
+
+    for (let i = 0; i < poolAddresses.length; i++) {
+      const baseIndex = i * 6;
+      const [
+        factoryResult,
+        slot0Result,
+        token0Result,
+        token1Result,
+        feeResult,
+        liquidityResult
+      ] = basicInfoResults.slice(baseIndex, baseIndex + 6);
+
+      if (factoryResult.error || slot0Result.error || token0Result.error ||
+        token1Result.error || feeResult.error || liquidityResult.error) {
+        throw new Error(`RPC call failed: ${JSON.stringify(basicInfoResults.slice(baseIndex, baseIndex + 6))}`);
+      }
+
+      const factoryAddress = decodeAbiParameters([{ type: 'address' }], factoryResult.result)[0];
+      const token0Address = decodeAbiParameters([{ type: 'address' }], token0Result.result)[0];
+      const token1Address = decodeAbiParameters([{ type: 'address' }], token1Result.result)[0];
+      const fee = Number(decodeAbiParameters([{ type: 'uint24' }], feeResult.result)[0]);
+      const liquidity = BigInt(decodeAbiParameters([{ type: 'uint128' }], liquidityResult.result)[0]);
+
+      // 解析slot0数据
+      const slot0Decoded = decodeAbiParameters([
+        { type: 'uint160' },
+        { type: 'int24' },
+        { type: 'uint16' },
+        { type: 'uint16' },
+        { type: 'uint16' },
+        { type: 'uint8' },
+        { type: 'bool' }
+      ], slot0Result.result);
+
+      const sqrtPriceX96 = slot0Decoded[0];
+      const tick = Number(slot0Decoded[1]);
+
+      // 准备代币信息请求
+      tokenRequests.push(
+        {
+          jsonrpc: '2.0',
+          id: `${token0Address}-symbol`,
+          method: 'eth_call',
+          params: [{
+            to: token0Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'symbol'
+            })
+          }, 'latest']
+        },
+        {
+          jsonrpc: '2.0',
+          id: `${token0Address}-decimals`,
+          method: 'eth_call',
+          params: [{
+            to: token0Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'decimals'
+            })
+          }, 'latest']
+        },
+        {
+          jsonrpc: '2.0',
+          id: `${token1Address}-symbol`,
+          method: 'eth_call',
+          params: [{
+            to: token1Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'symbol'
+            })
+          }, 'latest']
+        },
+        {
+          jsonrpc: '2.0',
+          id: `${token1Address}-decimals`,
+          method: 'eth_call',
+          params: [{
+            to: token1Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'decimals'
+            })
+          }, 'latest']
+        },
+        {
+          jsonrpc: '2.0',
+          id: `${token0Address}-balance`,
+          method: 'eth_call',
+          params: [{
+            to: token0Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'balanceOf',
+              args: [poolAddresses[i]]
+            })
+          }, 'latest']
+        },
+        {
+          jsonrpc: '2.0',
+          id: `${token1Address}-balance`,
+          method: 'eth_call',
+          params: [{
+            to: token1Address,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: 'balanceOf',
+              args: [poolAddresses[i]]
+            })
+          }, 'latest']
+        }
+      );
+
+      poolInfos.push({
+        poolAddress: poolAddresses[i],
+        factoryAddress,
+        slot0Data: [sqrtPriceX96, tick],
+        token0Address,
+        token1Address,
+        fee,
+        liquidity
+      });
+    }
+
+    // 4. 执行代币信息的批量RPC调用
+    const tokenResponse = await fetch('http://birdonline.xyz:8501/bsc', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tokenRequests)
+    });
+
+    const tokenResults = await tokenResponse.json();
+    if (!Array.isArray(tokenResults)) {
+      throw new Error('Invalid RPC response for token info');
+    }
+
+    // 5. 处理所有结果
+    const finalResults = [];
+    for (let i = 0; i < poolAddresses.length; i++) {
+      const poolInfo = poolInfos[i];
+      const tokenBaseIndex = i * 6;
+      const [
+        token0SymbolResult,
+        token0DecimalsResult,
+        token1SymbolResult,
+        token1DecimalsResult,
+        token0BalanceResult,
+        token1BalanceResult
+      ] = tokenResults.slice(tokenBaseIndex, tokenBaseIndex + 6);
+
+      if (token0SymbolResult.error || token0DecimalsResult.error || token1SymbolResult.error ||
+        token1DecimalsResult.error || token0BalanceResult.error || token1BalanceResult.error) {
+        throw new Error(`Token RPC call failed: ${JSON.stringify(tokenResults.slice(tokenBaseIndex, tokenBaseIndex + 6))}`);
+      }
+
+      // 使用 viem 解码结果
+      const token0Symbol = decodeAbiParameters([{ type: 'string' }], token0SymbolResult.result)[0];
+      const token1Symbol = decodeAbiParameters([{ type: 'string' }], token1SymbolResult.result)[0];
+      const token0Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token0DecimalsResult.result)[0]);
+      const token1Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token1DecimalsResult.result)[0]);
+      const token0Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token0BalanceResult.result)[0]);
+      const token1Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token1BalanceResult.result)[0]);
+
+      const [sqrtPriceX96, tick] = poolInfo.slot0Data;
+      const price = calculatePriceFromSqrtPriceX96(sqrtPriceX96, token0Decimals, token1Decimals);
+      const reversePrice = 1 / price;
+
+      finalResults.push({
+        poolAddress: poolInfo.poolAddress,
+        protocol: identifyProtocol(poolInfo.factoryAddress),
+        factoryAddress: poolInfo.factoryAddress,
+        token0: {
+          address: poolInfo.token0Address,
+          symbol: token0Symbol,
+          decimals: token0Decimals,
+          balance: formatBalance(token0Balance, token0Decimals),
+          rawBalance: token0Balance.toString()
+        },
+        token1: {
+          address: poolInfo.token1Address,
+          symbol: token1Symbol,
+          decimals: token1Decimals,
+          balance: formatBalance(token1Balance, token1Decimals),
+          rawBalance: token1Balance.toString()
+        },
+        fee: Number(poolInfo.fee),
+        feePercentage: Number(poolInfo.fee) / 10000,
+        tick: Number(tick),
+        liquidity: poolInfo.liquidity.toString(),
+        sqrtPriceX96: sqrtPriceX96.toString(),
+        price: {
+          token1PerToken0: price,
+          token0PerToken1: reversePrice,
+          formatted: `1 ${token0Symbol} = ${price.toFixed(6)} ${token1Symbol}`,
+          formattedReverse: `1 ${token1Symbol} = ${reversePrice.toFixed(6)} ${token0Symbol}`
+        },
+        lastUpdated: new Date().toLocaleTimeString()
+      });
+    }
+
+    return finalResults;
 
   } catch (error) {
-    console.error('❌ 获取LP信息时出错:', error.message);
+    console.error('❌ 批量获取LP信息时出错:', error.message);
     throw error;
   }
+}
+
+/**
+ * 获取单个LP池的详细信息
+ * @param {string} poolAddress - LP池地址
+ * @returns {Promise<Object>} 包含价格、tick等信息的对象
+ */
+async function getLPInfo(poolAddress) {
+  const results = await getBatchLPInfo([poolAddress]);
+  return results[0];
 }
 
 /**
@@ -335,7 +529,7 @@ async function getLPInfo(poolAddress) {
  */
 function getPositionManagerAddress(factoryAddress) {
   const upperFactory = factoryAddress.toUpperCase();
-  
+
   if (upperFactory === PROTOCOL_FACTORIES.PANCAKESWAP_V3.toUpperCase()) {
     return POSITION_MANAGER_ADDRESSES.PANCAKESWAP_V3;
   } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3.toUpperCase()) {
@@ -397,8 +591,8 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
 
     // 验证NFT是否属于当前池子
     const isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
-                       token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
-                       Number(fee) === lpInfo.fee;
+      token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
+      Number(fee) === lpInfo.fee;
 
     if (!isValidPool) {
       throw new Error('NFT不属于当前池子');
@@ -449,4 +643,4 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
   }
 }
 
-export { getLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo }; 
+export { getLPInfo, getBatchLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo }; 
