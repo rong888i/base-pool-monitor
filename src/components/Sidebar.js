@@ -1,5 +1,63 @@
 import { useState } from 'react';
 
+// 获取DEX名称和版本
+const getDexInfo = (pool) => {
+    let dexName = '未知';
+    let version = null;
+
+    // 处理已知的DEX
+    if (pool.dexId) {
+        switch (pool.dexId.toLowerCase()) {
+            case 'pancakeswap':
+                dexName = 'PancakeSwap';
+                break;
+            case 'uniswap':
+                dexName = 'Uniswap';
+                break;
+            case 'squadswap':
+                dexName = 'SquadSwap';
+                break;
+            default:
+                dexName = 'Unknown DEX';
+        }
+    }
+
+    // 获取版本信息
+    if (pool.labels && pool.labels.length > 0) {
+        version = pool.labels[0];
+    }
+
+    return { dexName, version };
+};
+
+// 格式化数字
+const formatNumber = (num) => {
+    if (num >= 1000000) {
+        return `$${(num / 1000000).toFixed(2)}M`;
+    } else if (num >= 1000) {
+        return `$${(num / 1000).toFixed(2)}K`;
+    }
+    return `$${num.toFixed(2)}`;
+};
+
+// 格式化地址
+const formatAddress = (address) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+const getRpcUrl = (chainId) => {
+    const rpcUrls = {
+        'bsc': 'https://bsc-dataseed.binance.org/',
+        'ethereum': 'https://eth.llamarpc.com',
+        'arbitrum': 'https://arbitrum.llamarpc.com',
+        'polygon': 'https://polygon.llamarpc.com',
+        'avalanche': 'https://api.avax.network/ext/bc/C/rpc',
+        'optimism': 'https://mainnet.optimism.io',
+        'base': 'https://mainnet.base.org',
+    };
+    return rpcUrls[chainId.toLowerCase()];
+};
+
 const Sidebar = ({ onAddPool, pools, onToggle }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -29,51 +87,6 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
         }
     };
 
-    // 获取DEX名称和版本
-    const getDexInfo = (pool) => {
-        let dexName = '未知';
-        let version = null;
-
-        // 处理已知的DEX
-        if (pool.dexId) {
-            switch (pool.dexId.toLowerCase()) {
-                case 'pancakeswap':
-                    dexName = 'PancakeSwap';
-                    break;
-                case 'uniswap':
-                    dexName = 'Uniswap';
-                    break;
-                case 'squadswap':
-                    dexName = 'SquadSwap';
-                    break;
-                default:
-                    dexName = 'Unknown DEX';
-            }
-        }
-
-        // 获取版本信息
-        if (pool.labels && pool.labels.length > 0) {
-            version = pool.labels[0];
-        }
-
-        return { dexName, version };
-    };
-
-    // 格式化数字
-    const formatNumber = (num) => {
-        if (num >= 1000000) {
-            return `$${(num / 1000000).toFixed(2)}M`;
-        } else if (num >= 1000) {
-            return `$${(num / 1000).toFixed(2)}K`;
-        }
-        return `$${num.toFixed(2)}`;
-    };
-
-    // 格式化地址
-    const formatAddress = (address) => {
-        return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    };
-
     const searchPools = async () => {
         if (!searchAddress.trim()) {
             setError('请输入代币合约地址');
@@ -87,7 +100,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
             const data = await response.json();
 
             if (data.pairs && data.pairs.length > 0) {
-                setSearchResults(data.pairs.map(pool => {
+                const dexscreenerPools = data.pairs.map(pool => {
                     return {
                         name: `${pool.baseToken.symbol}/${pool.quoteToken.symbol}`,
                         address: pool.pairAddress,
@@ -101,7 +114,81 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                         baseToken: pool.baseToken,
                         quoteToken: pool.quoteToken
                     };
-                }));
+                });
+
+                const fetchPoolFees = async (poolsToFetch) => {
+                    const poolsByChain = poolsToFetch.reduce((acc, pool) => {
+                        if (!acc[pool.chain]) {
+                            acc[pool.chain] = [];
+                        }
+                        acc[pool.chain].push(pool);
+                        return acc;
+                    }, {});
+
+                    const feePromises = Object.entries(poolsByChain).map(async ([chain, chainPools]) => {
+                        const rpcUrl = getRpcUrl(chain);
+                        if (!rpcUrl) {
+                            return chainPools.map(p => ({ ...p, fee: null }));
+                        }
+
+                        const batchSize = 8;
+                        let processedPools = [];
+
+                        for (let i = 0; i < chainPools.length; i += batchSize) {
+                            const batch = chainPools.slice(i, i + batchSize);
+                            const requests = batch.map((pool, index) => ({
+                                jsonrpc: '2.0',
+                                id: i + index,
+                                method: 'eth_call',
+                                params: [{ to: pool.address, data: '0xddca3f43' }, 'latest'] // fee()
+                            }));
+
+                            try {
+                                const res = await fetch(rpcUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(requests)
+                                });
+                                const results = await res.json();
+
+                                const resultsById = Array.isArray(results) ? results.reduce((acc, r) => {
+                                    acc[r.id] = r;
+                                    return acc;
+                                }, {}) : {};
+
+                                const batchWithFees = batch.map((pool, index) => {
+                                    const result = resultsById[i + index];
+                                    let fee = null;
+                                    if (result && result.result && result.result !== '0x') {
+                                        const feeValue = parseInt(result.result, 16);
+                                        fee = feeValue / 10000;
+                                    } else {
+                                        const { dexName, version } = getDexInfo(pool);
+                                        if (version && version.toLowerCase().includes('v2')) {
+                                            if (dexName === 'PancakeSwap') fee = 0.25;
+                                            else if (dexName === 'Uniswap') fee = 0.3;
+                                        }
+                                    }
+                                    return { ...pool, fee };
+                                });
+                                processedPools.push(...batchWithFees);
+                            } catch (e) {
+                                console.error(`Error fetching fees for chain ${chain}`, e);
+                                processedPools.push(...batch.map(p => ({ ...p, fee: null })));
+                            }
+                        }
+                        return processedPools;
+                    });
+
+                    const results = await Promise.all(feePromises);
+                    // Flatten and restore original order
+                    const poolOrder = poolsToFetch.map(p => p.address);
+                    return results.flat().sort((a, b) => poolOrder.indexOf(a.address) - poolOrder.indexOf(b.address));
+                };
+
+                const poolsWithFees = await fetchPoolFees(dexscreenerPools);
+                setSearchResults(poolsWithFees);
+
             } else {
                 setSearchResults([]);
                 setError('未找到相关池子');
@@ -116,7 +203,14 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
 
     const handleAddPool = (pool) => {
         onAddPool(pool);
-        setSearchResults(prev => prev.filter(p => p.address !== pool.address));
+    };
+
+    const handleTogglePool = (pool) => {
+        if (isPoolAdded(pool.address)) {
+            handleRemovePool(pool);
+        } else {
+            handleAddPool(pool);
+        }
     };
 
     // 处理侧边栏切换
@@ -279,29 +373,29 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                                             <div className="font-medium text-neutral-900 dark:text-white">{pool.name}</div>
                                             <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                                                 {getDexInfo(pool).dexName}{getDexInfo(pool).version ? ` · ${getDexInfo(pool).version}` : ''} · {pool.chain}
+                                                {pool.fee !== null && ` · ${pool.fee.toFixed(2)}%`}
                                             </div>
                                         </div>
-                                        {isPoolAdded(pool.address) ? (
-                                            <button
-                                                onClick={() => handleRemovePool(pool)}
-                                                className="px-3 py-1.5 bg-error-500 hover:bg-error-600 text-white rounded-lg hover:shadow-lg hover:shadow-error-500/20 transition-all duration-200 text-sm font-medium flex items-center gap-1"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        <button
+                                            onClick={() => handleTogglePool(pool)}
+                                            aria-label={isPoolAdded(pool.address) ? 'Remove pool' : 'Add pool'}
+                                            className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-800
+                                                ${isPoolAdded(pool.address)
+                                                    ? 'bg-primary-500 hover:bg-primary-600 text-white focus:ring-primary-500'
+                                                    : 'bg-transparent border-2 border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                                }`
+                                            }
+                                        >
+                                            {isPoolAdded(pool.address) ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                 </svg>
-                                                删除
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => onAddPool(pool)}
-                                                className="px-3 py-1.5 bg-success-500 hover:bg-success-600 text-white rounded-lg hover:shadow-lg hover:shadow-success-500/20 transition-all duration-200 text-sm font-medium flex items-center gap-1"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-6-6h12" />
                                                 </svg>
-                                                添加
-                                            </button>
-                                        )}
+                                            )}
+                                        </button>
                                     </div>
 
                                     {/* 池子地址 */}
