@@ -130,15 +130,17 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
     };
 
     return (
-        <div className={`${isCollapsed ? 'w-0' : 'w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 h-screen overflow-hidden transition-all duration-300 relative`}>
+        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 h-screen overflow-hidden transition-all duration-300 relative`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
-                className="fixed top-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md z-50"
-                style={{ left: isCollapsed ? '0.5rem' : 'calc(24rem - 1rem)' }}
+                className={`fixed top-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md z-50 ${isCollapsed
+                    ? 'left-3'
+                    : 'sm:left-[21.5rem] left-[calc(100%-3rem)]'
+                    }`}
             >
                 <svg
-                    className={`w-5 h-5 text-neutral-600 dark:text-neutral-400 transform transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 text-neutral-600 dark:text-neutral-400 transform transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

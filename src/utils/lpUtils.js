@@ -585,6 +585,74 @@ function calculatePriceFromTick(tick, decimals0, decimals1) {
 }
 
 /**
+ * 从tick计算sqrtPriceX96 (近似值)
+ * @param {number} tick - tick值
+ * @returns {bigint} sqrtPriceX96
+ */
+function tickToSqrtPriceX96(tick) {
+  const sqrtPrice = Math.pow(1.0001, tick / 2);
+  const Q96 = 2n ** 96n;
+  // Using parseFloat on BigInt.toString() is safe for JS number limits
+  return BigInt(Math.floor(sqrtPrice * parseFloat(Q96.toString())));
+}
+
+/**
+ * 根据流动性计算代币数量
+ * @param {string} liquidity - 流动性
+ * @param {string} sqrtPriceX96_current - 当前的sqrtPriceX96
+ * @param {number} tickCurrent - 当前的tick
+ * @param {number} tickLower - 区间下限tick
+ * @param {number} tickUpper - 区间上限tick
+ * @param {number} decimals0 - token0的小数位数
+ * @param {number} decimals1 - token1的小数位数
+ * @returns {object} 包含两种代币数量的对象
+ */
+function getAmountsForLiquidity(liquidity, sqrtPriceX96_current, tickCurrent, tickLower, tickUpper, decimals0, decimals1) {
+  const L = BigInt(liquidity);
+  if (L === 0n) {
+    return {
+      raw: { token0: '0', token1: '0' },
+      formatted: { token0: '0.000000', token1: '0.000000' }
+    };
+  }
+
+  const sp_current = BigInt(sqrtPriceX96_current);
+  const sa = tickToSqrtPriceX96(tickLower);
+  const sb = tickToSqrtPriceX96(tickUpper);
+  const Q96 = 2n ** 96n;
+
+  let amount0 = 0n;
+  let amount1 = 0n;
+
+  if (tickCurrent < tickLower) {
+    if (sa > 0 && sb > 0) {
+      amount0 = (L * (sb - sa) * Q96) / (sb * sa);
+    }
+  } else if (tickCurrent >= tickUpper) {
+    amount1 = (L * (sb - sa)) / Q96;
+  } else {
+    if (sp_current > 0 && sb > 0) {
+      amount0 = (L * (sb - sp_current) * Q96) / (sb * sp_current);
+    }
+    amount1 = (L * (sp_current - sa)) / Q96;
+  }
+
+  const amount0Formatted = Number(amount0) / (10 ** decimals0);
+  const amount1Formatted = Number(amount1) / (10 ** decimals1);
+
+  return {
+    raw: {
+      token0: amount0.toString(),
+      token1: amount1.toString(),
+    },
+    formatted: {
+      token0: amount0Formatted.toFixed(6),
+      token1: amount1Formatted.toFixed(6),
+    }
+  };
+}
+
+/**
  * 获取NFT位置信息
  * @param {string} nftId - NFT ID
  * @param {string} poolAddress - 池子地址
@@ -720,6 +788,17 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     // 计算流动性状态
     const hasLiquidity = Number(liquidity) > 0;
 
+    // 计算仓位包含的代币数量
+    const positionLiquidity = getAmountsForLiquidity(
+      liquidity.toString(),
+      lpInfo.sqrtPriceX96,
+      lpInfo.tick,
+      Number(tickLower),
+      Number(tickUpper),
+      lpInfo.token0.decimals,
+      lpInfo.token1.decimals
+    );
+
     // 格式化手续费金额
     const formatFee = (amount, decimals, symbol) => {
       const feeAmount = Number(amount) / Math.pow(10, decimals);
@@ -752,6 +831,7 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
         upperFormatted: `1 ${lpInfo.token0.symbol} = ${priceUpper.toFixed(6)} ${lpInfo.token1.symbol}`
       },
       currentPrice: currentPrice,
+      positionLiquidity,
       fees: {
         // 真实可领取的手续费（通过collect staticcall获取）
         collectable: {

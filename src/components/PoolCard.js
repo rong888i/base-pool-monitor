@@ -352,6 +352,128 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                     </div>
                   </div>
 
+
+                  {/* 仓位详情 */}
+                  <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
+
+                      <div className="flex items-center gap-2">
+                        <div className={`text-xs font-medium px-2 py-0.5 rounded-full border ${nftInfo.isInRange
+                          ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-900/30 dark:text-success-300 dark:border-success-700/50'
+                          : 'bg-error-50 text-error-700 border-error-200 dark:bg-error-900/30 dark:text-error-300 dark:border-error-700/50'
+                          }`}>
+                          {nftInfo.isInRange ? '范围内' : '范围外'}
+                        </div>
+
+                        {(() => {
+                          if (!nftInfo?.liquidity || !pool.lpInfo?.liquidity || BigInt(pool.lpInfo.liquidity) === 0n) {
+                            return null;
+                          }
+                          const totalLiquidity = BigInt(pool.lpInfo.liquidity);
+                          const nftLiquidity = BigInt(nftInfo.liquidity);
+
+                          const basisPoints = (nftLiquidity * 10000n) / totalLiquidity;
+                          const percentage = Number(basisPoints) / 100;
+
+                          let displayPercentage;
+                          if (percentage < 0.01 && percentage > 0) {
+                            displayPercentage = '< 0.01%';
+                          } else {
+                            displayPercentage = `${percentage.toFixed(2)}%`;
+                          }
+
+                          // 根据占比大小选择不同的颜色样式
+                          let colorClass = 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700'; // 默认: 虾米
+                          if (percentage >= 10) { // 巨鲸
+                            colorClass = 'bg-error-50 text-error-700 border-error-200 dark:bg-error-500/10 dark:text-error-400 dark:border-error-500/30';
+                          } else if (percentage >= 1) { // 海豚
+                            colorClass = 'bg-warning-50 text-warning-700 border-warning-500/30 dark:bg-warning-700/20 dark:text-warning-500 dark:border-warning-700/30';
+                          } else if (percentage >= 0.1) { // 鱼
+                            colorClass = 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-500/10 dark:text-primary-400 dark:border-primary-500/30';
+                          }
+
+                          return (
+                            <div
+                              className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full border ${colorClass}`}
+                              title={`仓位占比\nNFT 流动性: ${nftLiquidity.toString()}\n池子总流动性: ${totalLiquidity.toString()}`}
+                            >
+                              {displayPercentage}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    {(() => {
+                      if (!nftInfo.positionLiquidity || !nftInfo.hasLiquidity) {
+                        return (
+                          <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 py-2">
+                            仓位中没有流动性
+                          </div>
+                        );
+                      }
+
+                      const token0Amount = Number(nftInfo.positionLiquidity.raw.token0) / (10 ** pool.lpInfo.token0.decimals);
+                      const token1Amount = Number(nftInfo.positionLiquidity.raw.token1) / (10 ** pool.lpInfo.token1.decimals);
+
+                      const token0Value = token0Amount;
+                      const token1Value = token1Amount * pool.lpInfo.price.token0PerToken1;
+                      const totalValue = token0Value + token1Value;
+
+                      const percent0 = totalValue === 0 ? 50 : (token0Value / totalValue) * 100;
+                      const percent1 = 100 - percent0;
+
+                      return (
+                        <>
+                          <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
+                            <div
+                              className="h-full bg-primary-500 transition-all duration-300"
+                              style={{ width: `${percent0}%`, minWidth: percent0 > 0 ? '4px' : '0' }}
+                            ></div>
+                            <div
+                              className="h-full bg-success-500 transition-all duration-300"
+                              style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
+                            ></div>
+                          </div>
+                          <div className="mt-2 space-y-1.5">
+                            <div className="flex justify-between items-baseline bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-xs font-mono">
+                              <span className="text-primary-700 dark:text-primary-400 font-semibold">{pool.lpInfo.token0.symbol}</span>
+                              <div className="text-right">
+                                <span className="text-neutral-800 dark:text-neutral-200 font-semibold">{nftInfo.positionLiquidity.formatted.token0}</span>
+                                <span className="ml-2 text-success-600 dark:text-success-400" title="未领取手续费">
+                                  {(() => {
+                                    const fee = nftInfo.fees?.collectable?.token0;
+                                    const decimals = pool.lpInfo.token0.decimals;
+                                    if (!fee || fee === '0') return '(+0.00)';
+                                    const amount = Number(fee) / (10 ** decimals);
+                                    const formattedAmount = amount < 0.000001 ? amount.toExponential(2) : amount.toFixed(6);
+                                    return `(+${formattedAmount})`;
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-baseline bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-xs font-mono">
+                              <span className="text-success-700 dark:text-success-400 font-semibold">{pool.lpInfo.token1.symbol}</span>
+                              <div className="text-right">
+                                <span className="text-neutral-800 dark:text-neutral-200 font-semibold">{nftInfo.positionLiquidity.formatted.token1}</span>
+                                <span className="ml-2 text-success-600 dark:text-success-400" title="未领取手续费">
+                                  {(() => {
+                                    const fee = nftInfo.fees?.collectable?.token1;
+                                    const decimals = pool.lpInfo.token1.decimals;
+                                    if (!fee || fee === '0') return '(+0.00)';
+                                    const amount = Number(fee) / (10 ** decimals);
+                                    const formattedAmount = amount < 0.000001 ? amount.toExponential(2) : amount.toFixed(6);
+                                    return `(+${formattedAmount})`;
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
                   {/* 价格范围可视化 */}
                   <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
@@ -441,18 +563,6 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                       {nftInfo.isInRange
                         ? <>
                           🎯 价格在范围内，正在赚取手续费
-                          {/* 合并未领取手续费 */}
-                          <div className="mt-2 flex flex-col items-center gap-1 text-xs font-normal text-success-700 dark:text-success-200">
-                            {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>可领取手续费</span></div> */}
-                            <div className="flex gap-4 mt-1">
-                              <span className="font-mono font-bold">
-                                {nftInfo.fees?.collectable?.token0Formatted || '0.000000'}
-                              </span>
-                              <span className="font-mono font-bold">
-                                {nftInfo.fees?.collectable?.token1Formatted || '0.000000'}
-                              </span>
-                            </div>
-                          </div>
                         </>
                         : nftInfo.currentPrice < nftInfo.priceRange.lower
                           ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
@@ -466,23 +576,8 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                     </div>
                   </div>
 
-                  {/* 双向价格对比 */}
-                  {/* <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
-                    <div className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">📊 当前价格对比:</div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}:</span>
-                        <span className="font-mono text-primary-800 dark:text-primary-200">{nftInfo.currentPrice.toFixed(6)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}:</span>
-                        <span className="font-mono text-primary-800 dark:text-primary-200">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
-                      </div>
-                    </div>
-                  </div> */}
-
                   {/* 流动性和收益信息 */}
-                  <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
+                  {/* <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
                     <div className="flex items-center gap-1">
                       <span className="text-neutral-600 dark:text-neutral-400">💧 流动性:</span>
                       <span className={`font-medium ${nftInfo.hasLiquidity ? 'text-success-500' : 'text-error-500'}`}>
@@ -495,7 +590,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                         {nftInfo.isInRange ? '活跃' : '非活跃'}
                       </span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               )}
             </div>
