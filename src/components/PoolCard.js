@@ -435,11 +435,19 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                             <div className="text-xs text-neutral-700 dark:text-neutral-300 font-medium mb-2">💰 价格</div>
                             <div className="flex items-center justify-around bg-white dark:bg-neutral-900 p-2 rounded-lg text-xs font-mono">
                                 <div className="text-center">
-                                    {pool.lpInfo.price.formatted}
+                                    <span className="text-neutral-500 dark:text-neutral-400">1</span>
+                                    <span className="font-semibold text-success-700 dark:text-success-400 mx-1">{pool.lpInfo.token1.symbol}</span>
+                                    <span className="text-neutral-500 dark:text-neutral-400">=</span>
+                                    <span className="font-semibold text-neutral-800 dark:text-neutral-200 mx-1">{pool.lpInfo.price.token0PerToken1.toFixed(6)}</span>
+                                    <span className="font-semibold text-primary-700 dark:text-primary-400">{pool.lpInfo.token0.symbol}</span>
                                 </div>
                                 <div className="h-4 w-px bg-neutral-300 dark:bg-neutral-700"></div>
                                 <div className="text-center">
-                                    {pool.lpInfo.price.formattedReverse}
+                                    <span className="text-neutral-500 dark:text-neutral-400">1</span>
+                                    <span className="font-semibold text-primary-700 dark:text-primary-400 mx-1">{pool.lpInfo.token0.symbol}</span>
+                                    <span className="text-neutral-500 dark:text-neutral-400">=</span>
+                                    <span className="font-semibold text-neutral-800 dark:text-neutral-200 mx-1">{(1 / pool.lpInfo.price.token0PerToken1).toFixed(6)}</span>
+                                    <span className="font-semibold text-success-700 dark:text-success-400">{pool.lpInfo.token1.symbol}</span>
                                 </div>
                             </div>
                         </div>
