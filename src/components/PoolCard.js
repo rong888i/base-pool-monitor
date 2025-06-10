@@ -5,9 +5,9 @@ import { getNFTPositionInfo } from '../utils/lpUtils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
+const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftIdChange }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [nftId, setNftId] = useState('');
+    const [nftId, setNftId] = useState(pool.nftId || '');
     const [nftInfo, setNftInfo] = useState(null);
     const [isLoadingNft, setIsLoadingNft] = useState(false);
     const [nftError, setNftError] = useState(null);
@@ -37,6 +37,18 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
         transition,
         opacity: isDragging ? 0.5 : 1,
         zIndex: isDragging ? 1 : 0,
+    };
+
+    // 当父组件传入的nftId变化时，同步到本组件的内部state
+    useEffect(() => {
+        setNftId(pool.nftId || '');
+    }, [pool.nftId]);
+
+    const handleNftIdInputChange = (newId) => {
+        setNftId(newId);
+        if (onNftIdChange) {
+            onNftIdChange(newId);
+        }
     };
 
     const handleRefresh = async () => {
@@ -191,7 +203,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
         setShowNftPanel(false); // 先触发关闭动画
         // 延迟清除数据，让动画有时间播放
         setTimeout(() => {
-            setNftId('');
+            handleNftIdInputChange(''); // 使用新的处理器来清空ID并上报
             setNftInfo(null);
             setNftError(null);
         }, 500); // 与动画持续时间一致
@@ -465,7 +477,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                                     type="text"
                                     placeholder="输入NFT ID"
                                     value={nftId}
-                                    onChange={(e) => setNftId(e.target.value)}
+                                    onChange={(e) => handleNftIdInputChange(e.target.value)}
                                     className="input-primary flex-1 text-xs pr-8"
                                 />
                                 {nftId && (

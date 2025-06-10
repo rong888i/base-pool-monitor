@@ -144,8 +144,39 @@ const POSITION_MANAGER_ABI = [
     ],
     stateMutability: 'payable',
     type: 'function'
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'owner', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'owner', type: 'address' },
+      { internalType: 'uint256', name: 'index', type: 'uint256' }
+    ],
+    name: 'tokenOfOwnerByIndex',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function'
   }
 ];
+
+const FACTORY_ABI = [
+  {
+    "inputs": [
+      { "internalType": "address", "name": "tokenA", "type": "address" },
+      { "internalType": "address", "name": "tokenB", "type": "address" },
+      { "internalType": "uint24", "name": "fee", "type": "uint24" }
+    ],
+    "name": "getPool",
+    "outputs": [{ "internalType": "address", "name": "pool", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
 
 // BSC上的Position Manager地址
 const POSITION_MANAGER_ADDRESSES = {
@@ -653,6 +684,57 @@ function getAmountsForLiquidity(liquidity, sqrtPriceX96_current, tickCurrent, ti
 }
 
 /**
+ * Executes RPC requests in batches to avoid overwhelming the provider.
+ * @param {Array<object>} requests - Array of JSON-RPC request objects.
+ * @param {number} batchSize - The number of requests per batch.
+ * @returns {Promise<Array<object>>} - A promise that resolves to an array of all results.
+ */
+async function executeBatchRpc(requests, batchSize = 50) {
+  if (requests.length === 0) {
+    return [];
+  }
+  const allResults = [];
+  const rpcUrl = getRpcUrl();
+  console.log(`📦 执行批量RPC调用，总请求数: ${requests.length}, 每批大小: ${batchSize}`);
+
+  for (let i = 0; i < requests.length; i += batchSize) {
+    const batch = requests.slice(i, i + batchSize);
+    console.log(`  - 发送批次 ${Math.floor(i / batchSize) + 1} / ${Math.ceil(requests.length / batchSize)}`);
+
+    try {
+      const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batch),
+      });
+
+      if (!response.ok) {
+        throw new Error(`RPC请求失败，状态码: ${response.status}`);
+      }
+
+      const results = await response.json();
+
+      if (!Array.isArray(results)) {
+        if (results.error) {
+          throw new Error(`RPC错误: ${results.error.message || JSON.stringify(results.error)}`);
+        }
+        throw new Error('无效的RPC批量响应: 返回的不是一个数组。');
+      }
+      allResults.push(...results);
+
+      // Add a small delay between batches to be nice to the RPC node
+      if (i + batchSize < requests.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    } catch (error) {
+      console.error(`  - 批次 ${Math.floor(i / batchSize) + 1} 执行失败:`, error);
+      throw error;
+    }
+  }
+  return allResults;
+}
+
+/**
  * 获取NFT位置信息
  * @param {string} nftId - NFT ID
  * @param {string} poolAddress - 池子地址
@@ -857,6 +939,210 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
       error: error.message,
       status: '❌ 错误'
     };
+  }
+}
+
+/**
+ * 通过钱包地址查找其拥有的所有V3 LP NFT
+ * @param {string} ownerAddress - 钱包地址
+ * @returns {Promise<Object[]>} 包含NFT和池子信息的数组
+ */
+export async function findNftPositionsByOwner(ownerAddress) {
+  console.log(`🔍 正在为地址 ${ownerAddress} 查找 LP NFT...`);
+  const rpcUrl = getRpcUrl();
+  let allFoundPositions = [];
+  let idCounter = 0; // 用于批量请求的唯一ID
+
+  try {
+    // 1. 获取所有 Position Manager 合约中该地址的 NFT 余额
+    const balanceRequests = Object.entries(POSITION_MANAGER_ADDRESSES).map(([protocol, address]) => ({
+      jsonrpc: '2.0',
+      id: `${protocol}-balance`,
+      method: 'eth_call',
+      params: [{
+        to: address,
+        data: encodeFunctionData({
+          abi: POSITION_MANAGER_ABI,
+          functionName: 'balanceOf',
+          args: [ownerAddress]
+        })
+      }, 'latest']
+    }));
+
+    const balanceResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(balanceRequests)
+    });
+    const balanceResults = await balanceResponse.json();
+
+    // 2. 获取所有 NFT 的 tokenId
+    const tokenIdRequests = [];
+    const positionManagerInfo = {};
+
+    for (const result of balanceResults) {
+      if (result.error || result.result === '0x') continue;
+
+      const balance = Number(decodeAbiParameters([{ type: 'uint256' }], result.result)[0]);
+      if (balance === 0) continue;
+
+      const protocol = result.id.split('-')[0];
+      const managerAddress = POSITION_MANAGER_ADDRESSES[protocol];
+      positionManagerInfo[protocol] = { managerAddress, tokenIds: [] };
+
+      const NFT_LIMIT = 50; // 只获取最新的50个NFT
+      const startIndex = Math.max(0, balance - NFT_LIMIT);
+
+      console.log(`在 ${protocol} 中发现 ${balance} 个NFT，将从索引 ${startIndex} 开始获取最新的 ${balance - startIndex} 个。`);
+
+      for (let i = startIndex; i < balance; i++) {
+        tokenIdRequests.push({
+          jsonrpc: '2.0',
+          id: `${protocol}-token-index-${i}`,
+          method: 'eth_call',
+          params: [{
+            to: managerAddress,
+            data: encodeFunctionData({
+              abi: POSITION_MANAGER_ABI,
+              functionName: 'tokenOfOwnerByIndex',
+              args: [ownerAddress, i]
+            })
+          }, 'latest']
+        });
+      }
+    }
+
+    if (tokenIdRequests.length === 0) {
+      console.log('✅ 在所有已知的 Position Manager 中未找到任何 LP NFT。');
+      return [];
+    }
+
+    const tokenIdResults = await executeBatchRpc(tokenIdRequests);
+
+    // 3. 获取每个 NFT 的仓位详情
+    const positionDetailsRequests = [];
+    for (const result of tokenIdResults) {
+      if (result.error || result.result === '0x') continue;
+
+      const tokenId = decodeAbiParameters([{ type: 'uint256' }], result.result)[0];
+      const [protocol] = result.id.split('-');
+      const managerAddress = positionManagerInfo[protocol].managerAddress;
+      positionManagerInfo[protocol].tokenIds.push(tokenId);
+
+      positionDetailsRequests.push({
+        jsonrpc: '2.0',
+        id: `${protocol}-position-${tokenId}`,
+        method: 'eth_call',
+        params: [{
+          to: managerAddress,
+          data: encodeFunctionData({
+            abi: POSITION_MANAGER_ABI,
+            functionName: 'positions',
+            args: [tokenId]
+          })
+        }, 'latest']
+      });
+    }
+
+    const positionDetailsResults = await executeBatchRpc(positionDetailsRequests);
+
+    // 4. 获取池子地址和代币符号
+    const poolAddressRequests = [];
+    const tokenSymbolRequests = [];
+    const positionsData = {};
+    const uniqueTokens = new Set();
+    const nftToPositionKey = {};
+
+    for (const result of positionDetailsResults) {
+      if (result.error || result.result === '0x') continue;
+
+      const [protocol, , tokenId] = result.id.split('-');
+      const position = decodeAbiParameters([
+        { type: 'uint96' }, { type: 'address' }, { type: 'address' }, { type: 'address' },
+        { type: 'uint24' }, { type: 'int24' }, { type: 'int24' }, { type: 'uint128' }
+      ], result.result);
+
+      const [token0, token1, fee, liquidity] = [position[2], position[3], position[4], position[7]];
+      if (liquidity === 0n) continue; // 忽略没有流动性的仓位
+
+      const factoryAddress = PROTOCOL_FACTORIES[protocol];
+      const positionKey = `${protocol}-${token0}-${token1}-${fee}`;
+      nftToPositionKey[tokenId] = positionKey;
+
+      if (!positionsData[positionKey]) {
+        positionsData[positionKey] = { protocol, factoryAddress, token0, token1, fee };
+        poolAddressRequests.push({
+          jsonrpc: '2.0',
+          id: `pool-${positionKey}`,
+          method: 'eth_call',
+          params: [{ to: factoryAddress, data: encodeFunctionData({ abi: FACTORY_ABI, functionName: 'getPool', args: [token0, token1, fee] }) }, 'latest']
+        });
+      }
+
+      if (!uniqueTokens.has(token0)) {
+        uniqueTokens.add(token0);
+        tokenSymbolRequests.push({
+          jsonrpc: '2.0', id: `symbol-${token0}`, method: 'eth_call',
+          params: [{ to: token0, data: encodeFunctionData({ abi: ERC20_ABI, functionName: 'symbol' }) }, 'latest']
+        });
+      }
+      if (!uniqueTokens.has(token1)) {
+        uniqueTokens.add(token1);
+        tokenSymbolRequests.push({
+          jsonrpc: '2.0', id: `symbol-${token1}`, method: 'eth_call',
+          params: [{ to: token1, data: encodeFunctionData({ abi: ERC20_ABI, functionName: 'symbol' }) }, 'latest']
+        });
+      }
+    }
+
+    if (poolAddressRequests.length === 0) {
+      console.log('✅ 未找到有流动性的 LP 仓位。');
+      return [];
+    }
+
+    const [poolAddressResults, tokenSymbolResults] = await Promise.all([
+      executeBatchRpc(poolAddressRequests),
+      executeBatchRpc(tokenSymbolRequests)
+    ]);
+
+    const tokenSymbols = tokenSymbolResults.reduce((acc, r) => {
+      if (!r.error && r.result !== '0x') {
+        const address = r.id.split('-')[1];
+        acc[address] = decodeAbiParameters([{ type: 'string' }], r.result)[0];
+      }
+      return acc;
+    }, {});
+
+    const poolAddressMapping = {};
+    for (const result of poolAddressResults) {
+      if (result.error || result.result === '0x') continue;
+      const poolAddress = decodeAbiParameters([{ type: 'address' }], result.result)[0];
+      if (poolAddress !== '0x0000000000000000000000000000000000000000') {
+        const positionKey = result.id.substring(5);
+        poolAddressMapping[positionKey] = poolAddress;
+      }
+    }
+
+    allFoundPositions = Object.entries(nftToPositionKey).map(([tokenId, positionKey]) => {
+      const poolAddress = poolAddressMapping[positionKey];
+      if (!poolAddress) return null;
+
+      const data = positionsData[positionKey];
+      return {
+        poolAddress: poolAddress,
+        protocol: identifyProtocol(data.factoryAddress),
+        token0: { address: data.token0, symbol: tokenSymbols[data.token0] || '?' },
+        token1: { address: data.token1, symbol: tokenSymbols[data.token1] || '?' },
+        fee: data.fee,
+        nftIds: [tokenId.toString()] // 每个仓位只包含自己的NFT ID
+      };
+    }).filter(p => p !== null);
+
+    console.log(`✅ 成功找到 ${allFoundPositions.length} 个有效的 LP 仓位。`, allFoundPositions);
+    return allFoundPositions;
+  } catch (error) {
+    console.error('❌ 查找 LP NFT 时出错:', error);
+    throw error;
   }
 }
 

@@ -188,17 +188,38 @@ export default function Home() {
       return;
     }
 
-    // 检查是否已存在
-    if (pools.some(pool => pool.address.toLowerCase() === poolData.address.toLowerCase())) {
-      return;
+    const existingPoolIndex = pools.findIndex(p => p.address.toLowerCase() === poolData.address.toLowerCase());
+
+    if (existingPoolIndex !== -1) {
+      // 池子已存在，检查是否需要更新 NFT ID
+      if (poolData.nftId) {
+        setPools(prevPools => {
+          const newPools = [...prevPools];
+          const existingPool = newPools[existingPoolIndex];
+
+          // 即使ID相同，也创建一个新的池子对象以触发重渲染
+          // 这样，即使用户在卡片中手动清除了ID，点击侧边栏按钮也能重新填充
+          newPools[existingPoolIndex] = {
+            ...existingPool,
+            nftId: poolData.nftId,
+            // 仅当ID改变时才重置NFT信息，以避免不必要的重新加载
+            nftInfo: existingPool.nftId !== poolData.nftId ? null : existingPool.nftInfo,
+            isLoadingNft: existingPool.nftId !== poolData.nftId ? false : existingPool.isLoadingNft,
+            nftError: existingPool.nftId !== poolData.nftId ? null : existingPool.nftError,
+          };
+          return newPools;
+        });
+      }
+      return; // 如果池子存在但没有新的 nftId，什么都不做
     }
 
+    // 池子不存在，添加新池子
     const newPool = {
       address: poolData.address,
       lpInfo: null,
       isLoading: false,
       error: null,
-      nftId: '',
+      nftId: poolData.nftId || '',
       nftInfo: null,
       isLoadingNft: false,
       nftError: null
@@ -233,6 +254,22 @@ export default function Home() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // 处理来自卡片的NFT ID变化
+  const handleNftIdChange = (poolAddress, newNftId) => {
+    setPools(prevPools => {
+      const newPools = prevPools.map(pool => {
+        if (pool.address.toLowerCase() === poolAddress.toLowerCase()) {
+          // 创建一个新对象以确保状态更新和重渲染
+          return { ...pool, nftId: newNftId };
+        }
+        return pool;
+      });
+      // 注意: 这个改动不保存到localStorage，因为它只是一个临时的视图状态。
+      // 用户在侧边栏的添加/填充操作才会持久化NFT ID。
+      return newPools;
+    });
+  };
 
   // 处理NFT信息更新
   const handleNftInfoUpdate = (updatedPool) => {
@@ -539,6 +576,7 @@ export default function Home() {
                       onRemove={() => removePool(index)}
                       outOfRangeCount={outOfRangeCounts[pool.address] || 0}
                       onNftInfoUpdate={handleNftInfoUpdate}
+                      onNftIdChange={(newId) => handleNftIdChange(pool.address, newId)}
                     />
                   ))}
                 </div>
