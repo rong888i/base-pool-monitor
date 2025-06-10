@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // 获取DEX名称和版本
 const getDexInfo = (pool) => {
@@ -64,6 +64,17 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
     const [searchAddress, setSearchAddress] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isCollapsed, setIsCollapsed] = useState(true);
+    const [searchHistory, setSearchHistory] = useState([]);
+
+    // 从本地存储加载搜索历史
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedHistory = localStorage.getItem('poolSearchHistory');
+            if (savedHistory) {
+                setSearchHistory(JSON.parse(savedHistory));
+            }
+        }
+    }, []);
 
     // 检查池子是否已添加
     const isPoolAdded = (address) => {
@@ -92,6 +103,12 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
             setError('请输入代币合约地址');
             return;
         }
+
+        // 更新搜索历史
+        const trimmedAddress = searchAddress.trim();
+        const newHistory = [trimmedAddress, ...searchHistory.filter(item => item.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+        setSearchHistory(newHistory);
+        localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
 
         setIsLoading(true);
         setError(null);
@@ -223,23 +240,33 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
         }
     };
 
+    // 清除搜索历史
+    const handleClearHistory = () => {
+        setSearchHistory([]);
+        localStorage.removeItem('poolSearchHistory');
+    };
+
     return (
         <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 overflow-hidden transition-all duration-300 relative`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
-                className={`fixed top-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md z-50 ${isCollapsed
-                    ? 'left-3'
-                    : 'sm:left-[21.5rem] left-[calc(100%-3rem)]'
+                className={`fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-2
+                bg-white/70 dark:bg-neutral-800/70 backdrop-blur-sm
+                border border-neutral-200/50 dark:border-neutral-700/50
+                shadow-lg hover:shadow-xl
+                hover:bg-white/90 dark:hover:bg-neutral-800/90
+                transition-all duration-300
+                ${isCollapsed
+                        ? 'left-3'
+                        : 'sm:left-[23rem] left-[calc(100%-3.5rem)]'
                     }`}
+                aria-label={isCollapsed ? "展开侧边栏" : "收起侧边栏"}
             >
                 <svg
-                    className={`w-5 h-5 text-neutral-600 dark:text-neutral-400 transform transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    className={`w-6 h-6 text-neutral-700 dark:text-neutral-300 transition-transform duration-300 ${!isCollapsed ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
             </button>
 
@@ -319,6 +346,35 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                             )}
                         </button>
                     </div>
+
+                    {/* 搜索历史 */}
+                    {searchHistory.length > 0 && !isCollapsed && (
+                        <div className="mt-4 animate-in fade-in duration-300">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                    搜索历史
+                                </h3>
+                                <button
+                                    onClick={handleClearHistory}
+                                    className="text-xs text-neutral-400 hover:text-error-500 dark:hover:text-error-400 transition-colors duration-200"
+                                >
+                                    清除
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {searchHistory.map((address) => (
+                                    <button
+                                        key={address}
+                                        onClick={() => setSearchAddress(address)}
+                                        className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-xs text-neutral-700 dark:text-neutral-300 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-white transition-all duration-200 font-mono"
+                                        title={address}
+                                    >
+                                        {formatAddress(address)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* 错误提示 */}
