@@ -393,6 +393,14 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                     </svg>}
                 >
                     <div className="p-4 space-y-3">
+                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg text-xs text-yellow-800 dark:text-yellow-300 flex items-start gap-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-500 dark:text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8.257 3.099c.636-1.214 2.27-1.214 2.906 0l4.257 8.125c.636 1.214-.24 2.776-1.453 2.776H5.453c-1.213 0-2.09-1.562-1.453-2.776l4.257-8.125zM9 9a1 1 0 011-1h.01a1 1 0 010 2H10a1 1 0 01-1-1zm1 5a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                                <strong className="font-semibold">此功能会进行大量链上查询。在主页的“设置”中配置个人RPC节点。</strong>
+                            </div>
+                        </div>
                         <div className="relative group">
                             <input
                                 type="text"
