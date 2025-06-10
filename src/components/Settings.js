@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sendTestBarkNotification } from '../utils/notificationUtils';
 
 export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
     const [settings, setSettings] = useState({
@@ -14,6 +15,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
     // 添加动画状态
     const [isVisible, setIsVisible] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [isTesting, setIsTesting] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -53,6 +55,13 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         if (e.target === e.currentTarget) {
             onClose();
         }
+    };
+
+    const handleTestNotification = async () => {
+        setIsTesting(true);
+        const result = await sendTestBarkNotification(settings.barkKey, settings.notificationLevel);
+        alert(result.message);
+        setIsTesting(false);
     };
 
     if (!isVisible) return null;
@@ -189,9 +198,18 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                        Bark Key
-                                    </label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                            Bark Key
+                                        </label>
+                                        <button
+                                            onClick={handleTestNotification}
+                                            disabled={isTesting || !settings.barkKey}
+                                            className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isTesting ? '发送中...' : '(发送测试)'}
+                                        </button>
+                                    </div>
                                     <input
                                         type="text"
                                         value={settings.barkKey}
@@ -200,7 +218,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                         className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
                                     />
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        用于发送通知，在 Bark App 中获取
+                                        用于发送通知，在 IOS Bark App 中获取
                                     </p>
                                 </div>
 
