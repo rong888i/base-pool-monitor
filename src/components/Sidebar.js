@@ -224,7 +224,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
     };
 
     return (
-        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 h-screen overflow-hidden transition-all duration-300 relative`}>
+        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 overflow-hidden transition-all duration-300 relative`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
