@@ -12,6 +12,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
   const [isLoadingNft, setIsLoadingNft] = useState(false);
   const [nftError, setNftError] = useState(null);
   const [showReversedPrice, setShowReversedPrice] = useState(false);
+  const [showNftPanel, setShowNftPanel] = useState(false);
 
   const {
     attributes,
@@ -44,17 +45,29 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
 
     try {
       const info = await getNFTPositionInfo(nftId.trim(), pool.address, pool.lpInfo);
-      setNftInfo(info);
-      // 通知父组件 NFT 信息已更新
-      if (onNftInfoUpdate) {
-        onNftInfoUpdate({
-          address: pool.address,
-          nftInfo: info
-        });
+
+      // 检查返回的信息是否有效
+      if (info.isValid) {
+        setNftInfo(info);
+        setShowNftPanel(true); // 显示面板
+        setNftError(null); // 清除错误
+        // 通知父组件 NFT 信息已更新
+        if (onNftInfoUpdate) {
+          onNftInfoUpdate({
+            address: pool.address,
+            nftInfo: info
+          });
+        }
+      } else {
+        // NFT信息无效，设置错误状态
+        setNftError(info.error || 'NFT信息无效');
+        setNftInfo(null);
+        setShowNftPanel(false);
       }
     } catch (error) {
       setNftError(error.message);
       setNftInfo(null);
+      setShowNftPanel(false);
     } finally {
       setIsLoadingNft(false);
     }
@@ -82,11 +95,26 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
     }
   }, [pool.lpInfo?.lastUpdated, nftId]); // 只在池子信息真正更新时触发
 
-  // 清除NFT信息
+  // 监听NFT ID变化，如果被清空则隐藏面板
+  useEffect(() => {
+    if (!nftId.trim()) {
+      setShowNftPanel(false);
+      // 如果输入框被清空，也清除NFT信息和错误信息
+      setTimeout(() => {
+        setNftInfo(null);
+        setNftError(null);
+      }, 500);
+    }
+  }, [nftId]);
+
   const clearNftInfo = () => {
-    setNftId('');
-    setNftInfo(null);
-    setNftError(null);
+    setShowNftPanel(false); // 先触发关闭动画
+    // 延迟清除数据，让动画有时间播放
+    setTimeout(() => {
+      setNftId('');
+      setNftInfo(null);
+      setNftError(null);
+    }, 500); // 与动画持续时间一致
   };
 
   const formatAddress = (address) => {
@@ -110,7 +138,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`card border ${getStatusColor()} transition-all duration-200`}
+      className={`card border ${getStatusColor()} transition-all duration-200 self-start`}
     >
       {/* 头部 - 手机端优化 */}
       <div className="flex items-center justify-between p-3 border-b border-neutral-200 dark:border-neutral-700">
@@ -273,7 +301,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
               >
                 {isLoadingNft ? '...' : '查询'}
               </button>
-              {nftInfo && (
+              {(nftInfo || nftError) && (
                 <button
                   onClick={clearNftInfo}
                   className="btn-secondary text-xs"
@@ -283,197 +311,194 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
               )}
             </div>
 
-            {/* NFT信息显示 */}
-            {/* {isLoadingNft && (
-              <div className="flex items-center justify-center py-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500"></div>
-                <span className="ml-2 text-primary-600 text-xs">查询中...</span>
-              </div>
-            )} */}
-
+            {/* NFT错误信息 - 移到面板外面，确保始终可见 */}
             {nftError && (
-              <div className="bg-error-50 border border-error-200 text-error-700 px-3 py-2 rounded text-xs">
+              <div className="bg-error-50 border border-error-200 text-error-700 px-3 py-2 rounded text-xs mb-2">
                 <strong>错误:</strong> {nftError}
               </div>
             )}
 
-            {nftInfo && nftInfo.isValid && (
-              <>
-                {/* 价格方向选择 */}
-                <div className="bg-white dark:bg-neutral-900 p-2.5 my-3 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">价格显示方向:</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowReversedPrice(false)}
-                        className={`px-3 py-1 text-xs rounded-lg transition-colors ${!showReversedPrice
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                          }`}
-                      >
-                        {pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}
-                      </button>
-                      <button
-                        onClick={() => setShowReversedPrice(true)}
-                        className={`px-3 py-1 text-xs rounded-lg transition-colors ${showReversedPrice
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                          }`}
-                      >
-                        {pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 价格范围可视化 */}
-                <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                  <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                    价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
-                  </div>
-
-                  {/* 标签（横排，带颜色，紧贴可视化条上方） */}
-                  <div className="flex justify-between text-xs font-medium px-1 mb-1">
-                    <span className="w-1/3 text-center font-bold text-success-500">下限</span>
-                    <span className="w-1/3 text-center font-bold text-neutral-500">中心</span>
-                    <span className="w-1/3 text-center font-bold text-error-500">上限</span>
-                  </div>
-
-                  {/* 价格范围条 */}
-                  <div className="relative mb-3">
-                    <div className="h-6 bg-neutral-200 dark:bg-neutral-700 rounded-full relative overflow-hidden">
-                      {/* 范围内区域 */}
-                      <div
-                        className="absolute h-full bg-success-200 dark:bg-success-900/30 rounded-full"
-                        style={{
-                          left: '20%',
-                          width: '60%'
-                        }}
-                      ></div>
-
-                      {/* 中心线 */}
-                      <div className="absolute top-0 left-[50%] w-0.5 h-full bg-neutral-400 dark:bg-neutral-600 opacity-50"></div>
-
-                      {/* 当前价格指示器 */}
-                      <div
-                        className={`absolute top-0 w-1 h-full ${nftInfo.isInRange ? 'bg-success-500' : 'bg-error-500'} shadow-lg z-10`}
-                        style={{
-                          left: `${calculatePricePosition(
-                            showReversedPrice ? (1 / nftInfo.currentPrice) : nftInfo.currentPrice,
-                            showReversedPrice ? (1 / nftInfo.priceRange.upper) : nftInfo.priceRange.lower,
-                            showReversedPrice ? (1 / nftInfo.priceRange.lower) : nftInfo.priceRange.upper
-                          )}%`,
-                          transform: 'translateX(-50%)'
-                        }}
-                      ></div>
-
-                      {/* 下限标记 */}
-                      <div className="absolute top-0 left-[20%] w-0.5 h-full bg-success-500"></div>
-
-                      {/* 上限标记 */}
-                      <div className="absolute top-0 left-[80%] w-0.5 h-full bg-error-500"></div>
-                    </div>
-
-                    {/* 数值（横排，带颜色，紧贴可视化条下方） */}
-                    <div className="flex justify-between text-xs font-mono px-1 mt-1">
-                      <span className="w-1/3 text-center font-mono font-bold text-xs !text-success-500">
-                        {showReversedPrice
-                          ? (1 / nftInfo.priceRange.upper).toFixed(6)
-                          : nftInfo.priceRange.lower.toFixed(6)
-                        }
-                      </span>
-                      <span className="w-1/3 text-center font-mono font-bold text-xs text-neutral-500">
-                        {showReversedPrice
-                          ? (1 / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)).toFixed(6)
-                          : ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2).toFixed(6)
-                        }
-                      </span>
-                      <span className="w-1/3 text-center font-mono font-bold text-xs text-error-500">
-                        {showReversedPrice
-                          ? (1 / nftInfo.priceRange.lower).toFixed(6)
-                          : nftInfo.priceRange.upper.toFixed(6)
-                        }
-                      </span>
-                    </div>
-
-                    {/* 当前价格位置标签 */}
-                    <div className="text-center mt-3">
-                      <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
-                        {nftInfo.isInRange
-                          ? `✅ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 在范围内`
-                          : `❌ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 超出范围`
-                        }
-                      </span>
+            {/* NFT信息面板 - 带动画效果 */}
+            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showNftPanel && nftInfo && nftInfo.isValid
+              ? 'max-h-screen opacity-100 transform translate-y-0'
+              : 'max-h-0 opacity-0 transform -translate-y-2'
+              }`}>
+              {nftInfo && nftInfo.isValid && (
+                <div className="mt-3 space-y-3">
+                  {/* 价格方向选择 */}
+                  <div className="bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">价格显示方向:</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowReversedPrice(false)}
+                          className={`px-3 py-1 text-xs rounded-lg transition-colors ${!showReversedPrice
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                            }`}
+                        >
+                          {pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}
+                        </button>
+                        <button
+                          onClick={() => setShowReversedPrice(true)}
+                          className={`px-3 py-1 text-xs rounded-lg transition-colors ${showReversedPrice
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                            }`}
+                        >
+                          {pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* 状态说明 */}
-                  <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
-                    ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
-                    : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
-                    }`}>
-                    {nftInfo.isInRange
-                      ? <>
-                        🎯 价格在范围内，正在赚取手续费
-                        {/* 合并未领取手续费 */}
-                        <div className="mt-2 flex flex-col items-center gap-1 text-xs font-normal text-success-700 dark:text-success-200">
-                          {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>可领取手续费</span></div> */}
-                          <div className="flex gap-4 mt-1">
-                            <span className="font-mono font-bold">
-                              {nftInfo.fees?.collectable?.token0Formatted || '0.000000'}
-                            </span>
-                            <span className="font-mono font-bold">
-                              {nftInfo.fees?.collectable?.token1Formatted || '0.000000'}
-                            </span>
+                  {/* 价格范围可视化 */}
+                  <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
+                    </div>
+
+                    {/* 标签（横排，带颜色，紧贴可视化条上方） */}
+                    <div className="flex justify-between text-xs font-medium px-1 mb-1">
+                      <span className="w-1/3 text-center font-bold text-success-500">下限</span>
+                      <span className="w-1/3 text-center font-bold text-neutral-500">中心</span>
+                      <span className="w-1/3 text-center font-bold text-error-500">上限</span>
+                    </div>
+
+                    {/* 价格范围条 */}
+                    <div className="relative mb-3">
+                      <div className="h-6 bg-neutral-200 dark:bg-neutral-700 rounded-full relative overflow-hidden">
+                        {/* 范围内区域 */}
+                        <div
+                          className="absolute h-full bg-success-200 dark:bg-success-900/30 rounded-full"
+                          style={{
+                            left: '20%',
+                            width: '60%'
+                          }}
+                        ></div>
+
+                        {/* 中心线 */}
+                        <div className="absolute top-0 left-[50%] w-0.5 h-full bg-neutral-400 dark:bg-neutral-600 opacity-50"></div>
+
+                        {/* 当前价格指示器 */}
+                        <div
+                          className={`absolute top-0 w-1 h-full ${nftInfo.isInRange ? 'bg-success-500' : 'bg-error-500'} shadow-lg z-10`}
+                          style={{
+                            left: `${calculatePricePosition(
+                              showReversedPrice ? (1 / nftInfo.currentPrice) : nftInfo.currentPrice,
+                              showReversedPrice ? (1 / nftInfo.priceRange.upper) : nftInfo.priceRange.lower,
+                              showReversedPrice ? (1 / nftInfo.priceRange.lower) : nftInfo.priceRange.upper
+                            )}%`,
+                            transform: 'translateX(-50%)'
+                          }}
+                        ></div>
+
+                        {/* 下限标记 */}
+                        <div className="absolute top-0 left-[20%] w-0.5 h-full bg-success-500"></div>
+
+                        {/* 上限标记 */}
+                        <div className="absolute top-0 left-[80%] w-0.5 h-full bg-error-500"></div>
+                      </div>
+
+                      {/* 数值（横排，带颜色，紧贴可视化条下方） */}
+                      <div className="flex justify-between text-xs font-mono px-1 mt-1">
+                        <span className="w-1/3 text-center font-mono font-bold text-xs !text-success-500">
+                          {showReversedPrice
+                            ? (1 / nftInfo.priceRange.upper).toFixed(6)
+                            : nftInfo.priceRange.lower.toFixed(6)
+                          }
+                        </span>
+                        <span className="w-1/3 text-center font-mono font-bold text-xs text-neutral-500">
+                          {showReversedPrice
+                            ? (1 / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)).toFixed(6)
+                            : ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2).toFixed(6)
+                          }
+                        </span>
+                        <span className="w-1/3 text-center font-mono font-bold text-xs text-error-500">
+                          {showReversedPrice
+                            ? (1 / nftInfo.priceRange.lower).toFixed(6)
+                            : nftInfo.priceRange.upper.toFixed(6)
+                          }
+                        </span>
+                      </div>
+
+                      {/* 当前价格位置标签 */}
+                      <div className="text-center mt-3">
+                        <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
+                          {nftInfo.isInRange
+                            ? `✅ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 在范围内`
+                            : `❌ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 超出范围`
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 状态说明 */}
+                    <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
+                      ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
+                      : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
+                      }`}>
+                      {nftInfo.isInRange
+                        ? <>
+                          🎯 价格在范围内，正在赚取手续费
+                          {/* 合并未领取手续费 */}
+                          <div className="mt-2 flex flex-col items-center gap-1 text-xs font-normal text-success-700 dark:text-success-200">
+                            {/* <div className="flex items-center gap-1"><span className="text-base">💸</span><span>可领取手续费</span></div> */}
+                            <div className="flex gap-4 mt-1">
+                              <span className="font-mono font-bold">
+                                {nftInfo.fees?.collectable?.token0Formatted || '0.000000'}
+                              </span>
+                              <span className="font-mono font-bold">
+                                {nftInfo.fees?.collectable?.token1Formatted || '0.000000'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </>
-                      : nftInfo.currentPrice < nftInfo.priceRange.lower
-                        ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
-                        : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
-                    }
+                        </>
+                        : nftInfo.currentPrice < nftInfo.priceRange.lower
+                          ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
+                          : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
+                      }
+                    </div>
+
+                    {/* 价格范围宽度信息 */}
+                    <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
+                      <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
+                    </div>
                   </div>
 
-                  {/* 价格范围宽度信息 */}
-                  <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                    <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
+                  {/* 双向价格对比 */}
+                  {/* <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                    <div className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">📊 当前价格对比:</div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}:</span>
+                        <span className="font-mono text-primary-800 dark:text-primary-200">{nftInfo.currentPrice.toFixed(6)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}:</span>
+                        <span className="font-mono text-primary-800 dark:text-primary-200">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
+                      </div>
+                    </div>
+                  </div> */}
+
+                  {/* 流动性和收益信息 */}
+                  <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
+                    <div className="flex items-center gap-1">
+                      <span className="text-neutral-600 dark:text-neutral-400">💧 流动性:</span>
+                      <span className={`font-medium ${nftInfo.hasLiquidity ? 'text-success-500' : 'text-error-500'}`}>
+                        {nftInfo.hasLiquidity ? '有' : '无'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-neutral-600 dark:text-neutral-400">📊 状态:</span>
+                      <span className={`font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
+                        {nftInfo.isInRange ? '活跃' : '非活跃'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {/* 双向价格对比 */}
-                {/* <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
-                  <div className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">📊 当前价格对比:</div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token0.symbol}/{pool.lpInfo.token1.symbol}:</span>
-                      <span className="font-mono text-primary-800 dark:text-primary-200">{nftInfo.currentPrice.toFixed(6)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-600 dark:text-neutral-400">{pool.lpInfo.token1.symbol}/{pool.lpInfo.token0.symbol}:</span>
-                      <span className="font-mono text-primary-800 dark:text-primary-200">{(1 / nftInfo.currentPrice).toFixed(6)}</span>
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* 流动性和收益信息 */}
-                {/* <div className="flex justify-between text-xs bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
-                  <div className="flex items-center gap-1">
-                    <span className="text-neutral-600 dark:text-neutral-400">💧 流动性:</span>
-                    <span className={`font-medium ${nftInfo.hasLiquidity ? 'text-success-500' : 'text-error-500'}`}>
-                      {nftInfo.hasLiquidity ? '有' : '无'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-neutral-600 dark:text-neutral-400">📊 状态:</span>
-                    <span className={`font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
-                      {nftInfo.isInRange ? '活跃' : '非活跃'}
-                    </span>
-                  </div>
-                </div> */}
-
-
-              </>
-            )}
+              )}
+            </div>
           </div>
           {/* 技术指标 - 所有信息一行显示 */}
           <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">

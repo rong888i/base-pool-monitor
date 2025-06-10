@@ -7,7 +7,8 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         autoRefresh: true,
         refreshInterval: 3,
         enableBarkNotification: true,
-        notificationLevel: 1 // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
+        notificationLevel: 1, // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
+        rpcUrl: 'https://bsc-dataseed1.binance.org/' // 添加默认RPC URL
     });
 
     // 添加动画状态
@@ -82,8 +83,35 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                 </div>
 
                 {/* 内容区域 - 可滚动 */}
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
                     <div className="p-6 space-y-8">
+                        {/* RPC设置 */}
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">RPC设置</h3>
+                            </div>
+                            <div className="bg-neutral-50 dark:bg-neutral-700/50 rounded-xl p-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                        RPC URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settings.rpcUrl}
+                                        onChange={(e) => setSettings(prev => ({ ...prev, rpcUrl: e.target.value }))}
+                                        placeholder="输入RPC URL"
+                                        className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                                    />
+                                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        设置BSC网络的RPC节点地址
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* 自动刷新设置 */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">

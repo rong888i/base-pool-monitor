@@ -532,7 +532,7 @@ export default function Home() {
                 items={pools.map((pool, index) => `${pool.address}-${index}`)}
                 strategy={rectSortingStrategy}
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                   {pools.map((pool, index) => (
                     <SortablePoolCard
                       key={`${pool.address}-${index}`}

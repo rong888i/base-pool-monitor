@@ -148,7 +148,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
             </button>
 
             {/* 内容区域 */}
-            <div className={`${isCollapsed ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 overflow-y-auto h-full`}>
+            <div className="h-full overflow-y-auto custom-scrollbar">
                 {/* 头部区域 */}
                 <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 p-4 backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80">
                     <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">

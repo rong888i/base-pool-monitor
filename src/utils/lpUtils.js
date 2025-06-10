@@ -1,11 +1,19 @@
 import { createPublicClient, http, encodeFunctionData, decodeAbiParameters } from 'viem';
 import { bsc } from 'viem/chains';
 
+// 获取RPC URL
+const getRpcUrl = () => {
+  const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
+  return settings.rpcUrl || 'https://bsc-dataseed1.binance.org/';
+};
+
 // BSC主网配置
-const client = createPublicClient({
-  chain: bsc,
-  transport: http('https://bsc-dataseed1.binance.org/')
-});
+const getClient = () => {
+  return createPublicClient({
+    chain: bsc,
+    transport: http(getRpcUrl())
+  });
+};
 
 // 协议识别 - BSC上的已知Factory地址
 const PROTOCOL_FACTORIES = {
@@ -306,7 +314,7 @@ async function getBatchLPInfo(poolAddresses) {
     });
 
     // 2. 执行批量RPC调用
-    const response = await fetch('https://bsc-dataseed1.binance.org/', {
+    const response = await fetch(getRpcUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -449,7 +457,7 @@ async function getBatchLPInfo(poolAddresses) {
     }
 
     // 4. 执行代币信息的批量RPC调用
-    const tokenResponse = await fetch('https://bsc-dataseed1.binance.org/', {
+    const tokenResponse = await fetch(getRpcUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -628,7 +636,7 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     ];
 
     // 执行批量RPC调用
-    const response = await fetch('https://bsc-dataseed1.binance.org/', {
+    const response = await fetch(getRpcUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
