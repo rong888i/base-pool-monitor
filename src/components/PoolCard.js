@@ -286,29 +286,32 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate }) => {
                 </div>
               )}
             </div>
-            <div className="flex gap-2 mb-2">
+            <div className="flex gap-2 mb-2 relative">
               <input
                 type="text"
                 placeholder="输入NFT ID"
                 value={nftId}
                 onChange={(e) => setNftId(e.target.value)}
-                className="input-primary flex-1 text-xs"
+                className="input-primary flex-1 text-xs pr-8"
               />
+              {nftId && (
+                <button
+                  onClick={clearNftInfo}
+                  className="absolute right-[calc(4rem+1rem)] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full"
+                  title="清除"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={fetchNftInfo}
                 disabled={!nftId.trim() || isLoadingNft}
-                className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed w-16"
               >
                 {isLoadingNft ? '...' : '查询'}
               </button>
-              {(nftInfo || nftError) && (
-                <button
-                  onClick={clearNftInfo}
-                  className="btn-secondary text-xs"
-                >
-                  清除
-                </button>
-              )}
             </div>
 
             {/* NFT错误信息 - 移到面板外面，确保始终可见 */}
