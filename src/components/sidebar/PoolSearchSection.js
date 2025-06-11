@@ -72,7 +72,15 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             const data = await response.json();
 
             if (data.pairs && data.pairs.length > 0) {
-                const dexscreenerPools = data.pairs.map(pool => {
+                const bscPairs = data.pairs.filter(pool => pool.chainId === 'bsc');
+
+                if (bscPairs.length === 0) {
+                    setSearchResults([]);
+                    setError('未找到相关的BSC池子');
+                    return;
+                }
+
+                const dexscreenerPools = bscPairs.map(pool => {
                     return {
                         name: `${pool.baseToken.symbol}/${pool.quoteToken.symbol}`,
                         address: pool.pairAddress,
