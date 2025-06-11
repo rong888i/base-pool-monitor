@@ -15,6 +15,7 @@ import {
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
+import { AnimatePresence } from 'framer-motion';
 import { SortablePoolCard } from '../components/PoolCard';
 import Sidebar from '../components/Sidebar';
 import Settings from '../components/Settings';
@@ -41,24 +42,36 @@ export default function Home() {
   useEffect(() => {
     const loadPoolsFromStorage = () => {
       if (typeof window !== 'undefined') {
-        const savedPools = localStorage.getItem('monitoredPools');
-        if (savedPools) {
+        const savedData = localStorage.getItem('monitoredPools');
+        if (savedData) {
           try {
-            return JSON.parse(savedPools);
+            const parsedData = JSON.parse(savedData);
+            // 迁移旧数据格式 (string[]) 到新格式 ({ address: string, nftId: string }[])
+            if (Array.isArray(parsedData) && parsedData.length > 0 && typeof parsedData[0] === 'string') {
+              console.log('Migrating old pool data format...');
+              const newData = parsedData.map(address => ({ address, nftId: '' }));
+              localStorage.setItem('monitoredPools', JSON.stringify(newData)); // 保存新格式
+              return newData;
+            }
+            // 如果已经是新格式或为空数组，直接返回
+            if (Array.isArray(parsedData) && (parsedData.length === 0 || typeof parsedData[0] === 'object')) {
+              return parsedData;
+            }
           } catch (e) {
             console.error('Failed to parse saved pools:', e);
           }
         }
       }
-      return DEFAULT_POOLS;
+      // 默认值也使用新格式
+      return DEFAULT_POOLS.map(address => ({ address, nftId: '' }));
     };
 
-    const initialPools = loadPoolsFromStorage().map(address => ({
-      address,
+    const initialPoolsData = loadPoolsFromStorage();
+    const initialPools = initialPoolsData.map(poolData => ({
+      ...poolData, // 包含 address 和 nftId
       lpInfo: null,
       isLoading: false,
       error: null,
-      nftId: '',
       nftInfo: null,
       isLoadingNft: false,
       nftError: null
@@ -68,10 +81,14 @@ export default function Home() {
   }, []);
 
   // 保存池子列表到本地存储
-  const savePoolsToStorage = (newPools) => {
+  const savePoolsToStorage = (poolsToSave) => {
     if (typeof window !== 'undefined') {
-      const poolAddresses = newPools.map(pool => pool.address);
-      localStorage.setItem('monitoredPools', JSON.stringify(poolAddresses));
+      // 只持久化 address 和 nftId
+      const dataToStore = poolsToSave.map(pool => ({
+        address: pool.address,
+        nftId: pool.nftId || ''
+      }));
+      localStorage.setItem('monitoredPools', JSON.stringify(dataToStore));
     }
   };
 
@@ -142,6 +159,28 @@ export default function Home() {
     savePoolsToStorage(newPools);
   };
 
+  // 克隆池子
+  const clonePool = (poolIndex) => {
+    const poolToClone = pools[poolIndex];
+    const newPool = {
+      ...poolToClone,
+      nftId: '',
+      nftInfo: null,
+      isLoadingNft: false,
+      nftError: null,
+    };
+
+    // 在被克隆的池子后面插入新池子
+    const newPools = [
+      ...pools.slice(0, poolIndex + 1),
+      newPool,
+      ...pools.slice(poolIndex + 1),
+    ];
+
+    setPools(newPools);
+    savePoolsToStorage(newPools);
+  };
+
   // 从本地存储加载设置
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
@@ -207,6 +246,8 @@ export default function Home() {
             isLoadingNft: existingPool.nftId !== poolData.nftId ? false : existingPool.isLoadingNft,
             nftError: existingPool.nftId !== poolData.nftId ? null : existingPool.nftError,
           };
+          // 从侧边栏更新也需要保存
+          savePoolsToStorage(newPools);
           return newPools;
         });
       }
@@ -256,41 +297,47 @@ export default function Home() {
   );
 
   // 处理来自卡片的NFT ID变化
-  const handleNftIdChange = (poolAddress, newNftId) => {
+  const handleNftIdChange = (poolIndex, newNftId) => {
     setPools(prevPools => {
-      const newPools = prevPools.map(pool => {
-        if (pool.address.toLowerCase() === poolAddress.toLowerCase()) {
+      const newPools = prevPools.map((pool, index) => {
+        if (index === poolIndex) {
           // 创建一个新对象以确保状态更新和重渲染
-          return { ...pool, nftId: newNftId };
+          // 当 NFT ID 手动改变时，重置 NFT 相关的旧信息
+          return {
+            ...pool,
+            nftId: newNftId,
+            nftInfo: null,
+            isLoadingNft: false,
+            nftError: null
+          };
         }
         return pool;
       });
-      // 注意: 这个改动不保存到localStorage，因为它只是一个临时的视图状态。
-      // 用户在侧边栏的添加/填充操作才会持久化NFT ID。
+      // 每次NFT ID改变时都保存到localStorage
+      savePoolsToStorage(newPools);
       return newPools;
     });
   };
 
   // 处理NFT信息更新
-  const handleNftInfoUpdate = (updatedPool) => {
-    console.log('NFT info updated:', updatedPool);
-    setPools(prev => prev.map(pool =>
-      pool.address === updatedPool.address ? {
+  const handleNftInfoUpdate = (poolIndex, updatedNftInfo) => {
+    setPools(prev => prev.map((pool, index) =>
+      index === poolIndex ? {
         ...pool,
-        nftInfo: updatedPool.nftInfo
+        nftInfo: updatedNftInfo
       } : pool
     ));
 
     // 获取完整的池子信息
-    const fullPool = pools.find(p => p.address === updatedPool.address);
+    const fullPool = pools[poolIndex];
     if (fullPool && fullPool.lpInfo) {
       // 立即检查价格
       checkNFTPriceAndNotify({
         ...fullPool,
-        nftInfo: updatedPool.nftInfo
+        nftInfo: updatedNftInfo
       });
     } else {
-      console.log('Missing LP info for pool:', updatedPool.address);
+      console.log('Missing LP info for pool at index:', poolIndex);
     }
   };
 
@@ -568,17 +615,20 @@ export default function Home() {
                 strategy={rectSortingStrategy}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-                  {pools.map((pool, index) => (
-                    <SortablePoolCard
-                      key={`${pool.address}-${index}`}
-                      id={`${pool.address}-${index}`}
-                      pool={pool}
-                      onRemove={() => removePool(index)}
-                      outOfRangeCount={outOfRangeCounts[pool.address] || 0}
-                      onNftInfoUpdate={handleNftInfoUpdate}
-                      onNftIdChange={(newId) => handleNftIdChange(pool.address, newId)}
-                    />
-                  ))}
+                  <AnimatePresence>
+                    {pools.map((pool, index) => (
+                      <SortablePoolCard
+                        key={`${pool.address}-${index}`}
+                        id={`${pool.address}-${index}`}
+                        pool={pool}
+                        onRemove={() => removePool(index)}
+                        onClone={() => clonePool(index)}
+                        outOfRangeCount={outOfRangeCounts[pool.address] || 0}
+                        onNftInfoUpdate={(updatedNftInfo) => handleNftInfoUpdate(index, updatedNftInfo)}
+                        onNftIdChange={(newId) => handleNftIdChange(index, newId)}
+                      />
+                    ))}
+                  </AnimatePresence>
                 </div>
               </SortableContext>
             </DndContext>

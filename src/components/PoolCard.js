@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
 import PoolCardHeader from './PoolCardComponents/PoolCardHeader';
 import PoolInfo from './PoolCardComponents/PoolInfo';
 import NftSection from './PoolCardComponents/NftSection';
 import TechnicalInfo from './PoolCardComponents/TechnicalInfo';
 import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
 
-const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
+const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [nftId, setNftId] = useState(pool.nftId || '');
     const [showCalculator, setShowCalculator] = useState(false);
@@ -114,7 +115,13 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftI
     }
 
     return (
-        <>
+        <motion.div
+            layout="position"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+        >
             <div
                 ref={setNodeRef}
                 style={style}
@@ -126,6 +133,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftI
                     listeners={listeners}
                     getStatusIcon={getStatusIcon}
                     onRemove={onRemove}
+                    onClone={onClone}
                     openCalculator={openCalculator}
                     calculatorIconRef={calculatorIconRef}
                 />
@@ -144,16 +152,22 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftI
                 )}
 
                 {pool.lpInfo && (
-                    <div className="p-3 space-y-3">
-                        <PoolInfo pool={pool} outOfRangeCount={outOfRangeCount} />
-                        <NftSection
-                            pool={pool}
-                            nftId={nftId}
-                            onNftIdChange={handleNftIdChange}
-                            onNftInfoUpdate={onNftInfoUpdate}
-                        />
-                        <TechnicalInfo lpInfo={pool.lpInfo} outOfRangeCount={outOfRangeCount} />
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <div className="p-3 space-y-3">
+                            <PoolInfo pool={pool} outOfRangeCount={outOfRangeCount} />
+                            <NftSection
+                                pool={pool}
+                                nftId={nftId}
+                                onNftIdChange={handleNftIdChange}
+                                onNftInfoUpdate={onNftInfoUpdate}
+                            />
+                            <TechnicalInfo lpInfo={pool.lpInfo} outOfRangeCount={outOfRangeCount} />
+                        </div>
+                    </motion.div>
                 )}
             </div>
 
@@ -166,7 +180,7 @@ const PoolCard = ({ id, pool, onRemove, outOfRangeCount, onNftInfoUpdate, onNftI
                     popoverRef={popoverRef}
                 />
             )}
-        </>
+        </motion.div>
     );
 };
 

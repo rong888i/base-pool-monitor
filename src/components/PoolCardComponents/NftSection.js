@@ -35,7 +35,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 setShowNftPanel(true);
                 setNftError(null);
                 if (onNftInfoUpdate) {
-                    onNftInfoUpdate({ address: pool.address, nftInfo: info });
+                    onNftInfoUpdate(info);
                 }
             } else {
                 setNftError(info.error || 'NFT信息无效');
