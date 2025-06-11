@@ -19,6 +19,7 @@ const getClient = () => {
 const PROTOCOL_FACTORIES = {
   PANCAKESWAP_V3: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865',
   UNISWAP_V3: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7', // Uniswap V3 在BSC上的Factory
+  UNISWAP_V4: '0x28e2ea090877bf75740558f6bfb36a5ffee9e9df', // PancakeSwap V2 在BSC上的Factory
   // 可以添加更多协议
 };
 

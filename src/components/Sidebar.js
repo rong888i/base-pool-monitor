@@ -56,7 +56,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                     openSection={openSection}
                     setOpenSection={setOpenSection}
                 >
-                    {!isCollapsed && <NftSearchSection pools={pools} onAddPool={onAddPool} />}
+                    <NftSearchSection pools={pools} onAddPool={onAddPool} />
                 </AccordionSection>
 
                 <AccordionSection
@@ -68,7 +68,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                     openSection={openSection}
                     setOpenSection={setOpenSection}
                 >
-                    {!isCollapsed && <PoolSearchSection pools={pools} onAddPool={onAddPool} />}
+                    <PoolSearchSection pools={pools} onAddPool={onAddPool} />
                 </AccordionSection>
             </div>
         </div>
