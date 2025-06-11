@@ -7,17 +7,17 @@ const AccordionSection = ({ title, id, icon, children, openSection, setOpenSecti
         <div className="border-b border-neutral-200 dark:border-neutral-800">
             <button
                 onClick={() => setOpenSection(isOpen ? null : id)}
-                className="w-full p-4 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                className="w-full p-4 text-left transition-colors duration-200 group"
             >
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 bg-gradient-to-br rounded-lg ${id === 'find' ? 'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20' : 'from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20'}`}>
+                        <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700 transition-colors">
                             {icon}
                         </div>
-                        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">{title}</h2>
+                        <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100">{title}</h2>
                     </div>
                     <svg
-                        className={`w-5 h-5 text-neutral-500 dark:text-neutral-400 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`w-5 h-5 text-neutral-400 dark:text-neutral-500 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>

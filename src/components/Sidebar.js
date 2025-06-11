@@ -19,24 +19,24 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
     };
 
     return (
-        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 transition-[width] duration-300 relative overflow-y-auto overflow-x-hidden custom-scrollbar`}>
+        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-neutral-50 dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800/50 transition-[width] duration-300 relative overflow-y-auto overflow-x-hidden custom-scrollbar`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
-                className={`fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-2
-                bg-white/70 dark:bg-neutral-800/70 backdrop-blur-sm
-                border border-neutral-200/50 dark:border-neutral-700/50
-                shadow-lg hover:shadow-xl
-                hover:bg-white/90 dark:hover:bg-neutral-800/90
+                className={`fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-1.5
+                bg-white/60 dark:bg-neutral-800/60 backdrop-blur-sm
+                border border-neutral-200/50 dark:border-neutral-700
+                shadow-md hover:shadow-lg
+                hover:bg-white/90 dark:hover:bg-neutral-800
                 transition-all duration-300
                 ${isCollapsed
-                        ? 'left-3'
-                        : 'sm:left-[23rem] left-[calc(100%-3.5rem)]'
+                        ? 'left-2'
+                        : 'sm:left-[23rem] left-[calc(100%-3.25rem)]'
                     }`}
                 aria-label={isCollapsed ? "展开侧边栏" : "收起侧边栏"}
             >
                 <svg
-                    className={`w-6 h-6 text-neutral-700 dark:text-neutral-300 transition-transform duration-300 ${!isCollapsed ? 'rotate-180' : ''}`}
+                    className={`w-6 h-6 text-neutral-600 dark:text-neutral-300 transition-transform duration-300 ${!isCollapsed ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
