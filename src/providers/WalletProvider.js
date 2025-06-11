@@ -16,7 +16,7 @@ createAppKit({
     metadata: {
         name: 'Pool Monitor',
         description: 'Monitor your liquidity pools',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://pool-monitor.com',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://www.poolm.xyz/',
         icons: ['https://avatars.githubusercontent.com/u/37784886']
     },
     features: {
