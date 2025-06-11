@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "pool monitor",
-  description: "pool monitor",
+  title: "Pool Monitor",
+  description: "Pool Monitor",
 };
 
 export default function RootLayout({ children }) {
