@@ -1,17 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getNFTPositionInfo } from '../../utils/lpUtils';
-
-// 计算价格在范围条中的位置百分比
-const calculatePricePosition = (current, lower, upper) => {
-    if (current <= lower) return 5; // 最左边，留一点边距
-    if (current >= upper) return 95; // 最右边，留一点边距
-
-    // 在范围内时，计算相对位置 (20% 到 80% 之间)
-    const ratio = (current - lower) / (upper - lower);
-    return 20 + (ratio * 60); // 20% 到 80% 的范围
-};
+import { getNFTPositionInfo, getTickSpacing, calculatePriceFromTick } from '../../utils/lpUtils';
 
 const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     const [nftInfo, setNftInfo] = useState(null);
@@ -283,86 +273,127 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
 
                         {/* Price Range Visualizer */}
                         <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                            <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
-                            </div>
+                            {(() => {
+                                // Base prices are always token1/token0 from getNFTPositionInfo
+                                const nftPriceLower_1_per_0 = nftInfo.priceRange.lower;
+                                const nftPriceUpper_1_per_0 = nftInfo.priceRange.upper;
+                                const currentPrice_1_per_0 = nftInfo.currentPrice;
 
-                            <div className="flex justify-between text-xs font-medium px-1 mb-1">
-                                <span className="w-1/3 text-center font-bold text-success-500">下限</span>
-                                <span className="w-1/3 text-center font-bold text-neutral-500">中心</span>
-                                <span className="w-1/3 text-center font-bold text-error-500">上限</span>
-                            </div>
+                                // Determine display prices based on toggle
+                                const displayPriceLower = showReversedPrice ? nftPriceLower_1_per_0 : (1 / nftPriceUpper_1_per_0);
+                                const displayPriceUpper = showReversedPrice ? nftPriceUpper_1_per_0 : (1 / nftPriceLower_1_per_0);
+                                const displayCurrentPrice = showReversedPrice ? currentPrice_1_per_0 : (1 / currentPrice_1_per_0);
 
-                            <div className="relative mb-3">
-                                <div className="h-6 bg-neutral-200 dark:bg-neutral-700 rounded-full relative overflow-hidden">
-                                    <div
-                                        className="absolute h-full bg-success-200 dark:bg-success-900/30 rounded-full"
-                                        style={{
-                                            left: '20%',
-                                            width: '60%'
-                                        }}
-                                    ></div>
-                                    <div className="absolute top-0 left-[50%] w-0.5 h-full bg-neutral-400 dark:bg-neutral-600 opacity-50"></div>
-                                    <div
-                                        className={`absolute top-0 w-1 h-full ${nftInfo.isInRange ? 'bg-success-500' : 'bg-error-500'} shadow-lg z-10`}
-                                        style={{
-                                            left: `${calculatePricePosition(
-                                                showReversedPrice ? (1 / nftInfo.currentPrice) : nftInfo.currentPrice,
-                                                showReversedPrice ? (1 / nftInfo.priceRange.upper) : nftInfo.priceRange.lower,
-                                                showReversedPrice ? (1 / nftInfo.priceRange.lower) : nftInfo.priceRange.upper
-                                            )}%`,
-                                            transform: 'translateX(-50%)'
-                                        }}
-                                    ></div>
-                                    <div className="absolute top-0 left-[20%] w-0.5 h-full bg-success-500"></div>
-                                    <div className="absolute top-0 left-[80%] w-0.5 h-full bg-error-500"></div>
-                                </div>
-                                <div className="flex justify-between text-xs font-mono px-1 mt-1">
-                                    <span className="w-1/3 text-center font-mono font-bold text-xs !text-success-500">
-                                        {showReversedPrice
-                                            ? (1 / nftInfo.priceRange.upper).toFixed(6)
-                                            : nftInfo.priceRange.lower.toFixed(6)
-                                        }
-                                    </span>
-                                    <span className="w-1/3 text-center font-mono font-bold text-xs text-neutral-500">
-                                        {showReversedPrice
-                                            ? (1 / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)).toFixed(6)
-                                            : ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2).toFixed(6)
-                                        }
-                                    </span>
-                                    <span className="w-1/3 text-center font-mono font-bold text-xs text-error-500">
-                                        {showReversedPrice
-                                            ? (1 / nftInfo.priceRange.lower).toFixed(6)
-                                            : nftInfo.priceRange.upper.toFixed(6)
-                                        }
-                                    </span>
-                                </div>
-                                <div className="text-center mt-3">
-                                    <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
-                                        {nftInfo.isInRange
-                                            ? `✅ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 在范围内`
-                                            : `❌ 当前价格 ${showReversedPrice ? (1 / nftInfo.currentPrice).toFixed(6) : nftInfo.currentPrice.toFixed(6)} 超出范围`
-                                        }
-                                    </span>
-                                </div>
-                            </div>
+                                const displayRange = displayPriceUpper - displayPriceLower;
+                                if (displayRange <= 0) return null;
 
-                            <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
-                                ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
-                                : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
-                                }`}>
-                                {nftInfo.isInRange
-                                    ? <>
-                                        🎯 价格在范围内，正在赚取手续费
-                                    </>
-                                    : nftInfo.currentPrice < nftInfo.priceRange.lower
-                                        ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
-                                        : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
+                                // Define view window with padding
+                                const padding = displayRange * 0.20;
+                                const viewPriceLower = displayPriceLower - padding;
+                                const viewPriceUpper = displayPriceUpper + padding;
+                                const viewRange = viewPriceUpper - viewPriceLower;
+
+                                const priceToPercentage = (price) => {
+                                    if (viewRange <= 0) return 50;
+                                    const rawPercent = ((price - viewPriceLower) / viewRange) * 100;
+                                    return Math.max(0, Math.min(100, rawPercent));
+                                };
+
+                                const lowerBoundPos = priceToPercentage(displayPriceLower);
+                                const upperBoundPos = priceToPercentage(displayPriceUpper);
+                                const currentPricePos = priceToPercentage(displayCurrentPrice);
+                                const centerPrice = (displayPriceLower + displayPriceUpper) / 2;
+                                const centerPos = priceToPercentage(centerPrice);
+
+                                const tickSpacing = getTickSpacing(pool.lpInfo.fee);
+                                const marks = [];
+                                for (let tick = nftInfo.tickLower; tick <= nftInfo.tickUpper; tick += tickSpacing) {
+                                    const markPriceRaw = calculatePriceFromTick(tick, pool.lpInfo.token0.decimals, pool.lpInfo.token1.decimals);
+                                    const markPrice = showReversedPrice ? markPriceRaw : (1 / markPriceRaw);
+                                    if (markPrice >= viewPriceLower && markPrice <= viewPriceUpper) {
+                                        marks.push({
+                                            position: priceToPercentage(markPrice),
+                                            price: markPrice,
+                                        });
+                                    }
                                 }
-                            </div>
-                            <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                                <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
-                            </div>
+
+                                return (
+                                    <div>
+                                        <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                            价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
+                                        </div>
+                                        <div className="relative h-5 text-xs font-medium px-1 mb-1">
+                                            <div style={{ position: 'absolute', left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-success-500">下限</div>
+                                            <div style={{ position: 'absolute', left: `${centerPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-neutral-500">中心</div>
+                                            <div style={{ position: 'absolute', left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-error-500">上限</div>
+                                        </div>
+
+                                        <div className="relative h-6">
+                                            <div className="h-full bg-neutral-200 dark:bg-neutral-700 rounded-full relative">
+                                                <div className="absolute h-full bg-success-200 dark:bg-success-900/30" style={{ left: `${lowerBoundPos}%`, width: `${upperBoundPos - lowerBoundPos}%` }}></div>
+
+                                                {/* Intermediate Ticks */}
+                                                {marks.map((mark, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-neutral-400 dark:bg-neutral-500 opacity-50"
+                                                        style={{ left: `${mark.position}%`, transform: 'translateX(-50%)' }}
+                                                        title={`Tick Price: ${mark.price.toPrecision(6)}`}
+                                                    ></div>
+                                                ))}
+
+                                                {/* Major lines */}
+                                                <div className="absolute top-0 w-px h-full bg-success-500" style={{ left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }}></div>
+                                                <div className="absolute top-0 w-px h-full bg-neutral-500" style={{ left: `${centerPos}%`, transform: 'translateX(-50%)' }}></div>
+                                                <div className="absolute top-0 w-px h-full bg-error-500" style={{ left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }}></div>
+
+                                                {/* Current price line with boundary clamping */}
+                                                <div
+                                                    className={`absolute top-0 w-1 h-full ${nftInfo.isInRange ? 'bg-green-500' : 'bg-red-500'} shadow-lg z-10`}
+                                                    style={{
+                                                        left: `${Math.max(7, Math.min(93, currentPricePos))}%`,
+                                                        transform: 'translateX(-50%)'
+                                                    }}
+                                                    title={`当前价格: ${displayCurrentPrice.toPrecision(6)}`}
+                                                ></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative h-5 text-xs font-mono px-1 mt-1">
+                                            <div style={{ position: 'absolute', left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-success-500">{displayPriceLower.toPrecision(6)}</div>
+                                            <div style={{ position: 'absolute', left: `${centerPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-neutral-500">{centerPrice.toPrecision(6)}</div>
+                                            <div style={{ position: 'absolute', left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-error-500">{displayPriceUpper.toPrecision(6)}</div>
+                                        </div>
+
+                                        <div className="text-center mt-3">
+                                            <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
+                                                {nftInfo.isInRange
+                                                    ? `✅ 当前价格 ${displayCurrentPrice.toPrecision(6)} 在范围内`
+                                                    : `❌ 当前价格 ${displayCurrentPrice.toPrecision(6)} 超出范围`
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
+                            ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
+                            : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
+                            }`}>
+                            {nftInfo.isInRange
+                                ? <>
+                                    🎯 价格在范围内，正在赚取手续费
+                                </>
+                                : nftInfo.currentPrice < nftInfo.priceRange.lower
+                                    ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
+                                    : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
+                            }
+                        </div>
+                        <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
+                            <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
                         </div>
                     </div>
                 )}

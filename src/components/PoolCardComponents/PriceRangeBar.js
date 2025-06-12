@@ -40,7 +40,9 @@ const PriceRangeBar = ({ lpInfo }) => {
                 <div
                     className="absolute bg-primary-500 h-3 w-3 rounded-full border-2 border-white dark:border-neutral-800 shadow-md transition-all duration-300"
                     style={{ left: `${percentage}%`, top: '50%', transform: 'translate(-50%, -50%)' }}
-                    title={`当前价格: ${currentPrice.toPrecision(7)} ${token0.symbol}/${token1.symbol}  ${percentage}%`}
+                    title={`当前价格: ${currentPrice.toPrecision(7)} ${token0.symbol}/${token1.symbol}
+        ${priceLower.toPrecision(5)} ----- ${priceUpper.toPrecision(5)}
+        ${percentage}%`}
                 >
                 </div>
             </div>
