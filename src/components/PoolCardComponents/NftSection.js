@@ -165,7 +165,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                     </div>
 
                                     {(() => {
-                                        if (!nftInfo?.liquidity || !pool.lpInfo?.liquidity || BigInt(pool.lpInfo.liquidity) === 0n) {
+                                        if (!nftInfo.isInRange || !nftInfo?.liquidity || !pool.lpInfo?.liquidity || BigInt(pool.lpInfo.liquidity) === 0n) {
                                             return null;
                                         }
                                         const totalLiquidity = BigInt(pool.lpInfo.liquidity);

@@ -19,7 +19,6 @@ const getClient = () => {
 const PROTOCOL_FACTORIES = {
   PANCAKESWAP_V3: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865',
   UNISWAP_V3: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7', // Uniswap V3 在BSC上的Factory
-  UNISWAP_V4: '0x28e2ea090877bf75740558f6bfb36a5ffee9e9df', // PancakeSwap V2 在BSC上的Factory
   // 可以添加更多协议
 };
 
@@ -633,6 +632,19 @@ export function calculatePriceFromTick(tick, decimals0, decimals1) {
 }
 
 /**
+ * 从价格计算tick (近似值)
+ * @param {number} price - 价格 (token1/token0)
+ * @param {number} decimals0 - token0的小数位数
+ * @param {number} decimals1 - token1的小数位数
+ * @returns {number} tick
+ */
+export function calculateTickFromPrice(price, decimals0, decimals1) {
+  const adjustedPrice = price / Math.pow(10, decimals0 - decimals1);
+  const tick = Math.log(adjustedPrice) / Math.log(1.0001);
+  return Math.round(tick);
+}
+
+/**
  * 从tick计算sqrtPriceX96 (近似值)
  * @param {number} tick - tick值
  * @returns {bigint} sqrtPriceX96
@@ -698,6 +710,104 @@ function getAmountsForLiquidity(liquidity, sqrtPriceX96_current, tickCurrent, ti
       token1: amount1Formatted.toFixed(6),
     }
   };
+}
+
+/**
+ * 根据代币数量计算流动性
+ * @param {object} poolInfo - 池子信息
+ * @param {number} tickLower - 区间下限tick
+ * @param {number} tickUpper - 区间上限tick
+ * @param {string} amount0 - token0的数量
+ * @param {string} amount1 - token1的数量
+ * @returns {bigint} liquidity
+ */
+export function getLiquidityForAmounts(poolInfo, tickLower, tickUpper, amount0, amount1) {
+  const { sqrtPriceX96, tick: tickCurrent, token0: { decimals: decimals0 }, token1: { decimals: decimals1 } } = poolInfo;
+
+  const sp_current = BigInt(sqrtPriceX96);
+  const sa = tickToSqrtPriceX96(tickLower);
+  const sb = tickToSqrtPriceX96(tickUpper);
+
+  const Q96 = 2n ** 96n;
+
+  const amount0BN = BigInt(Math.floor(Number(amount0) * (10 ** decimals0)));
+  const amount1BN = BigInt(Math.floor(Number(amount1) * (10 ** decimals1)));
+
+  let liquidity = 0n;
+
+  if (tickCurrent < tickLower) {
+    // L = amount0 * (sa * sb / Q96) / (sb - sa)
+    if (sb > sa) {
+      liquidity = (amount0BN * sa * sb / Q96) / (sb - sa);
+    }
+  } else if (tickCurrent >= tickUpper) {
+    // L = amount1 * Q96 / (sb - sa)
+    if (sb > sa) {
+      liquidity = (amount1BN * Q96) / (sb - sa);
+    }
+  } else {
+    // L_from_amount0 = amount0 * (sp * sb / Q96) / (sb - sp)
+    // L_from_amount1 = amount1 * Q96 / (sp - sa)
+    let liquidity0 = 0n;
+    if (sb > sp_current) {
+      liquidity0 = (amount0BN * sp_current * sb / Q96) / (sb - sp_current);
+    }
+
+    let liquidity1 = 0n;
+    if (sp_current > sa) {
+      liquidity1 = (amount1BN * Q96) / (sp_current - sa);
+    }
+
+    liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
+  }
+
+  return liquidity;
+}
+
+export function getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0) {
+  const { sqrtPriceX96, tick: tickCurrent, token0: { decimals: decimals0 } } = poolInfo;
+  const sp_current = BigInt(sqrtPriceX96);
+  const sa = tickToSqrtPriceX96(tickLower);
+  const sb = tickToSqrtPriceX96(tickUpper);
+  const Q96 = 2n ** 96n;
+  const amount0BN = BigInt(Math.floor(Number(amount0) * (10 ** decimals0)));
+
+  let liquidity = 0n;
+  if (tickCurrent < tickLower) {
+    if (sb > sa) {
+      liquidity = (amount0BN * sa * sb / Q96) / (sb - sa);
+    }
+  } else if (tickCurrent >= tickUpper) {
+    liquidity = 0n;
+  } else {
+    if (sb > sp_current) {
+      liquidity = (amount0BN * sp_current * sb / Q96) / (sb - sp_current);
+    }
+  }
+  return liquidity;
+}
+
+export function getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1) {
+  const { sqrtPriceX96, tick: tickCurrent, token1: { decimals: decimals1 } } = poolInfo;
+  const sp_current = BigInt(sqrtPriceX96);
+  const sa = tickToSqrtPriceX96(tickLower);
+  const sb = tickToSqrtPriceX96(tickUpper);
+  const Q96 = 2n ** 96n;
+  const amount1BN = BigInt(Math.floor(Number(amount1) * (10 ** decimals1)));
+
+  let liquidity = 0n;
+  if (tickCurrent < tickLower) {
+    liquidity = 0n;
+  } else if (tickCurrent >= tickUpper) {
+    if (sb > sa) {
+      liquidity = (amount1BN * Q96) / (sb - sa);
+    }
+  } else {
+    if (sp_current > sa) {
+      liquidity = (amount1BN * Q96) / (sp_current - sa);
+    }
+  }
+  return liquidity;
 }
 
 /**
@@ -1163,4 +1273,4 @@ export async function findNftPositionsByOwner(ownerAddress) {
   }
 }
 
-export { getLPInfo, getBatchLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo }; 
+export { getLPInfo, getBatchLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo, getAmountsForLiquidity }; 
