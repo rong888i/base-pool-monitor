@@ -377,24 +377,25 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                     </div>
                                 );
                             })()}
+                            <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
+                                ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
+                                : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
+                                }`}>
+                                {nftInfo.isInRange
+                                    ? <>
+                                        🎯 价格在范围内，正在赚取手续费
+                                    </>
+                                    : nftInfo.currentPrice < nftInfo.priceRange.lower
+                                        ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
+                                        : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
+                                }
+                            </div>
+                            <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
+                                <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
+                            </div>
                         </div>
 
-                        <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
-                            ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
-                            : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
-                            }`}>
-                            {nftInfo.isInRange
-                                ? <>
-                                    🎯 价格在范围内，正在赚取手续费
-                                </>
-                                : nftInfo.currentPrice < nftInfo.priceRange.lower
-                                    ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
-                                    : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
-                            }
-                        </div>
-                        <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                            <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
-                        </div>
+
                     </div>
                 )}
             </div>
