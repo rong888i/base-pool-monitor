@@ -16,7 +16,8 @@ function ConnectWalletButton() {
                                 bg-white/70 hover:bg-white/100 dark:bg-gray-800/80 dark:hover:bg-gray-700/80
                                 border border-gray-200/80 dark:border-gray-700
                                 shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300 group"
-                    title="断开连接"
+                    data-tooltip-id="my-tooltip"
+                    data-tooltip-content="断开连接"
                 >
                     <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -102,7 +103,8 @@ export default function ControlPanel({
                           hover:shadow-blue-500/40
                           hover:scale-105 active:scale-95
                           disabled:hover:scale-100 disabled:cursor-not-allowed disabled:shadow-none"
-                        title="添加池子"
+                        data-tooltip-id="my-tooltip"
+                        data-tooltip-content="添加池子"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -115,12 +117,16 @@ export default function ControlPanel({
                 <div className="flex items-center gap-4 self-end md:self-center">
                     {/* Stats */}
                     <div className="flex items-center gap-4 text-sm">
-                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300" title="当前监控的池子数量">
+                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300"
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content="当前监控的池子数量">
                             <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                             <span className="font-semibold text-gray-800 dark:text-white">{pools.length}</span>
                         </span>
                         {settings.autoRefresh && (
-                            <span className="hidden md:flex items-center gap-1.5 text-gray-600 dark:text-gray-300" title={`每 ${settings.refreshInterval} 秒自动刷新`}>
+                            <span className="hidden md:flex items-center gap-1.5 text-gray-600 dark:text-gray-300"
+                                data-tooltip-id="my-tooltip"
+                                data-tooltip-content={`每 ${settings.refreshInterval} 秒自动刷新`}>
                                 <svg className="w-4 h-4 text-blue-500 animate-spin" style={{ animationDuration: '2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                 <span className="hidden lg:inline font-semibold text-gray-800 dark:text-white">{settings.refreshInterval}s</span>
                             </span>
@@ -138,7 +144,8 @@ export default function ControlPanel({
                                 bg-white/70 hover:bg-white/100 dark:bg-gray-800/80 dark:hover:bg-gray-700/80
                                 border border-gray-200/80 dark:border-gray-700
                                 shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300 group"
-                            title="刷新所有池子"
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content="刷新所有池子"
                         >
                             <svg className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -150,7 +157,8 @@ export default function ControlPanel({
                                 bg-white/70 hover:bg-white/100 dark:bg-gray-800/80 dark:hover:bg-gray-700/80
                                 border border-gray-200/80 dark:border-gray-700
                                 shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300 group"
-                            title="设置"
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content="设置"
                         >
                             <svg className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

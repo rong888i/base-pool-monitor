@@ -1,6 +1,8 @@
 import localFont from "next/font/local";
 import "./globals.css";
 import { WalletProvider } from "@/providers/WalletProvider";
+import MyTooltip from "@/components/MyTooltip";
+import "react-tooltip/dist/react-tooltip.css";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,6 +27,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <WalletProvider>{children}</WalletProvider>
+        <MyTooltip />
       </body>
     </html>
   );

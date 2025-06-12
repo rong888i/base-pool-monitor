@@ -96,7 +96,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                     <button
                         onClick={clearNftInfo}
                         className="absolute right-[calc(4rem+1rem)] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full"
-                        title="清除"
+                        data-tooltip-id="my-tooltip"
+                        data-tooltip-content="清除"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -193,7 +194,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                         return (
                                             <div
                                                 className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full border ${colorClass}`}
-                                                title={`仓位占比\nNFT 流动性: ${nftLiquidity.toString()}\n池子总流动性: ${totalLiquidity.toString()}`}
+                                                data-tooltip-id="my-tooltip"
+                                                data-tooltip-html={`仓位占比<br/>NFT 流动性: ${nftLiquidity.toString()}<br/>池子总流动性: ${totalLiquidity.toString()}`}
                                             >
                                                 {displayPercentage}
                                             </div>
@@ -237,7 +239,11 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 <span className="text-primary-700 dark:text-primary-400 font-semibold">{pool.lpInfo.token0.symbol}</span>
                                                 <div className="text-right">
                                                     <span className="text-neutral-800 dark:text-neutral-200 font-semibold">{nftInfo.positionLiquidity.formatted.token0}</span>
-                                                    <span className="ml-2 text-success-600 dark:text-success-400" title="未领取手续费">
+                                                    <span
+                                                        className="ml-2 text-success-600 dark:text-success-400"
+                                                        data-tooltip-id="my-tooltip"
+                                                        data-tooltip-content="未领取手续费"
+                                                    >
                                                         {(() => {
                                                             const fee = nftInfo.fees?.collectable?.token0;
                                                             const decimals = pool.lpInfo.token0.decimals;
@@ -253,7 +259,11 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 <span className="text-success-700 dark:text-success-400 font-semibold">{pool.lpInfo.token1.symbol}</span>
                                                 <div className="text-right">
                                                     <span className="text-neutral-800 dark:text-neutral-200 font-semibold">{nftInfo.positionLiquidity.formatted.token1}</span>
-                                                    <span className="ml-2 text-success-600 dark:text-success-400" title="未领取手续费">
+                                                    <span
+                                                        className="ml-2 text-success-600 dark:text-success-400"
+                                                        data-tooltip-id="my-tooltip"
+                                                        data-tooltip-content="未领取手续费"
+                                                    >
                                                         {(() => {
                                                             const fee = nftInfo.fees?.collectable?.token1;
                                                             const decimals = pool.lpInfo.token1.decimals;
@@ -339,7 +349,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                         key={i}
                                                         className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-neutral-400 dark:bg-neutral-500 opacity-50"
                                                         style={{ left: `${mark.position}%`, transform: 'translateX(-50%)' }}
-                                                        title={`Tick Price: ${mark.price.toPrecision(6)}`}
+                                                        data-tooltip-id="my-tooltip"
+                                                        data-tooltip-content={`Tick Price: ${mark.price.toPrecision(6)}`}
                                                     ></div>
                                                 ))}
 
@@ -355,7 +366,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                         left: `${Math.max(7, Math.min(93, currentPricePos))}%`,
                                                         transform: 'translateX(-50%)'
                                                     }}
-                                                    title={`当前价格: ${displayCurrentPrice.toPrecision(6)}`}
+                                                    data-tooltip-id="my-tooltip"
+                                                    data-tooltip-content={`当前价格: ${displayCurrentPrice.toPrecision(6)}`}
                                                 ></div>
                                             </div>
                                         </div>

@@ -58,6 +58,8 @@ input[type="number"] {
   /* 协议特定颜色 */
   --pancakeswap: #1fc7d4;
   --uniswap: #ff007a;
+
+  --chart-7: 12 76% 61%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -190,4 +192,58 @@ body {
 
 .dark .w-96 {
   scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+/* Custom Tooltip Style */
+.my-tooltip {
+  background-color: var(--neutral-800) !important;
+  color: var(--neutral-50) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
+  white-space: pre-wrap !important;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.my-tooltip.place-top::after {
+  border-top-color: var(--neutral-800) !important;
+}
+
+.my-tooltip.place-bottom::after {
+  border-bottom-color: var(--neutral-800) !important;
+}
+
+.my-tooltip.place-left::after {
+  border-left-color: var(--neutral-800) !important;
+}
+
+.my-tooltip.place-right::after {
+  border-right-color: var(--neutral-800) !important;
+}
+
+/* Dark mode tooltip styles */
+.dark .my-tooltip {
+  background-color: var(--neutral-100) !important;
+  color: var(--neutral-800) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .my-tooltip.place-top::after {
+  border-top-color: var(--neutral-100) !important;
+}
+
+.dark .my-tooltip.place-bottom::after {
+  border-bottom-color: var(--neutral-100) !important;
+}
+
+.dark .my-tooltip.place-left::after {
+  border-left-color: var(--neutral-100) !important;
+}
+
+.dark .my-tooltip.place-right::after {
+  border-right-color: var(--neutral-100) !important;
 }

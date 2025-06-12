@@ -54,6 +54,12 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
         localStorage.removeItem('poolSearchHistory');
     };
 
+    const handleRemoveHistoryItem = (addressToRemove) => {
+        const newHistory = searchHistory.filter(address => address !== addressToRemove);
+        setSearchHistory(newHistory);
+        localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
+    };
+
     const searchPools = async () => {
         if (!searchAddress.trim()) {
             setError('请输入代币合约地址');
@@ -264,14 +270,26 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {searchHistory.map((address) => (
-                            <button
-                                key={address}
-                                onClick={() => setSearchAddress(address)}
-                                className="px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800/80 text-xs text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white transition-all duration-200 font-mono"
-                                title={address}
-                            >
-                                {formatAddress(address)}
-                            </button>
+                            <div key={address} className="relative group">
+                                <button
+                                    onClick={() => setSearchAddress(address)}
+                                    className="pr-7 pl-2.5 py-1 bg-neutral-100 dark:bg-neutral-800/80 text-xs text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white transition-all duration-200 font-mono"
+                                    data-tooltip-id="my-tooltip"
+                                    data-tooltip-content={address}
+                                >
+                                    {formatAddress(address)}
+                                </button>
+                                <button
+                                    onClick={() => handleRemoveHistoryItem(address)}
+                                    className="absolute top-0 right-0 h-full px-1.5 flex items-center text-neutral-400 hover:text-red-500 rounded-r-md opacity-50 group-hover:opacity-100 transition-opacity"
+                                    data-tooltip-id="my-tooltip"
+                                    data-tooltip-content="删除此条"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         ))}
                     </div>
                 </div>
