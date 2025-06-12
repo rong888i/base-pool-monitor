@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import PriceRangeBar from './PriceRangeBar';
 
 const PoolInfo = ({ pool, outOfRangeCount }) => {
     if (!pool.lpInfo) return null;
@@ -77,6 +78,7 @@ const PoolInfo = ({ pool, outOfRangeCount }) => {
                         </span>
                     </div>
                 </div>
+                <PriceRangeBar lpInfo={pool.lpInfo} />
             </div>
         </>
     );

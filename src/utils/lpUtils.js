@@ -218,6 +218,22 @@ function identifyProtocol(factoryAddress) {
 }
 
 /**
+ * 获取费率对应的tickSpacing
+ * @param {number} fee - 费率 (e.g., 500 for 0.05%)
+ * @returns {number} tickSpacing
+ */
+export function getTickSpacing(fee) {
+  switch (fee) {
+    case 100: return 1; // 0.01%
+    case 500: return 10; // 0.05%
+    case 2500: return 50; // 0.25% (PancakeSwap)
+    case 3000: return 60; // 0.3%
+    case 10000: return 200; // 1%
+    default: return 60; // 默认
+  }
+}
+
+/**
  * 格式化大数字显示
  * @param {bigint} balance - 余额
  * @param {number} decimals - 小数位数
@@ -611,7 +627,7 @@ function getPositionManagerAddress(factoryAddress) {
  * @param {number} decimals1 - token1的小数位数
  * @returns {number} 价格
  */
-function calculatePriceFromTick(tick, decimals0, decimals1) {
+export function calculatePriceFromTick(tick, decimals0, decimals1) {
   const price = Math.pow(1.0001, tick);
   return price * Math.pow(10, decimals0 - decimals1);
 }
