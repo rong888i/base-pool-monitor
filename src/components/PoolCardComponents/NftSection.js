@@ -344,9 +344,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 ))}
 
                                                 {/* Major lines */}
-                                                <div className="absolute top-0 w-px h-full bg-success-500" style={{ left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }}></div>
-                                                <div className="absolute top-0 w-px h-full bg-neutral-500" style={{ left: `${centerPos}%`, transform: 'translateX(-50%)' }}></div>
-                                                <div className="absolute top-0 w-px h-full bg-error-500" style={{ left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }}></div>
+                                                <div className="absolute top-0 w-0.5 h-full bg-success-500" style={{ left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }}></div>
+                                                <div className="absolute top-0 w-0.5 h-full bg-neutral-500" style={{ left: `${centerPos}%`, transform: 'translateX(-50%)' }}></div>
+                                                <div className="absolute top-0 w-0.5 h-full bg-error-500" style={{ left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }}></div>
 
                                                 {/* Current price line with boundary clamping */}
                                                 <div
