@@ -21,7 +21,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
     }, []);
 
     const getAddedPool = (address) => {
-        return pools.find(pool => pool.address.toLowerCase() === address.toLowerCase());
+        return pools.find(pool => pool && pool.address && pool.address.toLowerCase() === address.toLowerCase());
     };
 
     const handleClearWalletHistory = () => {

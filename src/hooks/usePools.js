@@ -27,8 +27,15 @@ export function usePools(settings) {
                             localStorage.setItem('monitoredPools', JSON.stringify(newData));
                             return newData;
                         }
-                        if (Array.isArray(parsedData) && (parsedData.length === 0 || typeof parsedData[0] === 'object')) {
-                            return parsedData;
+                        if (Array.isArray(parsedData)) {
+                            // 过滤掉无效的池子数据，确保每个池子都有 address 属性
+                            const validPools = parsedData.filter(pool => pool && typeof pool.address === 'string');
+                            if (validPools.length < parsedData.length) {
+                                console.warn('Removed invalid pool entries from localStorage data.');
+                                // 如果数据被清理过，则更新 localStorage
+                                localStorage.setItem('monitoredPools', JSON.stringify(validPools));
+                            }
+                            return validPools;
                         }
                     } catch (e) {
                         console.error('Failed to parse saved pools:', e);
@@ -128,7 +135,7 @@ export function usePools(settings) {
     // 添加新池子
     const addPool = useCallback(() => {
         if (!customAddress.trim()) return;
-        if (pools.some(pool => pool.address.toLowerCase() === customAddress.toLowerCase())) {
+        if (pools.some(pool => pool && pool.address && pool.address.toLowerCase() === customAddress.toLowerCase())) {
             alert('该池子地址已存在！');
             return;
         }
@@ -163,12 +170,12 @@ export function usePools(settings) {
     // 从侧边栏添加
     const handleAddPoolFromSidebar = useCallback((poolData) => {
         if (poolData.isRemoving) {
-            const poolIndex = pools.findIndex(pool => pool.address.toLowerCase() === poolData.address.toLowerCase());
+            const poolIndex = pools.findIndex(pool => pool && pool.address && pool.address.toLowerCase() === poolData.address.toLowerCase());
             if (poolIndex !== -1) removePool(poolIndex);
             return;
         }
 
-        const existingPoolIndex = pools.findIndex(p => p.address.toLowerCase() === poolData.address.toLowerCase());
+        const existingPoolIndex = pools.findIndex(p => p && p.address && p.address.toLowerCase() === poolData.address.toLowerCase());
         if (existingPoolIndex !== -1) {
             if (poolData.nftId) {
                 setPools(prevPools => {

@@ -20,11 +20,11 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
     }, []);
 
     const isPoolAdded = (address) => {
-        return pools.some(pool => pool.address.toLowerCase() === address.toLowerCase());
+        return pools.some(pool => pool && pool.address && pool.address.toLowerCase() === address.toLowerCase());
     };
 
     const getAddedPool = (address) => {
-        return pools.find(pool => pool.address.toLowerCase() === address.toLowerCase());
+        return pools.find(pool => pool && pool.address && pool.address.toLowerCase() === address.toLowerCase());
     };
 
     const handleAddPool = (pool) => {
@@ -97,7 +97,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                 });
 
                 const uniquePools = dexscreenerPools.reduce((acc, current) => {
-                    if (!acc.some(item => item.address.toLowerCase() === current.address.toLowerCase())) {
+                    if (!acc.some(item => item && item.address && current && current.address && item.address.toLowerCase() === current.address.toLowerCase())) {
                         acc.push(current);
                     }
                     return acc;
