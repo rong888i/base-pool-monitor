@@ -4,7 +4,7 @@ import { bsc } from 'viem/chains';
 // 获取RPC URL
 const getRpcUrl = () => {
   const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-  return settings.rpcUrl || 'https://bsc-dataseed1.binance.org/';
+  return settings.rpcUrl || 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
 };
 
 // BSC主网配置

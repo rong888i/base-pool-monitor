@@ -9,7 +9,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         refreshInterval: 3,
         enableBarkNotification: true,
         notificationLevel: 1, // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
-        rpcUrl: 'https://bsc-dataseed1.binance.org/' // 添加默认RPC URL
+        rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79vv' // 添加默认RPC URL
     });
 
     // 添加动画状态

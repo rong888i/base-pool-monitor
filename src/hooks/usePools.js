@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { getLPInfo } from '../utils/lpUtils';
 import { sendBarkNotification, isNFTInRange, getNotificationSettings } from '../utils/notificationUtils';
@@ -12,6 +12,7 @@ export function usePools(settings) {
     const [pools, setPools] = useState([]);
     const [customAddress, setCustomAddress] = useState('');
     const [outOfRangeCounts, setOutOfRangeCounts] = useState({});
+    const cancelledFetches = useRef(new Set());
 
     // 从本地存储加载池子列表
     useEffect(() => {
@@ -101,6 +102,10 @@ export function usePools(settings) {
 
     // 获取单个池子信息
     const fetchPoolInfo = useCallback(async (poolAddress, poolIndex) => {
+        if (cancelledFetches.current.has(poolAddress)) {
+            return;
+        }
+
         setPools(prev => prev.map((pool, index) =>
             index === poolIndex ? { ...pool, isLoading: true, error: null } : pool
         ));
@@ -153,6 +158,10 @@ export function usePools(settings) {
 
     // 删除池子
     const removePool = useCallback((poolIndex) => {
+        const poolToRemove = pools[poolIndex];
+        if (poolToRemove) {
+            cancelledFetches.current.add(poolToRemove.address);
+        }
         const newPools = pools.filter((_, index) => index !== poolIndex);
         setPools(newPools);
         savePoolsToStorage(newPools);
