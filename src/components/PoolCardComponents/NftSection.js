@@ -378,30 +378,32 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             <div style={{ position: 'absolute', left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-error-500">{displayPriceUpper.toPrecision(6)}</div>
                                         </div>
 
-                                        <div className="text-center mt-3">
-                                            <span className={`text-xs font-medium ${nftInfo.isInRange ? 'text-success-500' : 'text-error-500'}`}>
-                                                {nftInfo.isInRange
-                                                    ? `✅ 当前价格 ${displayCurrentPrice.toPrecision(6)} 在范围内`
-                                                    : `❌ 当前价格 ${displayCurrentPrice.toPrecision(6)} 超出范围`
-                                                }
-                                            </span>
+
+                                        <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
+                                            ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
+                                            : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
+                                            }`}>
+                                            {nftInfo.isInRange
+                                                ? <>
+                                                    ✅ 价格 ${displayCurrentPrice.toPrecision(6)} 在范围内
+                                                </>
+                                                : (() => {
+                                                    // 根据显示方向计算价格偏离百分比
+                                                    const lowerPrice = showReversedPrice ? nftInfo.priceRange.lower : (1 / nftInfo.priceRange.upper);
+                                                    const upperPrice = showReversedPrice ? nftInfo.priceRange.upper : (1 / nftInfo.priceRange.lower);
+
+                                                    if (displayCurrentPrice < lowerPrice) {
+                                                        return `⬇️ 价格低于下限 ${(((lowerPrice - displayCurrentPrice) / displayCurrentPrice) * 100).toFixed(1)}%`;
+                                                    } else {
+                                                        return `⬆️ 价格高于上限 ${(((displayCurrentPrice - upperPrice) / upperPrice) * 100).toFixed(1)}%`;
+                                                    }
+                                                })()
+                                            }
                                         </div>
                                     </div>
                                 );
                             })()}
-                            <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
-                                ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
-                                : 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-300'
-                                }`}>
-                                {nftInfo.isInRange
-                                    ? <>
-                                        🎯 价格在范围内，正在赚取手续费
-                                    </>
-                                    : nftInfo.currentPrice < nftInfo.priceRange.lower
-                                        ? `⬇️ 价格低于下限 ${(((nftInfo.priceRange.lower - nftInfo.currentPrice) / nftInfo.currentPrice) * 100).toFixed(1)}%`
-                                        : `⬆️ 价格高于上限 ${(((nftInfo.currentPrice - nftInfo.priceRange.upper) / nftInfo.priceRange.upper) * 100).toFixed(1)}%`
-                                }
-                            </div>
+
                             <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
                                 <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
                             </div>
