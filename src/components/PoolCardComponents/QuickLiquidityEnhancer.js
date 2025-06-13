@@ -281,9 +281,11 @@ const QuickLiquidityEnhancer = ({
             const amount0Desired = parseTokenAmount(amount0, poolInfo.token0?.decimals || 18);
             const amount1Desired = parseTokenAmount(amount1, poolInfo.token1?.decimals || 18);
 
+            // 确保滑点值有效
+            const effectiveSlippage = (typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1;
             // 计算最小数量（考虑滑点）
-            const amount0Min = (BigInt(amount0Desired) * (10000n - BigInt(slippage * 100))) / 10000n;
-            const amount1Min = (BigInt(amount1Desired) * (10000n - BigInt(slippage * 100))) / 10000n;
+            const amount0Min = (BigInt(amount0Desired) * (10000n - BigInt(effectiveSlippage * 100))) / 10000n;
+            const amount1Min = (BigInt(amount1Desired) * (10000n - BigInt(effectiveSlippage * 100))) / 10000n;
 
             // 设置交易截止时间（15分钟后）
             const deadline = Math.floor(Date.now() / 1000) + 900;
@@ -561,9 +563,24 @@ const QuickLiquidityEnhancer = ({
                                                         step="0.1"
                                                         min="0"
                                                         max="50"
-                                                        value={slippage}
-                                                        onChange={(e) => setSlippage(parseFloat(e.target.value) || 1)}
-                                                        placeholder="1"
+                                                        value={slippage === 1 ? '' : slippage}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            if (value === '') {
+                                                                setSlippage('');
+                                                            } else {
+                                                                const numValue = parseFloat(value);
+                                                                if (!isNaN(numValue) && numValue >= 0) {
+                                                                    setSlippage(numValue > 50 ? 50 : numValue);
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            if (e.target.value === '' || parseFloat(e.target.value) <= 0) {
+                                                                setSlippage(1);
+                                                            }
+                                                        }}
+                                                        placeholder="1.0"
                                                         className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-xl
                                                             bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50 
                                                             text-neutral-900 dark:text-white text-sm font-medium
@@ -701,7 +718,7 @@ const QuickLiquidityEnhancer = ({
                                                     </div>
                                                     <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
                                                         <div>• 增加流动性将添加到现有NFT仓位</div>
-                                                        <div>• 当前滑点设置: <span className="font-mono font-semibold">{slippage}%</span></div>
+                                                        <div>• 当前滑点设置: <span className="font-mono font-semibold">{(typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1}%</span></div>
                                                     </div>
                                                 </div>
                                             </div>

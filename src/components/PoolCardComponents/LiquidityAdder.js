@@ -133,8 +133,8 @@ const SlippageSelector = ({ slippage, setSlippage, slippageOptions }) => {
         const value = e.target.value;
         setCustomSlippage(value);
         const numValue = parseFloat(value);
-        if (!isNaN(numValue) && numValue >= 0 && numValue <= 50) {
-            setSlippage(numValue);
+        if (!isNaN(numValue) && numValue >= 0) {
+            setSlippage(numValue > 50 ? 50 : numValue);
         } else if (value === '') {
             // 如果输入框被清空，可以设置为一个默认值，例如0.5
             setSlippage(0.5);
@@ -152,9 +152,24 @@ const SlippageSelector = ({ slippage, setSlippage, slippageOptions }) => {
                         step="0.1"
                         min="0"
                         max="50"
-                        value={slippage}
-                        onChange={(e) => setSlippage(parseFloat(e.target.value) || 1)}
-                        placeholder="1"
+                        value={slippage === 1 ? '' : slippage}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '') {
+                                setSlippage('');
+                            } else {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue) && numValue >= 0) {
+                                    setSlippage(numValue > 50 ? 50 : numValue);
+                                }
+                            }
+                        }}
+                        onBlur={(e) => {
+                            if (e.target.value === '' || parseFloat(e.target.value) <= 0) {
+                                setSlippage(1);
+                            }
+                        }}
+                        placeholder="1.0"
                         className="w-full px-3 py-2 pr-8 border border-neutral-300 dark:border-neutral-600 rounded-lg
                                             bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white text-sm
                                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -1149,7 +1164,7 @@ const LiquidityAdder = ({
                                             <div className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1">
                                                 <div className="font-medium">风险提示：</div>
                                                 <div>• 添加流动性存在无常损失风险</div>
-                                                <div>• 当前滑点设置: {slippage}%</div>
+                                                <div>• 当前滑点设置: {(typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1}%</div>
                                             </div>
                                         </div>
                                     </>

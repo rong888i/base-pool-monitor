@@ -90,8 +90,10 @@ const QuickLiquidityRemover = ({
             const expectedAmount0 = BigInt(nftInfo.positionLiquidity.raw.token0);
             const expectedAmount1 = BigInt(nftInfo.positionLiquidity.raw.token1);
 
-            const amount0Min = (expectedAmount0 * BigInt(removePercentage) * (10000n - BigInt(slippage * 100))) / (100n * 10000n);
-            const amount1Min = (expectedAmount1 * BigInt(removePercentage) * (10000n - BigInt(slippage * 100))) / (100n * 10000n);
+            // 确保滑点值有效
+            const effectiveSlippage = (typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1;
+            const amount0Min = (expectedAmount0 * BigInt(removePercentage) * (10000n - BigInt(effectiveSlippage * 100))) / (100n * 10000n);
+            const amount1Min = (expectedAmount1 * BigInt(removePercentage) * (10000n - BigInt(effectiveSlippage * 100))) / (100n * 10000n);
 
             // 设置交易截止时间（15分钟后）
             const deadline = Math.floor(Date.now() / 1000) + 900;
@@ -339,14 +341,14 @@ const QuickLiquidityRemover = ({
                                                 ))}
                                             </div>
 
-                                            {/* 当前选择显示 */}
+                                            {/* 当前选择显示
                                             <div className="text-center">
                                                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
                                                     <span className="text-sm text-red-600 dark:text-red-400">将移除</span>
                                                     <span className="text-lg font-bold text-red-700 dark:text-red-300">{removePercentage}%</span>
                                                     <span className="text-sm text-red-600 dark:text-red-400">的流动性</span>
                                                 </div>
-                                            </div>
+                                            </div> */}
                                         </div>
 
                                         {/* 滑点设置 */}
@@ -361,9 +363,24 @@ const QuickLiquidityRemover = ({
                                                         step="0.1"
                                                         min="0"
                                                         max="50"
-                                                        value={slippage}
-                                                        onChange={(e) => setSlippage(parseFloat(e.target.value) || 1)}
-                                                        placeholder="1"
+                                                        value={slippage === 1 ? '' : slippage}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            if (value === '') {
+                                                                setSlippage('');
+                                                            } else {
+                                                                const numValue = parseFloat(value);
+                                                                if (!isNaN(numValue) && numValue >= 0) {
+                                                                    setSlippage(numValue > 50 ? 50 : numValue);
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            if (e.target.value === '' || parseFloat(e.target.value) <= 0) {
+                                                                setSlippage(1);
+                                                            }
+                                                        }}
+                                                        placeholder="1.0"
                                                         className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-xl
                                                             bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50 
                                                             text-neutral-900 dark:text-white text-sm font-medium
@@ -502,7 +519,7 @@ const QuickLiquidityRemover = ({
                                                     </div>
                                                     <div className="text-xs text-orange-700 dark:text-orange-400 space-y-1">
                                                         <div>• 移除流动性将减少您的LP仓位</div>
-                                                        <div>• 当前滑点设置: <span className="font-mono font-semibold">{slippage}%</span></div>
+                                                        <div>• 当前滑点设置: <span className="font-mono font-semibold">{(typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1}%</span></div>
                                                     </div>
                                                 </div>
                                             </div>

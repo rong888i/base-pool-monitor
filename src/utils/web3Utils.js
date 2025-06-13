@@ -153,8 +153,10 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
             signer
         );
 
+        // 确保滑点值有效，限制最大50%
+        const effectiveSlippage = (typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 0.5;
         // 计算滑点保护
-        const slippageMultiplier = BigInt(Math.floor((100 - slippage) * 100)); // 转换为基点
+        const slippageMultiplier = BigInt(Math.floor((100 - effectiveSlippage) * 100)); // 转换为基点
         const slippageAmount0 = (BigInt(params.amount0Desired) * slippageMultiplier) / BigInt(10000);
         const slippageAmount1 = (BigInt(params.amount1Desired) * slippageMultiplier) / BigInt(10000);
 
