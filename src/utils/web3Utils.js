@@ -442,4 +442,96 @@ export const increaseLiquidity = async (params, signer, chainId, protocolName) =
         console.error('增加流动性失败:', error);
         throw error;
     }
+};
+
+// 移除流动性并收集代币（使用multicall在一个交易中完成）
+export const decreaseLiquidityAndCollect = async (decreaseParams, collectParams, signer, chainId, protocolName) => {
+    try {
+        const positionManagerAddress = getPositionManagerAddress(protocolName, chainId);
+
+        const multicallABI = [
+            {
+                "inputs": [
+                    { "internalType": "bytes[]", "name": "data", "type": "bytes[]" }
+                ],
+                "name": "multicall",
+                "outputs": [
+                    { "internalType": "bytes[]", "name": "results", "type": "bytes[]" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const decreaseLiquidityABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                            { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.DecreaseLiquidityParams",
+                        "name": "params",
+                        "type": "tuple"
+                    }
+                ],
+                "name": "decreaseLiquidity",
+                "outputs": [
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const collectABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                            { "internalType": "address", "name": "recipient", "type": "address" },
+                            { "internalType": "uint128", "name": "amount0Max", "type": "uint128" },
+                            { "internalType": "uint128", "name": "amount1Max", "type": "uint128" }
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.CollectParams",
+                        "name": "params",
+                        "type": "tuple"
+                    }
+                ],
+                "name": "collect",
+                "outputs": [
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        // 创建合约实例
+        const contract = new ethers.Contract(positionManagerAddress, multicallABI, signer);
+        const decreaseLiquidityInterface = new ethers.Interface(decreaseLiquidityABI);
+        const collectInterface = new ethers.Interface(collectABI);
+
+        // 编码两个函数调用
+        const decreaseLiquidityData = decreaseLiquidityInterface.encodeFunctionData('decreaseLiquidity', [decreaseParams]);
+        const collectData = collectInterface.encodeFunctionData('collect', [collectParams]);
+
+        console.log('发送multicall交易...', { decreaseParams, collectParams });
+
+        // 执行multicall
+        const tx = await contract.multicall([decreaseLiquidityData, collectData]);
+        console.log('Multicall交易已发送:', tx.hash);
+
+        return tx;
+    } catch (error) {
+        console.error('Multicall失败:', error);
+        throw error;
+    }
 }; 

@@ -11,7 +11,8 @@ import {
     getTokenBalance,
     formatTokenAmount,
     decreaseLiquidity,
-    collectFromPosition
+    collectFromPosition,
+    decreaseLiquidityAndCollect
 } from '@/utils/web3Utils';
 import useIsMobile from '../../hooks/useIsMobile';
 
@@ -104,49 +105,36 @@ const QuickLiquidityRemover = ({
                 deadline: BigInt(deadline)
             };
 
-            console.log('移除流动性参数:', decreaseLiquidityParams);
+            // 构建收集参数
+            const collectParams = {
+                tokenId: BigInt(nftInfo.nftId),
+                recipient: account,
+                amount0Max: BigInt('340282366920938463463374607431768211455'), // uint128 max
+                amount1Max: BigInt('340282366920938463463374607431768211455')  // uint128 max
+            };
 
-            // 调用decreaseLiquidity
-            const decreaseTx = await decreaseLiquidity(
+            console.log('移除流动性参数:', decreaseLiquidityParams);
+            console.log('收集参数:', collectParams);
+
+            // 使用multicall在一个交易中完成移除流动性和收集代币
+            const tx = await decreaseLiquidityAndCollect(
                 decreaseLiquidityParams,
+                collectParams,
                 signer,
                 chainId,
                 poolInfo.protocol?.name || 'uniswap'
             );
 
-            setTransactionHash(decreaseTx.hash);
+            setTransactionHash(tx.hash);
 
             // 等待交易确认
-            const decreaseReceipt = await decreaseTx.wait();
-            console.log('移除流动性交易确认:', decreaseReceipt);
-
-            // 如果需要收集代币和费用
-            if (removePercentage === 100) {
-                // 100%移除时，也收集所有费用
-                const collectParams = {
-                    tokenId: BigInt(nftInfo.nftId),
-                    recipient: account,
-                    amount0Max: BigInt('340282366920938463463374607431768211455'), // uint128 max
-                    amount1Max: BigInt('340282366920938463463374607431768211455')  // uint128 max
-                };
-
-                console.log('收集参数:', collectParams);
-
-                const collectTx = await collectFromPosition(
-                    collectParams,
-                    signer,
-                    chainId,
-                    poolInfo.protocol?.name || 'uniswap'
-                );
-
-                await collectTx.wait();
-                console.log('收集交易确认:', collectTx.hash);
-            }
+            const receipt = await tx.wait();
+            console.log('Multicall交易确认:', receipt);
 
             setResult({
                 success: true,
-                message: `成功移除 ${removePercentage}% 的流动性！`,
-                txHash: decreaseTx.hash,
+                message: `成功移除 ${removePercentage}% 的流动性并收集代币！`,
+                txHash: tx.hash,
             });
 
         } catch (error) {
@@ -392,26 +380,57 @@ const QuickLiquidityRemover = ({
                                         {/* 预览信息 */}
                                         {nftInfo && nftInfo.positionLiquidity && removePercentage > 0 && (
                                             <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                                                <div className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
-                                                    预计获得 ({removePercentage}% 流动性)
+                                                <div className="text-sm font-medium text-red-700 dark:text-red-300 mb-3">
+                                                    预计获得（移除 {removePercentage}% + 收集所有费用）
                                                 </div>
-                                                <div className="space-y-2 text-sm">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-red-600 dark:text-red-400">
-                                                            {poolInfo.token0?.symbol}:
-                                                        </span>
-                                                        <span className="font-medium text-red-900 dark:text-red-100">
-                                                            {(parseFloat(nftInfo.positionLiquidity.formatted.token0) * removePercentage / 100).toFixed(6)}
-                                                        </span>
+                                                <div className="space-y-3">
+                                                    {/* 流动性代币 */}
+                                                    <div className="space-y-2">
+                                                        <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">流动性代币:</div>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-red-600 dark:text-red-400">
+                                                                    {poolInfo.token0?.symbol}:
+                                                                </span>
+                                                                <span className="font-medium text-red-900 dark:text-red-100">
+                                                                    {(parseFloat(nftInfo.positionLiquidity.formatted.token0) * removePercentage / 100).toFixed(6)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-red-600 dark:text-red-400">
+                                                                    {poolInfo.token1?.symbol}:
+                                                                </span>
+                                                                <span className="font-medium text-red-900 dark:text-red-100">
+                                                                    {(parseFloat(nftInfo.positionLiquidity.formatted.token1) * removePercentage / 100).toFixed(6)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-red-600 dark:text-red-400">
-                                                            {poolInfo.token1?.symbol}:
-                                                        </span>
-                                                        <span className="font-medium text-red-900 dark:text-red-100">
-                                                            {(parseFloat(nftInfo.positionLiquidity.formatted.token1) * removePercentage / 100).toFixed(6)}
-                                                        </span>
-                                                    </div>
+
+                                                    {/* 手续费 */}
+                                                    {nftInfo.fees?.collectable && (
+                                                        <div className="space-y-2 pt-2 border-t border-red-200 dark:border-red-700">
+                                                            <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">未领取手续费:</div>
+                                                            <div className="space-y-1 text-sm">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-red-600 dark:text-red-400">
+                                                                        {poolInfo.token0?.symbol}:
+                                                                    </span>
+                                                                    <span className="font-medium text-red-900 dark:text-red-100">
+                                                                        {nftInfo.fees.collectable.token0Formatted}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-red-600 dark:text-red-400">
+                                                                        {poolInfo.token1?.symbol}:
+                                                                    </span>
+                                                                    <span className="font-medium text-red-900 dark:text-red-100">
+                                                                        {nftInfo.fees.collectable.token1Formatted}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -435,7 +454,7 @@ const QuickLiquidityRemover = ({
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" />
                                                     </svg>
-                                                    移除 {removePercentage}% 流动性
+                                                    移除 {removePercentage}% + 收集费用
                                                 </>
                                             )}
                                         </button>
