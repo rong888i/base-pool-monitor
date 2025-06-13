@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useWallet } from '@/providers/WalletProvider';
 import { findNftPositionsByOwner } from '../../utils/lpUtils';
 import { formatAddress } from './helpers';
 
@@ -11,6 +12,9 @@ const NftSearchSection = ({ pools, onAddPool }) => {
     const [nftSearchError, setNftSearchError] = useState(null);
     const [walletSearchHistory, setWalletSearchHistory] = useState([]);
 
+    // 获取钱包连接状态
+    const { account, connected } = useWallet();
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedWalletHistory = localStorage.getItem('walletSearchHistory');
@@ -19,6 +23,25 @@ const NftSearchSection = ({ pools, onAddPool }) => {
             }
         }
     }, []);
+
+    // 处理历史记录，确保连接的钱包地址始终在第一位
+    const getDisplayHistory = () => {
+        if (!connected || !account) {
+            return walletSearchHistory;
+        }
+
+        // 将连接的钱包地址放在第一位，移除历史中的重复项
+        const historyWithoutCurrent = walletSearchHistory.filter(
+            addr => addr.toLowerCase() !== account.toLowerCase()
+        );
+
+        return [account, ...historyWithoutCurrent];
+    };
+
+    // 检查地址是否是当前连接的钱包
+    const isConnectedWallet = (address) => {
+        return connected && account && address.toLowerCase() === account.toLowerCase();
+    };
 
     const getAddedPool = (address) => {
         return pools.find(pool => pool && pool.address && pool.address.toLowerCase() === address.toLowerCase());
@@ -30,6 +53,11 @@ const NftSearchSection = ({ pools, onAddPool }) => {
     };
 
     const handleRemoveWalletHistoryItem = (addressToRemove) => {
+        // 如果是连接的钱包地址，不允许删除
+        if (isConnectedWallet(addressToRemove)) {
+            return;
+        }
+
         const newHistory = walletSearchHistory.filter(address => address !== addressToRemove);
         setWalletSearchHistory(newHistory);
         localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
@@ -65,9 +93,13 @@ const NftSearchSection = ({ pools, onAddPool }) => {
         }
 
         const trimmedAddress = walletAddress.trim();
-        const newHistory = [trimmedAddress, ...walletSearchHistory.filter(item => item.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
-        setWalletSearchHistory(newHistory);
-        localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
+
+        // 只有在不是当前连接钱包的情况下才添加到历史记录
+        if (!isConnectedWallet(trimmedAddress)) {
+            const newHistory = [trimmedAddress, ...walletSearchHistory.filter(item => item.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+            setWalletSearchHistory(newHistory);
+            localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
+        }
 
         setIsSearchingNfts(true);
         setNftSearchError(null);
@@ -106,6 +138,9 @@ const NftSearchSection = ({ pools, onAddPool }) => {
             setIsSearchingNfts(false);
         }
     };
+
+    // 获取要显示的历史记录列表
+    const displayHistory = getDisplayHistory();
 
     return (
         <div className="p-4 space-y-4">
@@ -165,7 +200,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
                 </button>
             </div>
             {/* 钱包搜索历史 */}
-            {walletSearchHistory.length > 0 && (
+            {displayHistory.length > 0 && (
                 <div className="pt-2 animate-in fade-in duration-300">
                     <div className="flex justify-between items-center mb-2 px-1">
                         <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
@@ -179,28 +214,40 @@ const NftSearchSection = ({ pools, onAddPool }) => {
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {walletSearchHistory.map((address) => (
-                            <div key={address} className="relative group">
-                                <button
-                                    onClick={() => setWalletAddress(address)}
-                                    className="pr-7 pl-2.5 py-1 bg-neutral-100 dark:bg-neutral-800/80 text-xs text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white transition-all duration-200 font-mono"
-                                    data-tooltip-id="my-tooltip"
-                                    data-tooltip-content={address}
-                                >
-                                    {formatAddress(address)}
-                                </button>
-                                <button
-                                    onClick={() => handleRemoveWalletHistoryItem(address)}
-                                    className="absolute top-0 right-0 h-full px-1.5 flex items-center text-neutral-400 hover:text-red-500 rounded-r-md opacity-50 group-hover:opacity-100 transition-opacity"
-                                    data-tooltip-id="my-tooltip"
-                                    data-tooltip-content="删除此条"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))}
+                        {displayHistory.map((address) => {
+                            const isCurrentWallet = isConnectedWallet(address);
+                            return (
+                                <div key={address} className="relative group">
+                                    <button
+                                        onClick={() => setWalletAddress(address)}
+                                        className={`${isCurrentWallet ? 'px-2.5' : 'pr-7 pl-2.5'} py-1 text-xs rounded-md transition-all duration-200 font-mono
+                                            ${isCurrentWallet
+                                                ? 'bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/40 dark:to-green-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50 shadow-sm'
+                                                : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white'
+                                            }`}
+                                        data-tooltip-id="my-tooltip"
+                                        data-tooltip-content={isCurrentWallet ? `${address} (当前连接钱包)` : address}
+                                    >
+                                        {isCurrentWallet && (
+                                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                                        )}
+                                        {formatAddress(address)}
+                                    </button>
+                                    {!isCurrentWallet && (
+                                        <button
+                                            onClick={() => handleRemoveWalletHistoryItem(address)}
+                                            className="absolute top-0 right-0 h-full px-1.5 flex items-center text-neutral-400 hover:text-red-500 rounded-r-md opacity-50 group-hover:opacity-100 transition-opacity"
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content="删除此条"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
