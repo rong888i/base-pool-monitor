@@ -453,11 +453,24 @@ const QuickLiquidityEnhancer = ({
                     animate="visible"
                     exit="exit"
                     transition={{ duration: 0.2 }}
+                    onClick={handleClose}
                 >
                     {/* 移动端背景遮罩 */}
                     {isMobile && (
                         <motion.div
                             className="absolute inset-0 bg-black/50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={handleClose}
+                        />
+                    )}
+
+                    {/* 桌面端背景遮罩 */}
+                    {!isMobile && (
+                        <motion.div
+                            className="fixed inset-0 bg-black/20 -z-10"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -476,6 +489,7 @@ const QuickLiquidityEnhancer = ({
                         initial="hidden"
                         animate="visible"
                         exit="exit"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {/* 固定标题栏 */}
                         <motion.div

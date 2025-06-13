@@ -894,11 +894,24 @@ const LiquidityAdder = ({
                     animate="visible"
                     exit="exit"
                     transition={{ duration: 0.2 }}
+                    onClick={handleClose}
                 >
                     {/* 移动端背景遮罩 */}
                     {isMobile && (
                         <motion.div
                             className="absolute inset-0 bg-black/50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={handleClose}
+                        />
+                    )}
+
+                    {/* 桌面端背景遮罩 */}
+                    {!isMobile && (
+                        <motion.div
+                            className="fixed inset-0 bg-black/20 -z-10"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -917,6 +930,7 @@ const LiquidityAdder = ({
                         initial="hidden"
                         animate="visible"
                         exit="exit"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <style jsx>{`
                             .custom-scrollbar::-webkit-scrollbar {
@@ -1040,6 +1054,14 @@ const LiquidityAdder = ({
                                         <div className="space-y-2">
                                             <div className="grid grid-cols-4 gap-2">
                                                 <button
+                                                    onClick={() => handleSetPriceRange(0.01)}
+                                                    className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 dark:bg-neutral-800 
+                                            border border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300
+                                            hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                                                >
+                                                    ±0.01%
+                                                </button>
+                                                <button
                                                     onClick={() => handleSetPriceRange(0.05)}
                                                     className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 dark:bg-neutral-800 
                                             border border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300
@@ -1048,12 +1070,12 @@ const LiquidityAdder = ({
                                                     ±0.05%
                                                 </button>
                                                 <button
-                                                    onClick={() => handleSetPriceRange(0.3)}
+                                                    onClick={() => handleSetPriceRange(0.1)}
                                                     className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 dark:bg-neutral-800 
                                             border border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300
                                             hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
                                                 >
-                                                    ±0.3%
+                                                    ±0.1%
                                                 </button>
                                                 <button
                                                     onClick={() => handleSetPriceRange(1)}
@@ -1062,14 +1084,6 @@ const LiquidityAdder = ({
                                             hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
                                                 >
                                                     ±1%
-                                                </button>
-                                                <button
-                                                    onClick={() => handleSetPriceRange(5)}
-                                                    className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 dark:bg-neutral-800 
-                                            border border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300
-                                            hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
-                                                >
-                                                    ±5%
                                                 </button>
                                             </div>
                                         </div>
