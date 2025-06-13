@@ -240,7 +240,10 @@ const QuickLiquidityRemover = ({
             {(isVisible && !isClosing) && (
                 <motion.div
                     ref={popoverRef}
-                    style={isMobile ? {} : { top: `${position.top}px`, left: `${position.left}px` }}
+                    style={isMobile ? {} : {
+                        top: `${Math.max(60, Math.min(position.top - 60, window.innerHeight - 650))}px`,
+                        left: `${position.left}px`
+                    }}
                     className={`fixed z-50 ${isMobile ? 'inset-0 flex items-center justify-center' : ''}`}
                     variants={backdropVariants}
                     initial="hidden"
@@ -263,9 +266,9 @@ const QuickLiquidityRemover = ({
                     <motion.div
                         className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 
                             rounded-2xl shadow-2xl flex flex-col relative z-10
-                            ${isMobile ? 'w-full max-w-sm mx-4 max-h-[90vh]' : 'w-96'}
+                            ${isMobile ? 'w-full max-w-md mx-4 max-h-[92vh]' : 'w-[360px] min-h-[520px] max-h-[580px]'}
                         `}
-                        style={!isMobile && position.maxHeight ? { maxHeight: `${position.maxHeight}px` } : {}}
+                        style={!isMobile && position.maxHeight ? { maxHeight: `${Math.min(position.maxHeight, 580)}px` } : {}}
                         variants={modalVariants}
                         initial="hidden"
                         animate="visible"
@@ -305,11 +308,11 @@ const QuickLiquidityRemover = ({
                         >
                             <div className="space-y-4">
                                 {/* NFT信息提示 */}
-                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
                                     <div className="flex items-center gap-2 text-sm">
-                                        <span className="text-blue-500">🎯</span>
-                                        <span className="font-medium text-blue-700 dark:text-blue-300">
-                                            NFT #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
+                                        <span className="text-red-500">🎯</span>
+                                        <span className="font-medium text-red-700 dark:text-red-300">
+                                            移除 NFT #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
                                         </span>
                                     </div>
                                 </div>
@@ -325,75 +328,36 @@ const QuickLiquidityRemover = ({
                                     </div>
                                 ) : (
                                     <>
-                                        {/* 移除比例滑块 */}
-                                        <div className="space-y-4">
-                                            <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                        {/* 移除比例选择 */}
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                                                 移除比例
                                             </label>
 
-                                            {/* 比例显示 */}
-                                            <div className="flex items-center justify-center">
-                                                <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 
-                                                    px-6 py-3 rounded-xl border border-red-200 dark:border-red-700/50 shadow-sm">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
-                                                        {removePercentage}%
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* 自定义滑块 */}
-                                            <div className="relative py-3">
-                                                <div className="relative h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full shadow-inner">
-                                                    {/* 进度条背景 */}
-                                                    <div
-                                                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full shadow-sm transition-all duration-300"
-                                                        style={{ width: `${removePercentage}%` }}
-                                                    />
-
-                                                    {/* 滑块 */}
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="100"
-                                                        value={removePercentage}
-                                                        onChange={(e) => setRemovePercentage(parseInt(e.target.value))}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    />
-
-                                                    {/* 滑块手柄 */}
-                                                    <div
-                                                        className="absolute top-1/2 w-5 h-5 bg-white dark:bg-neutral-800 border-3 border-red-500 
-                                                            rounded-full shadow-lg transform -translate-y-1/2 -translate-x-1/2 cursor-pointer
-                                                            hover:scale-110 active:scale-105 transition-transform duration-200"
-                                                        style={{ left: `${removePercentage}%` }}
-                                                    />
-                                                </div>
-
-                                                {/* 刻度标记 */}
-                                                <div className="flex justify-between mt-2 px-1">
-                                                    {[0, 25, 50, 75, 100].map((mark) => (
-                                                        <div key={mark} className="text-xs text-neutral-500 dark:text-neutral-400">
-                                                            {mark}%
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* 快捷选择按钮 */}
-                                            <div className="flex gap-2 justify-center">
+                                            {/* 比例选择按钮 */}
+                                            <div className="grid grid-cols-4 gap-2">
                                                 {[25, 50, 75, 100].map((percentage) => (
                                                     <button
                                                         key={percentage}
                                                         onClick={() => setRemovePercentage(percentage)}
-                                                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 
+                                                        className={`px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 
                                                             ${removePercentage === percentage
-                                                                ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md'
-                                                                : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600'
-                                                            } hover:scale-105 active:scale-95`}
+                                                                ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg border-0'
+                                                                : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-700/50'
+                                                            } hover:scale-[1.02] active:scale-[0.98]`}
                                                     >
                                                         {percentage}%
                                                     </button>
                                                 ))}
+                                            </div>
+
+                                            {/* 当前选择显示 */}
+                                            <div className="text-center">
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                                                    <span className="text-sm text-red-600 dark:text-red-400">将移除</span>
+                                                    <span className="text-lg font-bold text-red-700 dark:text-red-300">{removePercentage}%</span>
+                                                    <span className="text-sm text-red-600 dark:text-red-400">的流动性</span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -415,7 +379,7 @@ const QuickLiquidityRemover = ({
                                                         className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-xl
                                                             bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50 
                                                             text-neutral-900 dark:text-white text-sm font-medium
-                                                            focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-800
+                                                            focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white dark:focus:bg-neutral-800
                                                             outline-none transition-all duration-200"
                                                     />
                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -426,25 +390,25 @@ const QuickLiquidityRemover = ({
                                         </div>
 
                                         {/* 预览信息 */}
-                                        {nftInfo && nftInfo.positionLiquidity && (
-                                            <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                                                <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                                    预计获得
+                                        {nftInfo && nftInfo.positionLiquidity && removePercentage > 0 && (
+                                            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                                                <div className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                                                    预计获得 ({removePercentage}% 流动性)
                                                 </div>
-                                                <div className="space-y-1 text-sm">
+                                                <div className="space-y-2 text-sm">
                                                     <div className="flex justify-between">
-                                                        <span className="text-neutral-600 dark:text-neutral-400">
+                                                        <span className="text-red-600 dark:text-red-400">
                                                             {poolInfo.token0?.symbol}:
                                                         </span>
-                                                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                                                        <span className="font-medium text-red-900 dark:text-red-100">
                                                             {(parseFloat(nftInfo.positionLiquidity.formatted.token0) * removePercentage / 100).toFixed(6)}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-neutral-600 dark:text-neutral-400">
+                                                        <span className="text-red-600 dark:text-red-400">
                                                             {poolInfo.token1?.symbol}:
                                                         </span>
-                                                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                                                        <span className="font-medium text-red-900 dark:text-red-100">
                                                             {(parseFloat(nftInfo.positionLiquidity.formatted.token1) * removePercentage / 100).toFixed(6)}
                                                         </span>
                                                     </div>
@@ -456,10 +420,24 @@ const QuickLiquidityRemover = ({
                                         <button
                                             onClick={handleRemoveLiquidity}
                                             disabled={isRemoving || removePercentage <= 0}
-                                            className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed 
-                                                text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                            className="w-full bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 
+                                                disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl 
+                                                transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl
+                                                flex items-center justify-center gap-2"
                                         >
-                                            {isRemoving ? '移除中...' : `移除 ${removePercentage}% 流动性`}
+                                            {isRemoving ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                    移除中...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" />
+                                                    </svg>
+                                                    移除 {removePercentage}% 流动性
+                                                </>
+                                            )}
                                         </button>
 
                                         {/* 错误显示 */}
@@ -492,12 +470,22 @@ const QuickLiquidityRemover = ({
                                         )}
 
                                         {/* 风险提示 */}
-                                        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-700">
-                                            <div className="text-xs text-orange-700 dark:text-orange-300 space-y-1">
-                                                <div className="font-medium">⚠️ 风险提示：</div>
-                                                <div>• 移除流动性将减少您的LP仓位</div>
-                                                <div>• 请确认移除比例和滑点设置</div>
-                                                <div>• 当前滑点设置: {slippage}%</div>
+                                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700/50">
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-shrink-0 w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-2">
+                                                        操作风险提示
+                                                    </div>
+                                                    <div className="text-xs text-orange-700 dark:text-orange-400 space-y-1">
+                                                        <div>• 移除流动性将减少您的LP仓位</div>
+                                                        <div>• 当前滑点设置: <span className="font-mono font-semibold">{slippage}%</span></div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </>
