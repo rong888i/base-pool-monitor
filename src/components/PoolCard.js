@@ -9,16 +9,22 @@ import PoolInfo from './PoolCardComponents/PoolInfo';
 import NftSection from './PoolCardComponents/NftSection';
 import TechnicalInfo from './PoolCardComponents/TechnicalInfo';
 import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
+import LiquidityAdder from './PoolCardComponents/LiquidityAdder';
 
 const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [nftId, setNftId] = useState(pool.nftId || '');
     const [showCalculator, setShowCalculator] = useState(false);
-    const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
-    const [isPopoverVisible, setIsPopoverVisible] = useState(false);
+    const [showLiquidityAdder, setShowLiquidityAdder] = useState(false);
+    const [calculatorPopoverPosition, setCalculatorPopoverPosition] = useState({ top: 0, left: 0 });
+    const [liquidityAdderPopoverPosition, setLiquidityAdderPopoverPosition] = useState({ top: 0, left: 0 });
+    const [isCalculatorPopoverVisible, setIsCalculatorPopoverVisible] = useState(false);
+    const [isLiquidityAdderPopoverVisible, setIsLiquidityAdderPopoverVisible] = useState(false);
 
     const calculatorIconRef = useRef(null);
-    const popoverRef = useRef(null);
+    const liquidityAdderIconRef = useRef(null);
+    const calculatorPopoverRef = useRef(null);
+    const liquidityAdderPopoverRef = useRef(null);
 
     const {
         attributes,
@@ -47,11 +53,12 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         }
     };
 
+    // 处理流动性计算器相关
     useEffect(() => {
         if (!showCalculator) return;
 
         function handleClickOutside(event) {
-            if (popoverRef.current && !popoverRef.current.contains(event.target) &&
+            if (calculatorPopoverRef.current && !calculatorPopoverRef.current.contains(event.target) &&
                 calculatorIconRef.current && !calculatorIconRef.current.contains(event.target)) {
                 closeCalculator();
             }
@@ -72,11 +79,43 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
     useEffect(() => {
         if (showCalculator) {
             const timer = setTimeout(() => {
-                setIsPopoverVisible(true);
+                setIsCalculatorPopoverVisible(true);
             }, 10);
             return () => clearTimeout(timer);
         }
     }, [showCalculator]);
+
+    // 处理流动性添加器相关
+    useEffect(() => {
+        if (!showLiquidityAdder) return;
+
+        function handleClickOutside(event) {
+            const popover = liquidityAdderPopoverRef.current;
+            if (popover && !popover.contains(event.target) &&
+                liquidityAdderIconRef.current && !liquidityAdderIconRef.current.contains(event.target)) {
+
+                // 检查点击是否在滚动条上
+                const isClickOnScrollbar = event.clientX >= popover.clientWidth;
+                if (!isClickOnScrollbar) {
+                    closeLiquidityAdder();
+                }
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showLiquidityAdder]);
+
+    useEffect(() => {
+        if (showLiquidityAdder) {
+            const timer = setTimeout(() => {
+                setIsLiquidityAdderPopoverVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        }
+    }, [showLiquidityAdder]);
 
     const getStatusColor = () => {
         if (pool.error) return 'border-error-500 bg-error-50';
@@ -99,7 +138,7 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                 left = rect.left - popoverWidth - 12;
             }
 
-            setPopoverPosition({
+            setCalculatorPopoverPosition({
                 top: rect.top,
                 left: left,
             });
@@ -108,10 +147,38 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
     }
 
     const closeCalculator = () => {
-        setIsPopoverVisible(false);
+        setIsCalculatorPopoverVisible(false);
         setTimeout(() => {
             setShowCalculator(false);
         }, 200);
+    }
+
+    const openLiquidityAdder = () => {
+        if (liquidityAdderIconRef.current) {
+            const rect = liquidityAdderIconRef.current.getBoundingClientRect();
+            const popoverWidth = 384; // w-96
+            let left = rect.right + 12;
+            if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
+                left = rect.left - popoverWidth - 12;
+            }
+
+            // 计算可用高度，防止弹窗超出视窗
+            const availableHeight = window.innerHeight - rect.top - 20; // 20px margin from bottom
+
+            setLiquidityAdderPopoverPosition({
+                top: rect.top,
+                left: left,
+                maxHeight: availableHeight
+            });
+            setShowLiquidityAdder(true);
+        }
+    }
+
+    const closeLiquidityAdder = () => {
+        setIsLiquidityAdderPopoverVisible(false);
+        setTimeout(() => {
+            setShowLiquidityAdder(false);
+        }, 300); // 匹配CSS动画时长
     }
 
     return (
@@ -136,6 +203,8 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                     onClone={onClone}
                     openCalculator={openCalculator}
                     calculatorIconRef={calculatorIconRef}
+                    openLiquidityAdder={openLiquidityAdder}
+                    liquidityAdderIconRef={liquidityAdderIconRef}
                 />
 
                 {pool.error && (
@@ -171,13 +240,25 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                 )}
             </div>
 
+            {/* 流动性占比计算器 */}
             {showCalculator && pool.lpInfo && (
                 <LiquidityCalculator
                     poolInfo={pool.lpInfo}
-                    position={popoverPosition}
-                    isVisible={isPopoverVisible}
+                    position={calculatorPopoverPosition}
+                    isVisible={isCalculatorPopoverVisible}
                     onClose={closeCalculator}
-                    popoverRef={popoverRef}
+                    popoverRef={calculatorPopoverRef}
+                />
+            )}
+
+            {/* 一键添加流动性 */}
+            {showLiquidityAdder && pool.lpInfo && (
+                <LiquidityAdder
+                    poolInfo={pool.lpInfo}
+                    position={liquidityAdderPopoverPosition}
+                    isVisible={isLiquidityAdderPopoverVisible}
+                    onClose={closeLiquidityAdder}
+                    popoverRef={liquidityAdderPopoverRef}
                 />
             )}
         </motion.div>

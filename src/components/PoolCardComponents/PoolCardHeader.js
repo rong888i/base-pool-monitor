@@ -16,6 +16,8 @@ const PoolCardHeader = ({
     onClone,
     openCalculator,
     calculatorIconRef,
+    openLiquidityAdder,
+    liquidityAdderIconRef,
 }) => {
     return (
         <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/20">
@@ -76,21 +78,17 @@ const PoolCardHeader = ({
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m3 1a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h3m3-4a2 2 0 012 2v2H9V6a2 2 0 012-2zm-3 8h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01" />
                                     </svg>
                                 </button>
-                                <a
-                                    href={pool.lpInfo.protocol.name.toLowerCase().includes('pancake')
-                                        ? `https://pancakeswap.finance/add/${pool.lpInfo.token0.address}/${pool.lpInfo.token1.address}/${pool.lpInfo.fee}?chain=bsc`
-                                        : `https://app.uniswap.org/add/${pool.lpInfo.token0.address}/${pool.lpInfo.token1.address}/${pool.lpInfo.fee}`
-                                    }
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    ref={liquidityAdderIconRef}
+                                    onClick={openLiquidityAdder}
                                     className="text-neutral-400 hover:text-primary-500 transition-colors p-1.5 rounded-full hover:bg-primary-50 dark:hover:bg-primary-500/10"
                                     data-tooltip-id="my-tooltip"
-                                    data-tooltip-content={`一键添加流动性 (费率: ${pool.lpInfo.feePercentage}%)`}
+                                    data-tooltip-content="一键添加流动性"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
-                                </a>
+                                </button>
                                 <button
                                     onClick={onClone}
                                     className="text-neutral-400 hover:text-blue-500 transition-colors p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-500/10"

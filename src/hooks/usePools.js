@@ -116,6 +116,7 @@ export function usePools(settings) {
                 const newPools = [...prev];
                 const targetPool = { ...newPools[poolIndex], lpInfo, isLoading: false };
                 newPools[poolIndex] = targetPool;
+
                 // 当 LP 和 NFT 信息都存在时，进行价格检查
                 if (targetPool.nftInfo) {
                     checkNFTPriceAndNotify(targetPool);
@@ -144,15 +145,35 @@ export function usePools(settings) {
             alert('该池子地址已存在！');
             return;
         }
+
+        const address = customAddress.trim();
+
+        // 关键修复：从取消列表中移除该地址，允许新的请求
+        if (cancelledFetches.current.has(address)) {
+            cancelledFetches.current.delete(address);
+        }
+
         const newPool = {
-            address: customAddress.trim(),
-            lpInfo: null, isLoading: false, error: null,
-            nftId: '', nftInfo: null, isLoadingNft: false, nftError: null
+            address: address,
+            lpInfo: null,
+            isLoading: true, // 立即设置为loading状态
+            error: null,
+            nftId: '',
+            nftInfo: null,
+            isLoadingNft: false,
+            nftError: null
         };
-        const newPools = [...pools, newPool];
-        setPools(newPools);
-        savePoolsToStorage(newPools);
-        fetchPoolInfo(newPool.address, pools.length);
+
+        // 先更新状态
+        setPools(prevPools => {
+            const newPools = [...prevPools, newPool];
+            savePoolsToStorage(newPools);
+            return newPools;
+        });
+
+        // 使用当前pools长度作为新的index来获取池子信息
+        const newPoolIndex = pools.length;
+        fetchPoolInfo(newPool.address, newPoolIndex);
         setCustomAddress('');
     }, [customAddress, pools, fetchPoolInfo, savePoolsToStorage]);
 
@@ -185,6 +206,7 @@ export function usePools(settings) {
         }
 
         const existingPoolIndex = pools.findIndex(p => p && p.address && p.address.toLowerCase() === poolData.address.toLowerCase());
+
         if (existingPoolIndex !== -1) {
             if (poolData.nftId) {
                 setPools(prevPools => {
@@ -204,14 +226,32 @@ export function usePools(settings) {
             return;
         }
 
+        // 关键修复：从取消列表中移除该地址，允许新的请求
+        if (cancelledFetches.current.has(poolData.address)) {
+            cancelledFetches.current.delete(poolData.address);
+        }
+
         const newPool = {
-            address: poolData.address, lpInfo: null, isLoading: false, error: null,
-            nftId: poolData.nftId || '', nftInfo: null, isLoadingNft: false, nftError: null
+            address: poolData.address,
+            lpInfo: null,
+            isLoading: true, // 立即设置为loading状态
+            error: null,
+            nftId: poolData.nftId || '',
+            nftInfo: null,
+            isLoadingNft: false,
+            nftError: null
         };
-        const newPools = [...pools, newPool];
-        setPools(newPools);
-        savePoolsToStorage(newPools);
-        fetchPoolInfo(newPool.address, pools.length);
+
+        // 先更新状态
+        setPools(prevPools => {
+            const newPools = [...prevPools, newPool];
+            savePoolsToStorage(newPools);
+            return newPools;
+        });
+
+        // 使用当前pools长度作为新的index来获取池子信息
+        const newPoolIndex = pools.length;
+        fetchPoolInfo(newPool.address, newPoolIndex);
     }, [pools, removePool, savePoolsToStorage, fetchPoolInfo]);
 
     // 拖拽结束
@@ -253,12 +293,14 @@ export function usePools(settings) {
         });
     }, [checkNFTPriceAndNotify]);
 
-    // 初始化加载
+    // 初始化加载 - 简化依赖，避免复杂的字符串拼接
     useEffect(() => {
-        if (pools.length > 0) {
-            refreshAllPools();
-        }
-    }, [pools.length]); // 依赖 length 确保只在首次加载或添加/删除时触发
+        pools.forEach((pool, index) => {
+            if (!pool.lpInfo && !pool.isLoading && !pool.error) {
+                fetchPoolInfo(pool.address, index);
+            }
+        });
+    }, [pools.length]); // 只依赖长度变化，避免无限循环
 
     // 自动刷新
     useEffect(() => {
