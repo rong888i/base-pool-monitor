@@ -3,8 +3,8 @@ const lastNotificationTime = new Map();
 
 // 发送Bark通知
 export const sendBarkNotification = async (title, content, nftId) => {
-    const { barkKey, notificationLevel } = getNotificationSettings();
-    if (!barkKey) return false;
+    const { barkKey, notificationLevel, enableBarkNotification } = getNotificationSettings();
+    if (!barkKey || !enableBarkNotification) return false;
 
     // 检查冷却时间
     const now = Date.now();
@@ -58,6 +58,7 @@ export const getNotificationSettings = () => {
         barkKey: settings.barkKey || '',
         notificationThreshold: settings.notificationThreshold || 3,
         notificationLevel: settings.notificationLevel || 1,
+        enableBarkNotification: settings.enableBarkNotification !== false, // 默认为true，保持向后兼容
     };
 };
 

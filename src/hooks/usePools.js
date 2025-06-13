@@ -87,8 +87,8 @@ export function usePools(settings) {
             const newCount = (outOfRangeCounts[pool.address] || 0) + 1;
             setOutOfRangeCounts(prev => ({ ...prev, [pool.address]: newCount }));
 
-            const { notificationThreshold, barkKey } = getNotificationSettings();
-            if (barkKey && newCount === notificationThreshold) {
+            const { notificationThreshold, barkKey, enableBarkNotification } = getNotificationSettings();
+            if (barkKey && enableBarkNotification && newCount === notificationThreshold) {
                 const title = '池子价格超出区间提醒';
                 const content = `池子 ${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol} ${pool.address.slice(0, 6)}...${pool.address.slice(-4)} 价格1 ${pool.lpInfo.price.token1PerToken0} 价格2 ${pool.lpInfo.price.token0PerToken1} 已连续 ${newCount} 次超出区间`;
                 await sendBarkNotification(title, content, pool.nftInfo.id);
