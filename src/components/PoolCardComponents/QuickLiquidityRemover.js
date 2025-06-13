@@ -150,7 +150,7 @@ const QuickLiquidityRemover = ({
             } else if (error.message?.includes('insufficient')) {
                 errorMessage = '余额不足';
             } else if (error.message?.includes('slippage')) {
-                errorMessage = '滑点过大，请调整滑点设置';
+                errorMessage = '滑点过低，请调整滑点设置';
             } else if (error.message) {
                 errorMessage = error.message;
             }
