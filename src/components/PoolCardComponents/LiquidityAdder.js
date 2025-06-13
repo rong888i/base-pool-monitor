@@ -1078,12 +1078,12 @@ const LiquidityAdder = ({
                                                     ±0.1%
                                                 </button>
                                                 <button
-                                                    onClick={() => handleSetPriceRange(1)}
+                                                    onClick={() => handleSetPriceRange(0.5)}
                                                     className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 dark:bg-neutral-800 
                                             border border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300
                                             hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
                                                 >
-                                                    ±1%
+                                                    ±0.5%
                                                 </button>
                                             </div>
                                         </div>
