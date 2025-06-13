@@ -161,6 +161,13 @@ const POSITION_MANAGER_ABI = [
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function'
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'tokenId', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function'
   }
 ];
 
@@ -909,6 +916,20 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
             }]
           })
         }, 'latest']
+      },
+      // 获取NFT所有者
+      {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'eth_call',
+        params: [{
+          to: positionManagerAddress,
+          data: encodeFunctionData({
+            abi: POSITION_MANAGER_ABI,
+            functionName: 'ownerOf',
+            args: [BigInt(nftId)]
+          })
+        }, 'latest']
       }
     ];
 
@@ -922,11 +943,11 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     });
 
     const results = await response.json();
-    if (!Array.isArray(results) || results.length !== 2) {
+    if (!Array.isArray(results) || results.length !== 3) {
       throw new Error('Invalid RPC response');
     }
 
-    const [positionResult, collectResult] = results;
+    const [positionResult, collectResult, ownerResult] = results;
 
     if (positionResult.error) {
       throw new Error(`Position call failed: ${positionResult.error.message}`);
@@ -934,6 +955,10 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
 
     if (collectResult.error) {
       throw new Error(`Collect call failed: ${collectResult.error.message}`);
+    }
+
+    if (ownerResult.error) {
+      throw new Error(`Owner call failed: ${ownerResult.error.message}`);
     }
 
     // 解码position数据
@@ -976,6 +1001,13 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     ], collectResult.result);
 
     const [collectableAmount0, collectableAmount1] = collectData;
+
+    // 解码owner数据
+    const ownerData = decodeAbiParameters([
+      { type: 'address' } // owner
+    ], ownerResult.result);
+
+    const [owner] = ownerData;
 
     // 验证NFT是否属于当前池子
     const isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
@@ -1030,6 +1062,7 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
       isValidPool: true,
       hasLiquidity,
       isInRange,
+      owner: owner.toLowerCase(), // 添加NFT所有者信息
       liquidity: liquidity.toString(),
       tickLower: Number(tickLower),
       tickUpper: Number(tickUpper),

@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useWallet } from '@/providers/WalletProvider';
 import { getNFTPositionInfo, getTickSpacing, calculatePriceFromTick } from '../../utils/lpUtils';
+import QuickLiquidityRemover from './QuickLiquidityRemover';
+import QuickLiquidityEnhancer from './QuickLiquidityEnhancer';
 
 const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     const [nftInfo, setNftInfo] = useState(null);
@@ -9,6 +12,23 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     const [nftError, setNftError] = useState(null);
     const [showReversedPrice, setShowReversedPrice] = useState(false);
     const [showNftPanel, setShowNftPanel] = useState(false);
+
+    // 快速操作弹窗状态
+    const [showQuickRemover, setShowQuickRemover] = useState(false);
+    const [showQuickEnhancer, setShowQuickEnhancer] = useState(false);
+    const [quickRemoverPosition, setQuickRemoverPosition] = useState({ top: 0, left: 0 });
+    const [quickEnhancerPosition, setQuickEnhancerPosition] = useState({ top: 0, left: 0 });
+    const [isQuickRemoverVisible, setIsQuickRemoverVisible] = useState(false);
+    const [isQuickEnhancerVisible, setIsQuickEnhancerVisible] = useState(false);
+
+    // Refs for positioning
+    const quickRemoverRef = useRef(null);
+    const quickEnhancerRef = useRef(null);
+    const quickRemoverPopoverRef = useRef(null);
+    const quickEnhancerPopoverRef = useRef(null);
+
+    // 获取钱包信息
+    const { account, connected } = useWallet();
 
     // 获取NFT信息
     const fetchNftInfo = async () => {
@@ -72,6 +92,110 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
         }, 500); // 与动画持续时间一致
     };
 
+    // 检查当前用户是否是NFT的所有者
+    const isNftOwner = () => {
+        if (!connected || !account || !nftInfo || !nftInfo.owner) {
+            return false;
+        }
+        return account.toLowerCase() === nftInfo.owner.toLowerCase();
+    };
+
+    // 快速移除流动性相关函数
+    const openQuickRemover = () => {
+        if (quickRemoverRef.current) {
+            const rect = quickRemoverRef.current.getBoundingClientRect();
+            const popoverWidth = 384;
+            let left = rect.right + 12;
+            if (left + popoverWidth > window.innerWidth - 20) {
+                left = rect.left - popoverWidth - 12;
+            }
+
+            const availableHeight = window.innerHeight - rect.top - 20;
+
+            setQuickRemoverPosition({
+                top: rect.top,
+                left: left,
+                maxHeight: availableHeight
+            });
+            setShowQuickRemover(true);
+        }
+    };
+
+    const closeQuickRemover = () => {
+        setIsQuickRemoverVisible(false);
+        setTimeout(() => {
+            setShowQuickRemover(false);
+        }, 300);
+    };
+
+    // 快速增加流动性相关函数
+    const openQuickEnhancer = () => {
+        if (quickEnhancerRef.current) {
+            const rect = quickEnhancerRef.current.getBoundingClientRect();
+            const popoverWidth = 384;
+            let left = rect.right + 12;
+            if (left + popoverWidth > window.innerWidth - 20) {
+                left = rect.left - popoverWidth - 12;
+            }
+
+            const availableHeight = window.innerHeight - rect.top - 20;
+
+            setQuickEnhancerPosition({
+                top: rect.top,
+                left: left,
+                maxHeight: availableHeight
+            });
+            setShowQuickEnhancer(true);
+        }
+    };
+
+    const closeQuickEnhancer = () => {
+        setIsQuickEnhancerVisible(false);
+        setTimeout(() => {
+            setShowQuickEnhancer(false);
+        }, 300);
+    };
+
+    // 处理弹窗显示动画
+    useEffect(() => {
+        if (showQuickRemover) {
+            const timer = setTimeout(() => {
+                setIsQuickRemoverVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        }
+    }, [showQuickRemover]);
+
+    useEffect(() => {
+        if (showQuickEnhancer) {
+            const timer = setTimeout(() => {
+                setIsQuickEnhancerVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        }
+    }, [showQuickEnhancer]);
+
+    // 处理点击外部关闭弹窗
+    useEffect(() => {
+        if (!showQuickRemover && !showQuickEnhancer) return;
+
+        function handleClickOutside(event) {
+            if (showQuickRemover && quickRemoverPopoverRef.current && !quickRemoverPopoverRef.current.contains(event.target) &&
+                quickRemoverRef.current && !quickRemoverRef.current.contains(event.target)) {
+                closeQuickRemover();
+            }
+            if (showQuickEnhancer && quickEnhancerPopoverRef.current && !quickEnhancerPopoverRef.current.contains(event.target) &&
+                quickEnhancerRef.current && !quickEnhancerRef.current.contains(event.target)) {
+                closeQuickEnhancer();
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showQuickRemover, showQuickEnhancer]);
+
     if (!pool.lpInfo) return null;
 
     return (
@@ -125,7 +249,6 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 }`}>
                 {nftInfo && nftInfo.isValid && (
                     <div className="mt-3 space-y-3">
-                        {/* ... (rest of the NFT panel JSX) ... */}
                         {/* Price direction toggle */}
                         <div className="bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
                             <div className="flex items-center justify-between w-full">
@@ -158,6 +281,48 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                             <div className="flex items-center justify-between mb-2">
                                 <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
                                 <div className="flex items-center gap-2">
+                                    {/* 快速操作按钮 - 仅当用户是NFT所有者时显示 */}
+                                    {isNftOwner() && (
+                                        <>
+                                            <button
+                                                ref={quickEnhancerRef}
+                                                onClick={openQuickEnhancer}
+                                                className="text-xs font-medium px-2 py-0.5 rounded-full border 
+                                                    bg-green-50 text-green-700 border-green-200 
+                                                    dark:bg-green-900/30 dark:text-green-300 dark:border-green-700/50
+                                                    hover:bg-green-100 hover:border-green-300 
+                                                    dark:hover:bg-green-800/30 dark:hover:border-green-600
+                                                    transition-all duration-200 flex items-center gap-1
+                                                    hover:scale-[1.05] active:scale-[0.95]"
+                                                data-tooltip-id="my-tooltip"
+                                                data-tooltip-content="快速增加流动性"
+                                            >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                增加
+                                            </button>
+                                            <button
+                                                ref={quickRemoverRef}
+                                                onClick={openQuickRemover}
+                                                className="text-xs font-medium px-2 py-0.5 rounded-full border 
+                                                    bg-red-50 text-red-700 border-red-200 
+                                                    dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50
+                                                    hover:bg-red-100 hover:border-red-300 
+                                                    dark:hover:bg-red-800/30 dark:hover:border-red-600
+                                                    transition-all duration-200 flex items-center gap-1
+                                                    hover:scale-[1.05] active:scale-[0.95]"
+                                                data-tooltip-id="my-tooltip"
+                                                data-tooltip-content="快速移除流动性"
+                                            >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" />
+                                                </svg>
+                                                移除
+                                            </button>
+                                        </>
+                                    )}
+
                                     <div className={`text-xs font-medium px-2 py-0.5 rounded-full border ${nftInfo.isInRange
                                         ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-900/30 dark:text-success-300 dark:border-success-700/50'
                                         : 'bg-error-50 text-error-700 border-error-200 dark:bg-error-900/30 dark:text-error-300 dark:border-error-700/50'
@@ -413,6 +578,30 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                     </div>
                 )}
             </div>
+
+            {/* 快速移除流动性弹窗 */}
+            {showQuickRemover && nftInfo && nftInfo.isValid && pool.lpInfo && (
+                <QuickLiquidityRemover
+                    poolInfo={pool.lpInfo}
+                    nftInfo={nftInfo}
+                    position={quickRemoverPosition}
+                    isVisible={isQuickRemoverVisible}
+                    onClose={closeQuickRemover}
+                    popoverRef={quickRemoverPopoverRef}
+                />
+            )}
+
+            {/* 快速增加流动性弹窗 */}
+            {showQuickEnhancer && nftInfo && nftInfo.isValid && pool.lpInfo && (
+                <QuickLiquidityEnhancer
+                    poolInfo={pool.lpInfo}
+                    nftInfo={nftInfo}
+                    position={quickEnhancerPosition}
+                    isVisible={isQuickEnhancerVisible}
+                    onClose={closeQuickEnhancer}
+                    popoverRef={quickEnhancerPopoverRef}
+                />
+            )}
         </div>
     );
 };

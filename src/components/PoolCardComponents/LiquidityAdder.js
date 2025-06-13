@@ -421,7 +421,7 @@ const LiquidityAdder = ({
             } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
                 positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613'; // Uniswap V3 Position Manager on BSC
             } else {
-                // 默认使用Uniswap地址作为备用
+                // 默认使用Uniswap地址作为备选
                 positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
             }
 
@@ -453,14 +453,12 @@ const LiquidityAdder = ({
         try {
             setIsApproving(prev => ({ ...prev, [tokenAddress]: true }));
 
-            // 根据协议类型使用正确的Position Manager地址
             let positionManagerAddress;
             if (poolInfo.protocol.name.toLowerCase().includes('pancake')) {
-                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364'; // PancakeSwap V3 Position Manager on BSC
+                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364';
             } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613'; // Uniswap V3 Position Manager on BSC
+                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
             } else {
-                // 默认使用Uniswap地址作为备用
                 positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
             }
 
@@ -470,7 +468,6 @@ const LiquidityAdder = ({
             setTransactionHash(tx.hash);
             await tx.wait();
 
-            // 重新检查授权状态
             await checkApprovalStatus();
 
             console.log(`${tokenSymbol} 授权成功`);

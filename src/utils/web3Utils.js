@@ -292,4 +292,154 @@ export const switchNetwork = async (chainId) => {
         console.error('Error switching network:', error);
         throw error;
     }
+};
+
+// 获取Position Manager地址（根据协议类型）
+const getPositionManagerAddress = (protocolName, chainId = 56) => {
+    const contracts = CONTRACTS[chainId];
+    if (!contracts) {
+        throw new Error(`Unsupported chain ID: ${chainId}`);
+    }
+
+    if (protocolName.toLowerCase().includes('pancake')) {
+        return contracts.PANCAKESWAP_V3_POSITION_MANAGER;
+    } else if (protocolName.toLowerCase().includes('uniswap')) {
+        return contracts.UNISWAP_V3_POSITION_MANAGER;
+    } else {
+        // 默认使用Uniswap
+        return contracts.UNISWAP_V3_POSITION_MANAGER;
+    }
+};
+
+// 移除流动性
+export const decreaseLiquidity = async (params, signer, chainId, protocolName) => {
+    try {
+        const positionManagerAddress = getPositionManagerAddress(protocolName, chainId);
+
+        const decreaseLiquidityABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                            { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.DecreaseLiquidityParams",
+                        "name": "params",
+                        "type": "tuple"
+                    }
+                ],
+                "name": "decreaseLiquidity",
+                "outputs": [
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const contract = new ethers.Contract(positionManagerAddress, decreaseLiquidityABI, signer);
+
+        console.log('发送移除流动性交易...', params);
+        const tx = await contract.decreaseLiquidity(params);
+        console.log('移除流动性交易已发送:', tx.hash);
+
+        return tx;
+    } catch (error) {
+        console.error('移除流动性失败:', error);
+        throw error;
+    }
+};
+
+// 收集费用和代币
+export const collectFromPosition = async (params, signer, chainId, protocolName) => {
+    try {
+        const positionManagerAddress = getPositionManagerAddress(protocolName, chainId);
+
+        const collectABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                            { "internalType": "address", "name": "recipient", "type": "address" },
+                            { "internalType": "uint128", "name": "amount0Max", "type": "uint128" },
+                            { "internalType": "uint128", "name": "amount1Max", "type": "uint128" }
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.CollectParams",
+                        "name": "params",
+                        "type": "tuple"
+                    }
+                ],
+                "name": "collect",
+                "outputs": [
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const contract = new ethers.Contract(positionManagerAddress, collectABI, signer);
+
+        console.log('发送收集交易...', params);
+        const tx = await contract.collect(params);
+        console.log('收集交易已发送:', tx.hash);
+
+        return tx;
+    } catch (error) {
+        console.error('收集失败:', error);
+        throw error;
+    }
+};
+
+// 增加流动性到现有NFT
+export const increaseLiquidity = async (params, signer, chainId, protocolName) => {
+    try {
+        const positionManagerAddress = getPositionManagerAddress(protocolName, chainId);
+
+        const increaseLiquidityABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount0Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "deadline", "type": "uint256" }
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.IncreaseLiquidityParams",
+                        "name": "params",
+                        "type": "tuple"
+                    }
+                ],
+                "name": "increaseLiquidity",
+                "outputs": [
+                    { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const contract = new ethers.Contract(positionManagerAddress, increaseLiquidityABI, signer);
+
+        console.log('发送增加流动性交易...', params);
+        const tx = await contract.increaseLiquidity(params);
+        console.log('增加流动性交易已发送:', tx.hash);
+
+        return tx;
+    } catch (error) {
+        console.error('增加流动性失败:', error);
+        throw error;
+    }
 }; 
