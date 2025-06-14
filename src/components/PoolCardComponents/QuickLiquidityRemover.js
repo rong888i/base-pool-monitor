@@ -377,20 +377,21 @@ const QuickLiquidityRemover = ({
                                                         step="0.1"
                                                         min="0"
                                                         max="50"
-                                                        value={slippage === 1 ? '' : slippage}
+                                                        value={slippage}
                                                         onChange={(e) => {
                                                             const value = e.target.value;
                                                             if (value === '') {
                                                                 setSlippage('');
-                                                            } else {
-                                                                const numValue = parseFloat(value);
-                                                                if (!isNaN(numValue) && numValue >= 0) {
-                                                                    setSlippage(numValue > 50 ? 50 : numValue);
-                                                                }
+                                                                return;
+                                                            }
+                                                            const numValue = parseFloat(value);
+                                                            if (!isNaN(numValue) && numValue >= 0) {
+                                                                setSlippage(numValue > 50 ? 50 : numValue);
                                                             }
                                                         }}
                                                         onBlur={(e) => {
-                                                            if (e.target.value === '' || parseFloat(e.target.value) <= 0) {
+                                                            const value = parseFloat(e.target.value);
+                                                            if (isNaN(value) || value <= 0) {
                                                                 setSlippage(1);
                                                             }
                                                         }}

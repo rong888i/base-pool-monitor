@@ -152,20 +152,24 @@ const SlippageSelector = ({ slippage, setSlippage, slippageOptions }) => {
                         step="0.1"
                         min="0"
                         max="50"
-                        value={slippage === 1 ? '' : slippage}
+                        value={slippage}
                         onChange={(e) => {
                             const value = e.target.value;
+                            // 允许输入框为空
                             if (value === '') {
                                 setSlippage('');
-                            } else {
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue) && numValue >= 0) {
-                                    setSlippage(numValue > 50 ? 50 : numValue);
-                                }
+                                return;
+                            }
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue) && numValue >= 0) {
+                                // 限制最大值
+                                setSlippage(numValue > 50 ? 50 : numValue);
                             }
                         }}
                         onBlur={(e) => {
-                            if (e.target.value === '' || parseFloat(e.target.value) <= 0) {
+                            const value = parseFloat(e.target.value);
+                            // 如果值无效或小于等于0，则在失焦时重置为1
+                            if (isNaN(value) || value <= 0) {
                                 setSlippage(1);
                             }
                         }}
@@ -1097,10 +1101,10 @@ const LiquidityAdder = ({
 
                                         {/* 流动性占比显示 */}
                                         {liquidityRatio !== null && (
-                                            <div className="p-3 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 rounded-lg border border-primary-200 dark:border-primary-700">
+                                            <div className="p-3 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg border border-primary-200 dark:border-indigo-700/50">
                                                 <div className="text-center">
-                                                    <div className="text-xs text-primary-600 dark:text-primary-400 mb-1">预计流动性占比</div>
-                                                    <div className="text-lg font-bold text-primary-700 dark:text-primary-300">
+                                                    <div className="text-xs text-indigo-600 dark:text-indigo-300 mb-1">预计流动性占比</div>
+                                                    <div className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
                                                         {liquidityRatio.toFixed(4)}%
                                                     </div>
                                                 </div>
