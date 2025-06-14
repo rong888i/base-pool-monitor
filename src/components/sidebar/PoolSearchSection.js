@@ -371,19 +371,19 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                             </div>
 
                             <div className="p-3 grid grid-cols-2 gap-2 text-xs">
-                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md">
+                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md border border-neutral-200 dark:border-neutral-700">
                                     <div className="text-neutral-500 dark:text-neutral-400 mb-1">价格</div>
                                     <div className="text-neutral-800 dark:text-white font-semibold">${Number(pool.price).toFixed(6)}</div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md">
+                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md border border-neutral-200 dark:border-neutral-700">
                                     <div className="text-neutral-500 dark:text-neutral-400 mb-1">5m 成交量</div>
                                     <div className="text-neutral-800 dark:text-white font-semibold">{formatNumber(pool.volume5m)}</div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md">
+                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md border border-neutral-200 dark:border-neutral-700">
                                     <div className="text-neutral-500 dark:text-neutral-400 mb-1">24h 成交量</div>
                                     <div className="text-neutral-800 dark:text-white font-semibold">{formatNumber(pool.volume24h)}</div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md">
+                                <div className="bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-md border border-neutral-200 dark:border-neutral-700">
                                     <div className="text-neutral-500 dark:text-neutral-400 mb-1">流动性</div>
                                     <div className="text-neutral-800 dark:text-white font-semibold">{formatNumber(pool.liquidity)}</div>
                                 </div>
