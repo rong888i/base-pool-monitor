@@ -319,7 +319,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     </p>
                                 </div>
 
-                                <div>
+                                {/* <div>
                                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                                         通知阈值
                                     </label>
@@ -333,7 +333,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                                         价格连续超出区间多少次后发送通知
                                     </p>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                     </div>

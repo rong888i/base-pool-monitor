@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { getLPInfo } from '../utils/lpUtils';
 import { sendBarkNotification, isNFTInRange, getNotificationSettings } from '../utils/notificationUtils';
+import { executeMonitorChecks } from '../utils/monitorUtils';
 
 // 预设的池子地址
 const DEFAULT_POOLS = [
@@ -14,6 +15,11 @@ export function usePools(settings) {
     const [outOfRangeCounts, setOutOfRangeCounts] = useState({});
     const cancelledFetches = useRef(new Set());
 
+    // 生成唯一ID的函数
+    const generateUniqueId = () => {
+        return 'pool_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    };
+
     // 从本地存储加载池子列表
     useEffect(() => {
         const loadPoolsFromStorage = () => {
@@ -24,26 +30,40 @@ export function usePools(settings) {
                         const parsedData = JSON.parse(savedData);
                         if (Array.isArray(parsedData) && parsedData.length > 0 && typeof parsedData[0] === 'string') {
                             console.log('Migrating old pool data format...');
-                            const newData = parsedData.map(address => ({ address, nftId: '' }));
+                            const newData = parsedData.map(address => ({
+                                address,
+                                nftId: '',
+                                uniqueId: generateUniqueId()
+                            }));
                             localStorage.setItem('monitoredPools', JSON.stringify(newData));
                             return newData;
                         }
                         if (Array.isArray(parsedData)) {
                             // 过滤掉无效的池子数据，确保每个池子都有 address 属性
                             const validPools = parsedData.filter(pool => pool && typeof pool.address === 'string');
-                            if (validPools.length < parsedData.length) {
-                                console.warn('Removed invalid pool entries from localStorage data.');
-                                // 如果数据被清理过，则更新 localStorage
-                                localStorage.setItem('monitoredPools', JSON.stringify(validPools));
+                            // 为没有uniqueId的池子添加uniqueId
+                            const poolsWithUniqueId = validPools.map(pool => ({
+                                ...pool,
+                                uniqueId: pool.uniqueId || generateUniqueId()
+                            }));
+
+                            if (validPools.length < parsedData.length || poolsWithUniqueId.some(p => !validPools.find(vp => vp.uniqueId === p.uniqueId))) {
+                                console.warn('Updated pool entries with unique IDs.');
+                                // 如果数据被清理过或添加了uniqueId，则更新 localStorage
+                                localStorage.setItem('monitoredPools', JSON.stringify(poolsWithUniqueId));
                             }
-                            return validPools;
+                            return poolsWithUniqueId;
                         }
                     } catch (e) {
                         console.error('Failed to parse saved pools:', e);
                     }
                 }
             }
-            return DEFAULT_POOLS.map(address => ({ address, nftId: '' }));
+            return DEFAULT_POOLS.map(address => ({
+                address,
+                nftId: '',
+                uniqueId: generateUniqueId()
+            }));
         };
 
         const initialPoolsData = loadPoolsFromStorage();
@@ -65,7 +85,8 @@ export function usePools(settings) {
         if (typeof window !== 'undefined') {
             const dataToStore = poolsToSave.map(pool => ({
                 address: pool.address,
-                nftId: pool.nftId || ''
+                nftId: pool.nftId || '',
+                uniqueId: pool.uniqueId
             }));
             localStorage.setItem('monitoredPools', JSON.stringify(dataToStore));
         }
@@ -121,6 +142,10 @@ export function usePools(settings) {
                 if (targetPool.nftInfo) {
                     checkNFTPriceAndNotify(targetPool);
                 }
+
+                // 执行监控检查（流动性、价格等）
+                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0);
+
                 return newPools;
             });
         } catch (error) {
@@ -161,7 +186,8 @@ export function usePools(settings) {
             nftId: '',
             nftInfo: null,
             isLoadingNft: false,
-            nftError: null
+            nftError: null,
+            uniqueId: generateUniqueId()
         };
 
         // 先更新状态
@@ -191,7 +217,14 @@ export function usePools(settings) {
     // 克隆池子
     const clonePool = useCallback((poolIndex) => {
         const poolToClone = pools[poolIndex];
-        const newPool = { ...poolToClone, nftId: '', nftInfo: null, isLoadingNft: false, nftError: null };
+        const newPool = {
+            ...poolToClone,
+            nftId: '',
+            nftInfo: null,
+            isLoadingNft: false,
+            nftError: null,
+            uniqueId: generateUniqueId() // 生成新的唯一ID，确保监控设置独立
+        };
         const newPools = [...pools.slice(0, poolIndex + 1), newPool, ...pools.slice(poolIndex + 1)];
         setPools(newPools);
         savePoolsToStorage(newPools);
@@ -239,7 +272,8 @@ export function usePools(settings) {
             nftId: poolData.nftId || '',
             nftInfo: null,
             isLoadingNft: false,
-            nftError: null
+            nftError: null,
+            uniqueId: generateUniqueId()
         };
 
         // 先更新状态
@@ -288,10 +322,12 @@ export function usePools(settings) {
             // 当 LP 和 NFT 信息都存在时，进行价格检查
             if (targetPool.lpInfo) {
                 checkNFTPriceAndNotify(targetPool);
+                // 执行监控检查（流动性、价格等）
+                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0);
             }
             return newPools;
         });
-    }, [checkNFTPriceAndNotify]);
+    }, [checkNFTPriceAndNotify, outOfRangeCounts]);
 
     // 初始化加载 - 简化依赖，避免复杂的字符串拼接
     useEffect(() => {

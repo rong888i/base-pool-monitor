@@ -18,6 +18,8 @@ const PoolCardHeader = ({
     calculatorIconRef,
     openLiquidityAdder,
     liquidityAdderIconRef,
+    openMonitorSettings,
+    monitorSettingsIconRef,
 }) => {
     return (
         <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/20">
@@ -76,6 +78,17 @@ const PoolCardHeader = ({
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m3 1a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h3m3-4a2 2 0 012 2v2H9V6a2 2 0 012-2zm-3 8h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01" />
+                                    </svg>
+                                </button>
+                                <button
+                                    ref={monitorSettingsIconRef}
+                                    onClick={openMonitorSettings}
+                                    className="text-neutral-400 hover:text-orange-500 transition-colors p-1.5 rounded-full hover:bg-orange-50 dark:hover:bg-orange-500/10"
+                                    data-tooltip-id="my-tooltip"
+                                    data-tooltip-content="监控参数设置"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                     </svg>
                                 </button>
                                 <button

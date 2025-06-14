@@ -10,21 +10,28 @@ import NftSection from './PoolCardComponents/NftSection';
 import TechnicalInfo from './PoolCardComponents/TechnicalInfo';
 import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
 import LiquidityAdder from './PoolCardComponents/LiquidityAdder/index.js';
+import MonitorSettings from './PoolCardComponents/MonitorSettings';
 
 const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [nftId, setNftId] = useState(pool.nftId || '');
     const [showCalculator, setShowCalculator] = useState(false);
     const [showLiquidityAdder, setShowLiquidityAdder] = useState(false);
+    const [showMonitorSettings, setShowMonitorSettings] = useState(false);
     const [calculatorPopoverPosition, setCalculatorPopoverPosition] = useState({ top: 0, left: 0 });
     const [liquidityAdderPopoverPosition, setLiquidityAdderPopoverPosition] = useState({ top: 0, left: 0 });
+    const [monitorSettingsPopoverPosition, setMonitorSettingsPopoverPosition] = useState({ top: 0, left: 0 });
     const [isCalculatorPopoverVisible, setIsCalculatorPopoverVisible] = useState(false);
     const [isLiquidityAdderPopoverVisible, setIsLiquidityAdderPopoverVisible] = useState(false);
+    const [isMonitorSettingsPopoverVisible, setIsMonitorSettingsPopoverVisible] = useState(false);
+    const [monitorSettings, setMonitorSettings] = useState({});
 
     const calculatorIconRef = useRef(null);
     const liquidityAdderIconRef = useRef(null);
+    const monitorSettingsIconRef = useRef(null);
     const calculatorPopoverRef = useRef(null);
     const liquidityAdderPopoverRef = useRef(null);
+    const monitorSettingsPopoverRef = useRef(null);
 
     const {
         attributes,
@@ -117,6 +124,65 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         }
     }, [showLiquidityAdder]);
 
+    // 处理监控设置相关
+    useEffect(() => {
+        if (!showMonitorSettings) return;
+
+        function handleClickOutside(event) {
+            const popover = monitorSettingsPopoverRef.current;
+            if (popover && !popover.contains(event.target) &&
+                monitorSettingsIconRef.current && !monitorSettingsIconRef.current.contains(event.target)) {
+
+                // 检查点击是否在滚动条上
+                const isClickOnScrollbar = event.clientX >= popover.clientWidth;
+                if (!isClickOnScrollbar) {
+                    closeMonitorSettings();
+                }
+            }
+        }
+
+        function handleScroll(event) {
+            // 只有当滚动是页面级别的滚动（不是弹窗内部滚动）时才关闭弹窗
+            const popover = monitorSettingsPopoverRef.current;
+            if (popover) {
+                // 检查滚动是否发生在弹窗或其子元素上
+                const scrollingElement = event.target;
+                const isPopoverScroll = popover === scrollingElement || popover.contains(scrollingElement);
+
+                // 如果不是弹窗内部的滚动，则关闭弹窗
+                if (!isPopoverScroll) {
+                    closeMonitorSettings();
+                }
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        window.addEventListener("scroll", handleScroll, true);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener("scroll", handleScroll, true);
+        };
+    }, [showMonitorSettings]);
+
+    useEffect(() => {
+        if (showMonitorSettings) {
+            const timer = setTimeout(() => {
+                setIsMonitorSettingsPopoverVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        }
+    }, [showMonitorSettings]);
+
+    // 加载监控设置
+    useEffect(() => {
+        if (pool.address) {
+            const poolIdentifier = pool.uniqueId || pool.address;
+            const allSettings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
+            const currentPoolSettings = allSettings.pools?.[poolIdentifier] || {};
+            setMonitorSettings(currentPoolSettings);
+        }
+    }, [pool.address, pool.uniqueId]);
+
     const getStatusColor = () => {
         if (pool.error) return 'border-error-500 bg-error-50 dark:bg-card-bg';
         if (pool.isLoading || isRefreshing) return 'border-primary-500 bg-primary-50 dark:bg-card-bg';
@@ -181,6 +247,41 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         }, 300); // 匹配CSS动画时长
     }
 
+    const openMonitorSettings = () => {
+        if (monitorSettingsIconRef.current) {
+            const rect = monitorSettingsIconRef.current.getBoundingClientRect();
+            const popoverWidth = 384; // w-96
+            let left = rect.right + 12;
+            if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
+                left = rect.left - popoverWidth - 12;
+            }
+
+            // 计算可用高度，防止弹窗超出视窗
+            const availableHeight = window.innerHeight - rect.top - 20; // 20px margin from bottom
+
+            setMonitorSettingsPopoverPosition({
+                top: rect.top,
+                left: left,
+                maxHeight: availableHeight
+            });
+            setShowMonitorSettings(true);
+        }
+    }
+
+    const closeMonitorSettings = () => {
+        setIsMonitorSettingsPopoverVisible(false);
+        setTimeout(() => {
+            setShowMonitorSettings(false);
+        }, 300); // 匹配CSS动画时长
+    }
+
+    const handleMonitorSettingsUpdate = (poolAddress, newSettings) => {
+        setMonitorSettings(newSettings);
+        // 触发TechnicalInfo组件的重新渲染以更新监控状态显示
+        // 通过修改pool地址的方式强制重新渲染
+        window.dispatchEvent(new CustomEvent('monitorSettingsUpdated', { detail: { poolAddress, settings: newSettings } }));
+    };
+
     return (
         <motion.div
             layout="position"
@@ -205,6 +306,8 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                     calculatorIconRef={calculatorIconRef}
                     openLiquidityAdder={openLiquidityAdder}
                     liquidityAdderIconRef={liquidityAdderIconRef}
+                    openMonitorSettings={openMonitorSettings}
+                    monitorSettingsIconRef={monitorSettingsIconRef}
                 />
 
                 {pool.error && (
@@ -234,7 +337,7 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                                 onNftIdChange={handleNftIdChange}
                                 onNftInfoUpdate={onNftInfoUpdate}
                             />
-                            <TechnicalInfo lpInfo={pool.lpInfo} outOfRangeCount={outOfRangeCount} />
+                            <TechnicalInfo lpInfo={pool.lpInfo} outOfRangeCount={outOfRangeCount} poolAddress={pool.address} poolUniqueId={pool.uniqueId} />
                         </div>
                     </motion.div>
                 )}
@@ -259,6 +362,21 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                     isVisible={isLiquidityAdderPopoverVisible}
                     onClose={closeLiquidityAdder}
                     popoverRef={liquidityAdderPopoverRef}
+                />
+            )}
+
+            {/* 监控设置 */}
+            {showMonitorSettings && pool.lpInfo && (
+                <MonitorSettings
+                    poolInfo={pool.lpInfo}
+                    poolAddress={pool.address}
+                    poolUniqueId={pool.uniqueId}
+                    position={monitorSettingsPopoverPosition}
+                    isVisible={isMonitorSettingsPopoverVisible}
+                    onClose={closeMonitorSettings}
+                    popoverRef={monitorSettingsPopoverRef}
+                    currentSettings={monitorSettings}
+                    onSettingsUpdate={handleMonitorSettingsUpdate}
                 />
             )}
         </motion.div>

@@ -2,23 +2,29 @@
 const lastNotificationTime = new Map();
 
 // 发送Bark通知
-export const sendBarkNotification = async (title, content, nftId) => {
-    const { barkKey, notificationLevel, enableBarkNotification } = getNotificationSettings();
-    if (!barkKey || !enableBarkNotification) return false;
+export const sendBarkNotification = async (title, content, notificationConfig) => {
+    const { barkKey, notificationLevel, enableBarkNotification, uniqueId } = notificationConfig;
 
-    // 检查冷却时间
+    if (!barkKey || !enableBarkNotification) {
+        console.log('Bark通知未启用或缺少Key');
+        return false;
+    }
+
+    // 使用uniqueId进行冷却检查，确保同一类型通知有间隔
     const now = Date.now();
-    const lastTime = lastNotificationTime.get(nftId) || 0;
-    if (now - lastTime < 300000) { // 300秒 = 300000毫秒
-        console.log('Notification cooldown for NFT:', nftId);
+    const lastTime = lastNotificationTime.get(uniqueId) || 0;
+    // 注意：这里的300000ms (5分钟) 是一个硬编码的最终防线，
+    // 主要的间隔控制应由 monitorUtils 中的 shouldSendNotification 实现
+    if (now - lastTime < 300000) {
+        console.log(`Notification cooldown for ${uniqueId}. Last sent: ${new Date(lastTime).toLocaleTimeString()}`);
         return false;
     }
 
     try {
-        let url = `https://api.day.app/${barkKey}/${encodeURIComponent(title + "\n" + content)}`;
+        let url = `https://api.day.app/${barkKey}/${encodeURIComponent(title)}\n/${encodeURIComponent(content)}`;
 
         // 根据通知等级添加不同的参数
-        switch (notificationLevel) {
+        switch (parseInt(notificationLevel, 10)) {
             case 2: // 单次响铃
                 url += '?sound=minuet';
                 break;
@@ -33,10 +39,12 @@ export const sendBarkNotification = async (title, content, nftId) => {
         const data = await response.json();
 
         if (data.code === 200) {
+            console.log(`✅ Bark notification sent successfully for ${uniqueId}.`);
             // 更新最后通知时间
-            lastNotificationTime.set(nftId, now);
+            lastNotificationTime.set(uniqueId, now);
             return true;
         }
+        console.error(`❌ Bark notification failed for ${uniqueId}:`, data.message);
         return false;
     } catch (error) {
         console.error('Failed to send Bark notification:', error);
@@ -51,7 +59,7 @@ export const isNFTInRange = (nftInfo, minPrice, maxPrice) => {
     return price >= minPrice && price <= maxPrice;
 };
 
-// 获取通知设置
+// 获取通知设置（全局设置）
 export const getNotificationSettings = () => {
     const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
     return {
@@ -69,10 +77,10 @@ export const sendTestBarkNotification = async (barkKey, notificationLevel) => {
     try {
         const title = "测试通知";
         const content = "这是一条来自 Pool Monitor 的测试消息。";
-        let url = `https://api.day.app/${barkKey}/${encodeURIComponent(title + "\n" + content)}`;
+        let url = `https://api.day.app/${barkKey}/${encodeURIComponent(title)}/${encodeURIComponent(content)}`;
 
         // 根据通知等级添加不同的参数
-        switch (notificationLevel) {
+        switch (parseInt(notificationLevel, 10)) {
             case 2:
                 url += '?sound=minuet';
                 break;

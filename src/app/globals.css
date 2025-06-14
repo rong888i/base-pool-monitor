@@ -121,11 +121,19 @@ body {
     @apply bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all duration-200;
   }
 
+  .btn-tertiary {
+    @apply bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-neutral-200 dark:border-neutral-700;
+  }
+
   .input-primary {
     @apply border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
     background-color: var(--input-bg);
     border-color: var(--input-border);
     color: var(--text-primary);
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200;
   }
 
   /* 自定义滚动条样式 */
