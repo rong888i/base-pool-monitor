@@ -4,6 +4,7 @@ export function useSettings() {
     const [settings, setSettings] = useState({
         autoRefresh: true,
         refreshInterval: 3,
+        defaultSlippage: 1.0,
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 

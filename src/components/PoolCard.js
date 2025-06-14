@@ -9,7 +9,7 @@ import PoolInfo from './PoolCardComponents/PoolInfo';
 import NftSection from './PoolCardComponents/NftSection';
 import TechnicalInfo from './PoolCardComponents/TechnicalInfo';
 import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
-import LiquidityAdder from './PoolCardComponents/LiquidityAdder';
+import LiquidityAdder from './PoolCardComponents/LiquidityAdder/index.js';
 
 const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);

@@ -7,6 +7,47 @@ import {
 } from '../../utils/lpUtils';
 import useIsMobile from '../../hooks/useIsMobile';
 
+// 统一的代币输入框组件（与一键添加流动性保持一致）
+const TokenInput = ({ symbol, value, onChange, placeholder }) => (
+    <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700/60 space-y-2.5 transition-colors duration-300">
+        <div className="flex justify-between items-baseline">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                {symbol}
+            </label>
+        </div>
+        <div className="relative flex items-center">
+            <input
+                type="number"
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                className="w-full pl-3 pr-16 py-2.5 bg-white dark:bg-neutral-900/50 rounded-lg text-lg font-mono font-medium border-2 border-neutral-200 dark:border-neutral-700 focus:border-primary-500 focus:ring-0 outline-none transition-all duration-300"
+            />
+            <div className="absolute right-2.5 text-sm font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
+                {symbol}
+            </div>
+        </div>
+    </div>
+);
+
+// 统一的价格输入框组件（与一键添加流动性保持一致）
+const PriceInput = ({ value, onChange, onAdjust, label }) => (
+    <div className="space-y-1.5">
+        <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{label}</label>
+        <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+            <button onClick={() => onAdjust(-1)} className="w-7 h-7 rounded bg-white dark:bg-neutral-700/50 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-lg font-mono text-neutral-600 dark:text-neutral-300">-</button>
+            <input
+                type="number"
+                value={value}
+                onChange={onChange}
+                className="w-full bg-transparent text-center font-mono text-base font-medium text-neutral-800 dark:text-neutral-100 focus:outline-none"
+                placeholder="0.0"
+            />
+            <button onClick={() => onAdjust(1)} className="w-7 h-7 rounded bg-white dark:bg-neutral-700/50 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-lg font-mono text-neutral-600 dark:text-neutral-300">+</button>
+        </div>
+    </div>
+);
+
 const LiquidityCalculator = ({
     poolInfo,
     position,
@@ -145,24 +186,34 @@ const LiquidityCalculator = ({
             const input0 = parseFloat(calcInput0);
             const input1 = parseFloat(calcInput1);
 
-            let liquidity;
-            if (lastEdited === 'amount0' && input0 > 0) {
-                liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, calcInput0);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                // Prevent feedback loop by checking if the value is different enough
-                if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) / (input1 || 1) > 1e-6) {
-                    setCalcInput1(formatted.token1);
+            try {
+                let liquidity;
+                if (lastEdited === 'amount0' && input0 > 0) {
+                    liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, calcInput0);
+                    const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
+                    // Prevent feedback loop by checking if the value is different enough
+                    const newValue = parseFloat(formatted.token1);
+                    if (!isNaN(newValue) && Math.abs(newValue - (input1 || 0)) > 1e-6) {
+                        setCalcInput1(formatted.token1);
+                    }
+                } else if (lastEdited === 'amount1' && input1 > 0) {
+                    liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, calcInput1);
+                    const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
+                    const newValue = parseFloat(formatted.token0);
+                    if (!isNaN(newValue) && Math.abs(newValue - (input0 || 0)) > 1e-6) {
+                        setCalcInput0(formatted.token0);
+                    }
+                } else if (lastEdited === 'amount0' && input0 === 0) {
+                    setCalcInput1('');
+                } else if (lastEdited === 'amount1' && input1 === 0) {
+                    setCalcInput0('');
                 }
-            } else if (lastEdited === 'amount1' && input1 > 0) {
-                liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, calcInput1);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) / (input0 || 1) > 1e-6) {
-                    setCalcInput0(formatted.token0);
-                }
+            } catch (error) {
+                console.error("Error calculating other token amount:", error);
             }
         };
 
-        const handler = setTimeout(calculateOtherAmount, 300);
+        const handler = setTimeout(calculateOtherAmount, 800);
         return () => clearTimeout(handler);
 
     }, [calcInput0, calcInput1, lastEdited, poolInfo, tickLower, tickUpper]);
@@ -263,7 +314,7 @@ const LiquidityCalculator = ({
                     setTickUpper(alignedTick);
                 }
             }
-        }, 500); // 500ms debounce after user stops typing
+        }, 300); // 500ms debounce after user stops typing
 
         return () => {
             clearTimeout(handler);
@@ -275,25 +326,6 @@ const LiquidityCalculator = ({
     const priceSymbol = isReversed
         ? `${poolInfo.token0.symbol} / ${poolInfo.token1.symbol}`
         : `${poolInfo.token1.symbol} / ${poolInfo.token0.symbol}`;
-
-    const PriceInput = ({ value, onChange, onAdjust }) => (
-        <div className="relative">
-            <input
-                type="number"
-                value={value}
-                onChange={onChange}
-                className="input-primary w-full text-sm pr-6"
-            />
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                <button onClick={() => onAdjust(1)} className="h-1/2 px-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7" /></svg>
-                </button>
-                <button onClick={() => onAdjust(-1)} className="h-1/2 px-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-            </div>
-        </div>
-    );
 
     return (
         <div
@@ -309,7 +341,7 @@ const LiquidityCalculator = ({
         >
             <div
                 className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl p-5 transform-gpu transition-all duration-300 ease-in-out
-                    ${isMobile ? 'w-full max-w-sm mx-4' : 'w-80'}
+                    ${isMobile ? 'w-full max-w-sm mx-4 max-h-[90vh]' : 'w-96'}
                     ${isVisible ? 'scale-100' : 'scale-95'}
                 `}
             >
@@ -328,51 +360,53 @@ const LiquidityCalculator = ({
                 </div>
 
                 <div className="space-y-4">
-                    {/* Token Inputs */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">输入数量</label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                placeholder={`输入 ${poolInfo.token0.symbol} 数量`}
-                                value={calcInput0}
-                                onChange={(e) => { setCalcInput0(e.target.value); setLastEdited('amount0'); }}
-                                className="input-primary w-full !py-2.5 !pl-4 !pr-20"
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
-                                {poolInfo.token0.symbol}
-                            </span>
-                        </div>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                placeholder={`输入 ${poolInfo.token1.symbol} 数量`}
-                                value={calcInput1}
-                                onChange={(e) => { setCalcInput1(e.target.value); setLastEdited('amount1'); }}
-                                className="input-primary w-full !py-2.5 !pl-4 !pr-20"
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
-                                {poolInfo.token1.symbol}
-                            </span>
+                    {/* 当前价格显示 */}
+                    <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700 text-center">
+                        <div className="text-sm font-mono font-medium text-neutral-700 dark:text-neutral-300">
+                            1 {isReversed ? poolInfo.token0?.symbol : poolInfo.token1?.symbol} = {
+                                isReversed
+                                    ? (1 / poolInfo.price?.token1PerToken0).toFixed(6)
+                                    : poolInfo.price?.token1PerToken0.toFixed(6)
+                            } {isReversed ? poolInfo.token1?.symbol : poolInfo.token0?.symbol}
                         </div>
                     </div>
 
-                    {/* Price Range Inputs */}
+                    {/* Token Inputs */}
+                    <div className="space-y-3">
+                        <TokenInput
+                            symbol={poolInfo.token0.symbol}
+                            value={calcInput0}
+                            onChange={(e) => { setCalcInput0(e.target.value); setLastEdited('amount0'); }}
+                            placeholder={`输入 ${poolInfo.token0.symbol} 数量`}
+                        />
+                        <TokenInput
+                            symbol={poolInfo.token1.symbol}
+                            value={calcInput1}
+                            onChange={(e) => { setCalcInput1(e.target.value); setLastEdited('amount1'); }}
+                            placeholder={`输入 ${poolInfo.token1.symbol} 数量`}
+                        />
+                    </div>
+
+                    {/* Price Range */}
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
                             <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">价格范围</label>
-                            <button onClick={() => setIsReversed(!isReversed)} className="text-xs text-primary-500 hover:text-primary-600 font-medium flex items-center gap-1">
+                            <button onClick={() => setIsReversed(!isReversed)} className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 flex items-center gap-1 transition-colors">
                                 {priceSymbol}
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <PriceInput
+                                label=""
                                 value={priceLower}
                                 onChange={(e) => setPriceLower(e.target.value)}
                                 onAdjust={(dir) => adjustPrice('min', dir)}
                             />
                             <PriceInput
+                                label=""
                                 value={priceUpper}
                                 onChange={(e) => setPriceUpper(e.target.value)}
                                 onAdjust={(dir) => adjustPrice('max', dir)}
@@ -381,20 +415,19 @@ const LiquidityCalculator = ({
                     </div>
 
                     {/* Price Range Presets */}
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                        <button onClick={() => handleSetPriceRange(0.05)} className="btn-secondary-sm !py-2 text-xs transition-transform duration-200 hover:scale-105">±0.05%</button>
-                        <button onClick={() => handleSetPriceRange(0.3)} className="btn-secondary-sm !py-2 text-xs transition-transform duration-200 hover:scale-105">±0.3%</button>
-                        <button onClick={() => handleSetPriceRange(1)} className="btn-secondary-sm !py-2 text-xs transition-transform duration-200 hover:scale-105">±1%</button>
+                    <div className="grid grid-cols-4 gap-2">
+                        <button onClick={() => handleSetPriceRange(0.01)} className="btn-tertiary">±0.01%</button>
+                        <button onClick={() => handleSetPriceRange(0.05)} className="btn-tertiary">±0.05%</button>
+                        <button onClick={() => handleSetPriceRange(0.1)} className="btn-tertiary">±0.1%</button>
+                        <button onClick={() => handleSetPriceRange(0.5)} className="btn-tertiary">±0.5%</button>
                     </div>
 
                     {/* Result Display */}
-                    <div className="h-24 bg-gradient-to-br from-primary-50 to-indigo-100 dark:from-neutral-800 dark:to-neutral-900 rounded-xl flex items-center justify-center text-center p-4 transition-all duration-300">
+                    <div className="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-center border border-neutral-200 dark:border-neutral-700">
                         {calculatedRatio !== null ? (
                             <div>
-                                <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">预计流动性占比</div>
-                                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-indigo-600 dark:from-primary-400 dark:to-indigo-500">
-                                    {calculatedRatio.toFixed(4)}%
-                                </div>
+                                <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">预计流动性占比</div>
+                                <div className="text-2xl font-bold font-mono text-neutral-800 dark:text-neutral-100">{calculatedRatio.toFixed(4)}%</div>
                             </div>
                         ) : (
                             <span className="text-neutral-500 dark:text-neutral-400 text-sm">请输入数量和价格范围以计算</span>

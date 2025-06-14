@@ -37,7 +37,8 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         refreshInterval: 3,
         enableBarkNotification: true,
         notificationLevel: 1, // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
-        rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79vv' // 添加默认RPC URL
+        rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79vv', // 添加默认RPC URL
+        defaultSlippage: 1.0 // 默认滑点设置
     });
 
     // 添加动画状态
@@ -134,9 +135,6 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                         主题模式
                                     </label>
                                     <ThemeSwitcher />
-                                    <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                                        选择应用的显示模式
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -209,6 +207,41 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     />
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                                         设置自动刷新的时间间隔，最小 1 秒
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 交易设置 */}
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">交易设置</h3>
+                            </div>
+                            <div className="bg-neutral-50 dark:bg-neutral-700/50 rounded-xl p-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                        默认滑点 (%)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0.1"
+                                        max="50"
+                                        value={settings.defaultSlippage}
+                                        onChange={(e) => {
+                                            const value = parseFloat(e.target.value);
+                                            if (!isNaN(value) && value >= 0.1 && value <= 50) {
+                                                setSettings(prev => ({ ...prev, defaultSlippage: value }));
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                                        placeholder="1.0"
+                                    />
+                                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        设置一键添加流动性、快速移除流动性、快速增加流动性的默认滑点容限
                                     </p>
                                 </div>
                             </div>

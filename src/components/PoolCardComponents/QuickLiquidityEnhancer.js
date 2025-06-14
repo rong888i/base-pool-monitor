@@ -15,53 +15,48 @@ import {
     getLiquidityForAmount0, getLiquidityForAmount1, getAmountsForLiquidity
 } from '../../utils/lpUtils';
 import useIsMobile from '../../hooks/useIsMobile';
+import { getDefaultSlippage } from '../../utils/settingsUtils';
 
 // 代币输入框组件
 const TokenInput = ({ symbol, value, onChange, balance, isLoading, placeholder }) => (
-    <div className="space-y-3">
-        <div className="flex justify-between items-center">
-            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                {symbol} 数量
+    <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700/60 space-y-2.5 transition-colors duration-300">
+        <div className="flex justify-between items-baseline">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                {symbol}
             </label>
             <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                余额: {isLoading ? (
-                    <span className="animate-pulse">加载中...</span>
+                Balance: {isLoading ? (
+                    <span className="animate-pulse">...</span>
                 ) : (
                     <span
-                        className="hover:text-green-500 cursor-pointer transition-colors font-medium"
+                        className="font-mono cursor-pointer hover:text-primary-500 transition-colors"
                         onClick={() => onChange({ target: { value: balance } })}
                     >
-                        {parseFloat(balance).toFixed(4)} {symbol}
+                        {parseFloat(balance).toFixed(4)}
                     </span>
                 )}
             </div>
         </div>
-        <div className="relative">
+        <div className="relative flex items-center">
             <input
                 type="number"
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
-                className="w-full px-4 py-3 pr-24 border border-neutral-300 dark:border-neutral-600 rounded-xl
-                    bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50
-                    text-neutral-900 dark:text-white font-medium
-                    focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white dark:focus:bg-neutral-800
-                    outline-none transition-all duration-200 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                className="w-full pl-3 pr-32 py-2.5 bg-white dark:bg-neutral-900/50 rounded-lg text-lg font-mono font-medium border-2 border-neutral-200 dark:border-neutral-700 focus:border-primary-500 focus:ring-0 outline-none transition-all duration-300"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="absolute right-2.5 flex items-center gap-1.5">
                 <button
                     type="button"
                     onClick={() => onChange({ target: { value: (parseFloat(balance) / 2).toString() } })}
-                    className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 
-                        font-semibold transition-colors px-2 py-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20"
+                    className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 rounded-md px-2.5 py-1.5 transition-colors"
                 >
                     50%
                 </button>
                 <button
                     type="button"
                     onClick={() => onChange({ target: { value: balance } })}
-                    className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 
-                        font-semibold transition-colors px-2 py-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20"
+                    className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 rounded-md px-2.5 py-1.5 transition-colors"
                 >
                     MAX
                 </button>
@@ -90,7 +85,7 @@ const QuickLiquidityEnhancer = ({
 
     const [amount0, setAmount0] = useState('');
     const [amount1, setAmount1] = useState('');
-    const [slippage, setSlippage] = useState(1);
+    const [slippage, setSlippage] = useState(getDefaultSlippage());
     const [isCheckingApproval, setIsCheckingApproval] = useState(false);
     const [token0NeedsApproval, setToken0NeedsApproval] = useState(false);
     const [token1NeedsApproval, setToken1NeedsApproval] = useState(false);
@@ -105,6 +100,18 @@ const QuickLiquidityEnhancer = ({
     const [isClosing, setIsClosing] = useState(false);
     const isMobile = useIsMobile();
     const amountUpdateTimer = useRef(null);
+
+    // 检查余额是否不足
+    const isToken0Insufficient = amount0 && parseFloat(amount0) > parseFloat(balances.token0 || '0');
+    const isToken1Insufficient = amount1 && parseFloat(amount1) > parseFloat(balances.token1 || '0');
+
+    // 检查是否为单边添加（只添加一种代币或其中一个为0）
+    const isAmount0Zero = !amount0 || parseFloat(amount0) === 0;
+    const isAmount1Zero = !amount1 || parseFloat(amount1) === 0;
+    const isSingleSideAdd = isAmount0Zero || isAmount1Zero;
+
+    // 只检查实际需要的代币的余额
+    const hasInsufficientBalance = (!isAmount0Zero && isToken0Insufficient) || (!isAmount1Zero && isToken1Insufficient);
 
     // 处理关闭动画
     const handleClose = useCallback(() => {
@@ -133,34 +140,81 @@ const QuickLiquidityEnhancer = ({
 
         amountUpdateTimer.current = setTimeout(() => {
             if (!poolInfo || !nftInfo || !lastEdited) {
+                console.log('自动计算跳过：缺少必要信息', { poolInfo: !!poolInfo, nftInfo: !!nftInfo, lastEdited });
                 return;
             }
 
             const { tick, sqrtPriceX96, token0, token1 } = poolInfo;
             const { tickLower, tickUpper } = nftInfo;
-            const input0 = parseFloat(amount0);
-            const input1 = parseFloat(amount1);
+            const input0 = parseFloat(amount0) || 0;
+            const input1 = parseFloat(amount1) || 0;
 
-            if (lastEdited === 'amount0' && input0 >= 0) {
-                if (amount0 === '') {
-                    setAmount1('');
-                    return;
+            console.log('自动计算参数:', {
+                lastEdited,
+                amount0,
+                amount1,
+                input0,
+                input1,
+                currentTick: tick,
+                tickLower,
+                tickUpper,
+                isInRange: tick >= tickLower && tick < tickUpper
+            });
+
+            // 检查当前价格是否在NFT范围内
+            const currentTick = tick;
+            const isInRange = currentTick >= tickLower && currentTick < tickUpper;
+
+            if (lastEdited === 'amount0' && amount0 && input0 > 0) {
+                console.log('正在计算token1数量，基于token0:', amount0);
+
+                try {
+                    const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
+                    console.log('计算得到流动性:', liquidity.toString());
+
+                    if (liquidity > 0n) {
+                        const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
+                        console.log('计算得到的代币数量:', formatted);
+
+                        const calculatedAmount1 = parseFloat(formatted.token1);
+                        console.log('设置token1数量:', formatted.token1);
+                        setAmount1(formatted.token1);
+                    } else {
+                        console.log('流动性为0，设置token1为0');
+                        setAmount1('0');
+                    }
+                } catch (error) {
+                    console.error('计算token1数量失败:', error);
+                    setAmount1('0');
                 }
-                const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) / (input1 || 1) > 1e-6) {
-                    setAmount1(formatted.token1);
+            } else if (lastEdited === 'amount0' && (!amount0 || input0 === 0)) {
+                console.log('清空token0，清空token1');
+                setAmount1('');
+            } else if (lastEdited === 'amount1' && amount1 && input1 > 0) {
+                console.log('正在计算token0数量，基于token1:', amount1);
+
+                try {
+                    const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
+                    console.log('计算得到流动性:', liquidity.toString());
+
+                    if (liquidity > 0n) {
+                        const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
+                        console.log('计算得到的代币数量:', formatted);
+
+                        const calculatedAmount0 = parseFloat(formatted.token0);
+                        console.log('设置token0数量:', formatted.token0);
+                        setAmount0(formatted.token0);
+                    } else {
+                        console.log('流动性为0，设置token0为0');
+                        setAmount0('0');
+                    }
+                } catch (error) {
+                    console.error('计算token0数量失败:', error);
+                    setAmount0('0');
                 }
-            } else if (lastEdited === 'amount1' && input1 >= 0) {
-                if (amount1 === '') {
-                    setAmount0('');
-                    return;
-                }
-                const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) / (input0 || 1) > 1e-6) {
-                    setAmount0(formatted.token0);
-                }
+            } else if (lastEdited === 'amount1' && (!amount1 || input1 === 0)) {
+                console.log('清空token1，清空token0');
+                setAmount0('');
             }
         }, 500);
 
@@ -566,46 +620,38 @@ const QuickLiquidityEnhancer = ({
                                         </div>
 
                                         {/* 滑点设置 */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-3">
-                                                <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 min-w-[4rem]">
-                                                    滑点容限
-                                                </label>
-                                                <div className="flex-1 relative">
-                                                    <input
-                                                        type="number"
-                                                        step="0.1"
-                                                        min="0"
-                                                        max="50"
-                                                        value={slippage}
-                                                        onChange={(e) => {
-                                                            const value = e.target.value;
-                                                            if (value === '') {
-                                                                setSlippage('');
-                                                                return;
-                                                            }
-                                                            const numValue = parseFloat(value);
-                                                            if (!isNaN(numValue) && numValue >= 0) {
-                                                                setSlippage(numValue > 50 ? 50 : numValue);
-                                                            }
-                                                        }}
-                                                        onBlur={(e) => {
-                                                            const value = parseFloat(e.target.value);
-                                                            if (isNaN(value) || value <= 0) {
-                                                                setSlippage(1);
-                                                            }
-                                                        }}
-                                                        placeholder="1.0"
-                                                        className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-xl
-                                                            bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50 
-                                                            text-neutral-900 dark:text-white text-sm font-medium
-                                                            focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white dark:focus:bg-neutral-800
-                                                            outline-none transition-all duration-200"
-                                                    />
-                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                                        <span className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">%</span>
-                                                    </div>
-                                                </div>
+                                        <div className="flex justify-between items-center bg-neutral-100/80 dark:bg-neutral-800/60 p-2.5 pr-3 rounded-lg">
+                                            <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300 ml-1">滑点容限</label>
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="50"
+                                                    value={slippage}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        if (value === '') {
+                                                            setSlippage('');
+                                                            return;
+                                                        }
+                                                        const numValue = parseFloat(value);
+                                                        if (!isNaN(numValue) && numValue >= 0) {
+                                                            setSlippage(numValue > 50 ? 50 : numValue);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const value = parseFloat(e.target.value);
+                                                        if (isNaN(value) || value <= 0) {
+                                                            setSlippage(1);
+                                                        }
+                                                    }}
+                                                    placeholder="1.0"
+                                                    className="w-20 text-right pr-6 py-1.5 font-mono text-sm font-medium bg-white dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-600 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                                                />
+                                                <span className="absolute right-2.5 text-sm text-neutral-500 dark:text-neutral-400 pointer-events-none">
+                                                    %
+                                                </span>
                                             </div>
                                         </div>
 
@@ -669,7 +715,7 @@ const QuickLiquidityEnhancer = ({
                                         {/* 增加流动性按钮 */}
                                         <button
                                             onClick={handleIncreaseLiquidity}
-                                            disabled={isAdding || !amount0 || !amount1}
+                                            disabled={isAdding || (isAmount0Zero && isAmount1Zero) || hasInsufficientBalance}
                                             className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 
                                                 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl 
                                                 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl
@@ -685,10 +731,38 @@ const QuickLiquidityEnhancer = ({
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
-                                                    增加流动性到NFT
+                                                    {isAmount0Zero && isAmount1Zero
+                                                        ? '请输入代币数量'
+                                                        : hasInsufficientBalance
+                                                            ? `${(!isAmount0Zero && isToken0Insufficient) ? poolInfo.token0?.symbol : poolInfo.token1?.symbol} 余额不足`
+                                                            : isSingleSideAdd
+                                                                ? `单边增加流动性到NFT`
+                                                                : '增加流动性到NFT'
+                                                    }
                                                 </>
                                             )}
                                         </button>
+
+                                        {/* 余额不足提示 */}
+                                        {hasInsufficientBalance && (
+                                            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                                                <div className="flex items-center gap-2">
+                                                    <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                    </svg>
+                                                    <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">
+                                                        {(!isAmount0Zero && isToken0Insufficient) && (!isAmount1Zero && isToken1Insufficient)
+                                                            ? `${poolInfo.token0?.symbol} 和 ${poolInfo.token1?.symbol} 余额均不足`
+                                                            : (!isAmount0Zero && isToken0Insufficient)
+                                                                ? `${poolInfo.token0?.symbol} 余额不足 (需要: ${amount0}, 余额: ${parseFloat(balances.token0 || '0').toFixed(4)})`
+                                                                : (!isAmount1Zero && isToken1Insufficient)
+                                                                    ? `${poolInfo.token1?.symbol} 余额不足 (需要: ${amount1}, 余额: ${parseFloat(balances.token1 || '0').toFixed(4)})`
+                                                                    : '余额不足'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* 错误显示 */}
                                         {error && (

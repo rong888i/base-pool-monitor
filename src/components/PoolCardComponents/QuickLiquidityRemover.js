@@ -15,6 +15,7 @@ import {
     decreaseLiquidityAndCollect
 } from '@/utils/web3Utils';
 import useIsMobile from '../../hooks/useIsMobile';
+import { getDefaultSlippage } from '../../utils/settingsUtils';
 
 const QuickLiquidityRemover = ({
     poolInfo,
@@ -35,7 +36,7 @@ const QuickLiquidityRemover = ({
     } = useWallet();
 
     const [removePercentage, setRemovePercentage] = useState(100);
-    const [slippage, setSlippage] = useState(1);
+    const [slippage, setSlippage] = useState(getDefaultSlippage());
     const [isRemoving, setIsRemoving] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState(null);
@@ -366,46 +367,38 @@ const QuickLiquidityRemover = ({
                                         </div>
 
                                         {/* 滑点设置 */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-3">
-                                                <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 min-w-[4rem]">
-                                                    滑点容限
-                                                </label>
-                                                <div className="flex-1 relative">
-                                                    <input
-                                                        type="number"
-                                                        step="0.1"
-                                                        min="0"
-                                                        max="50"
-                                                        value={slippage}
-                                                        onChange={(e) => {
-                                                            const value = e.target.value;
-                                                            if (value === '') {
-                                                                setSlippage('');
-                                                                return;
-                                                            }
-                                                            const numValue = parseFloat(value);
-                                                            if (!isNaN(numValue) && numValue >= 0) {
-                                                                setSlippage(numValue > 50 ? 50 : numValue);
-                                                            }
-                                                        }}
-                                                        onBlur={(e) => {
-                                                            const value = parseFloat(e.target.value);
-                                                            if (isNaN(value) || value <= 0) {
-                                                                setSlippage(1);
-                                                            }
-                                                        }}
-                                                        placeholder="1.0"
-                                                        className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-xl
-                                                            bg-gradient-to-r from-neutral-50 to-gray-50 dark:from-neutral-800/50 dark:to-gray-800/50 
-                                                            text-neutral-900 dark:text-white text-sm font-medium
-                                                            focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white dark:focus:bg-neutral-800
-                                                            outline-none transition-all duration-200"
-                                                    />
-                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                                        <span className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">%</span>
-                                                    </div>
-                                                </div>
+                                        <div className="flex justify-between items-center bg-neutral-100/80 dark:bg-neutral-800/60 p-2.5 pr-3 rounded-lg">
+                                            <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300 ml-1">滑点容限</label>
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="50"
+                                                    value={slippage}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        if (value === '') {
+                                                            setSlippage('');
+                                                            return;
+                                                        }
+                                                        const numValue = parseFloat(value);
+                                                        if (!isNaN(numValue) && numValue >= 0) {
+                                                            setSlippage(numValue > 50 ? 50 : numValue);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const value = parseFloat(e.target.value);
+                                                        if (isNaN(value) || value <= 0) {
+                                                            setSlippage(1);
+                                                        }
+                                                    }}
+                                                    placeholder="1.0"
+                                                    className="w-20 text-right pr-6 py-1.5 font-mono text-sm font-medium bg-white dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-600 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                                                />
+                                                <span className="absolute right-2.5 text-sm text-neutral-500 dark:text-neutral-400 pointer-events-none">
+                                                    %
+                                                </span>
                                             </div>
                                         </div>
 
