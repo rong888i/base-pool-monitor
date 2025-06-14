@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/providers/WalletProvider";
 import MyTooltip from "@/components/MyTooltip";
 import "react-tooltip/dist/react-tooltip.css";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -22,12 +23,19 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WalletProvider>{children}</WalletProvider>
-        <MyTooltip />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <WalletProvider>{children}</WalletProvider>
+          <MyTooltip />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -118,9 +118,9 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
     }, [showLiquidityAdder]);
 
     const getStatusColor = () => {
-        if (pool.error) return 'border-error-500 bg-error-50';
-        if (pool.isLoading || isRefreshing) return 'border-primary-500 bg-primary-50';
-        return 'border-success-500 bg-success-50';
+        if (pool.error) return 'border-error-500 bg-error-50 dark:bg-card-bg';
+        if (pool.isLoading || isRefreshing) return 'border-primary-500 bg-primary-50 dark:bg-card-bg';
+        return 'border-success-500 bg-success-50 dark:bg-card-bg';
     };
 
     const getStatusIcon = () => {

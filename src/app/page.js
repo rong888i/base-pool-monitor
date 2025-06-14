@@ -36,7 +36,7 @@ export default function Home() {
   } = usePools(settings);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex overflow-x-hidden">
+    <div className="h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-neutral-900 dark:to-neutral-800 flex overflow-x-hidden">
       <Sidebar
         onAddPool={handleAddPoolFromSidebar}
         pools={pools}

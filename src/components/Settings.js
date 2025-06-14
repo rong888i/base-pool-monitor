@@ -1,5 +1,33 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import { sendTestBarkNotification } from '../utils/notificationUtils';
+
+const ThemeSwitcher = () => {
+    const { theme, setTheme } = useTheme();
+
+    const themes = [
+        { name: '浅色', value: 'light' },
+        { name: '深色', value: 'dark' },
+        { name: '自动', value: 'system' },
+    ];
+
+    return (
+        <div className="flex items-center space-x-2 rounded-lg bg-neutral-100 dark:bg-neutral-700 p-1">
+            {themes.map((t) => (
+                <button
+                    key={t.value}
+                    onClick={() => setTheme(t.value)}
+                    className={`flex-1 text-center text-sm font-medium py-1.5 rounded-md transition-all duration-200 ${theme === t.value
+                        ? 'bg-white dark:bg-neutral-800 shadow-sm text-blue-600 dark:text-blue-400'
+                        : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-600/50'
+                        }`}
+                >
+                    {t.name}
+                </button>
+            ))}
+        </div>
+    );
+};
 
 export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
     const [settings, setSettings] = useState({
@@ -94,6 +122,24 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                 {/* 内容区域 - 可滚动 */}
                 <div className="max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
                     <div className="p-6 space-y-8">
+                        {/* 外观设置 */}
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                                <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">外观</h3>
+                            </div>
+                            <div className="bg-neutral-50 dark:bg-neutral-700/50 rounded-xl p-4 space-y-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                        主题模式
+                                    </label>
+                                    <ThemeSwitcher />
+                                    <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                                        选择应用的显示模式
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                         {/* RPC设置 */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">

@@ -9,7 +9,7 @@ const PoolInfo = ({ pool, outOfRangeCount }) => {
     return (
         <>
             {/* 代币信息 - 包含余额 */}
-            <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
+            <div className="bg-primary-50 dark:bg-input-bg p-3 rounded-lg">
                 <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">💧 池子流动性</div>
                 {/* 代币余额 */}
                 <div className="flex items-center justify-around bg-white/60 dark:bg-black/10 p-2 rounded-lg text-sm font-mono mb-2">
@@ -57,7 +57,7 @@ const PoolInfo = ({ pool, outOfRangeCount }) => {
             </div>
 
             {/* 价格信息 - 紧凑显示 */}
-            <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
+            <div className="bg-neutral-50 dark:bg-input-bg p-3 rounded-lg">
                 <div className="text-xs text-neutral-700 dark:text-neutral-300 font-medium mb-2">💰 价格</div>
                 <div className="flex items-center justify-around bg-white dark:bg-neutral-900 p-2 rounded-lg text-sm font-mono">
                     <div className="text-center">
