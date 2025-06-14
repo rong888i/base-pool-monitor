@@ -129,22 +129,37 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             const { tick, sqrtPriceX96, token0, token1 } = poolInfo;
             const input0 = parseFloat(amount0);
             const input1 = parseFloat(amount1);
-            if (lastEdited === 'amount0' && input0 >= 0) {
-                if (amount0 === '') { setAmount1(''); return; }
+
+            const getNewAmounts = (liquidity) => {
+                return getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
+            };
+
+            if (lastEdited === 'amount0') {
+                if (amount0 === '' || input0 < 0) {
+                    if (amount1 !== '') setAmount1('');
+                    return;
+                }
                 const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) / (input1 || 1) > 1e-6) {
+                const { formatted } = getNewAmounts(liquidity);
+                if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) > 1e-9) {
+                    setAmount1(formatted.token1);
+                } else if (input1 === null || isNaN(input1)) {
                     setAmount1(formatted.token1);
                 }
-            } else if (lastEdited === 'amount1' && input1 >= 0) {
-                if (amount1 === '') { setAmount0(''); return; }
+            } else if (lastEdited === 'amount1') {
+                if (amount1 === '' || input1 < 0) {
+                    if (amount0 !== '') setAmount0('');
+                    return;
+                }
                 const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
-                const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) / (input0 || 1) > 1e-6) {
+                const { formatted } = getNewAmounts(liquidity);
+                if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) > 1e-9) {
+                    setAmount0(formatted.token0);
+                } else if (input0 === null || isNaN(input0)) {
                     setAmount0(formatted.token0);
                 }
             }
-        }, 500);
+        }, 300);
         return () => clearTimeout(amountUpdateTimer.current);
     }, [amount0, amount1, lastEdited, poolInfo, tickLower, tickUpper]);
 
