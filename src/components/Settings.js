@@ -181,7 +181,15 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                         className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
                                     />
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        设置BSC网络的RPC节点地址
+                                        设置BSC网络的RPC节点地址，可以前往
+                                        <a href="https://www.ankr.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                                            Ankr
+                                        </a>
+                                        {' '}或{' '}
+                                        <a href="https://www.quicknode.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                                            QuickNode
+                                        </a>
+                                        {' '}申请免费BSC节点
                                     </p>
                                 </div>
                             </div>
