@@ -232,10 +232,10 @@ const LiquidityAdder = ({
 
                                         <div className="space-y-2">
                                             <div className="grid grid-cols-4 gap-2">
-                                                <button onClick={() => handleSetPriceRange(0.01)} className="btn-tertiary">±0.01%</button>
-                                                <button onClick={() => handleSetPriceRange(0.05)} className="btn-tertiary">±0.05%</button>
-                                                <button onClick={() => handleSetPriceRange(0.1)} className="btn-tertiary">±0.1%</button>
-                                                <button onClick={() => handleSetPriceRange(0.5)} className="btn-tertiary">±0.5%</button>
+                                                <button onClick={() => handleSetPriceRange(0.01)} className="btn-tertiary">±0.01</button>
+                                                <button onClick={() => handleSetPriceRange(0.05)} className="btn-tertiary">±0.05</button>
+                                                <button onClick={() => handleSetPriceRange(0.1)} className="btn-tertiary">±0.1</button>
+                                                <button onClick={() => handleSetPriceRange(0.5)} className="btn-tertiary">±0.5</button>
                                             </div>
                                         </div>
 
