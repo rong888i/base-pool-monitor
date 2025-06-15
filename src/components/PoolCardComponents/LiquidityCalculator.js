@@ -434,14 +434,14 @@ const LiquidityCalculator = ({
                                 onChange={(e) => handlePriceChange(e.target.value, 'lower')}
                                 onBlur={() => handlePriceBlur('lower')}
                                 onAdjust={(direction) => adjustPrice('min', direction)}
-                                label={isReversed ? '最高价' : '最低价'}
+                            //label={isReversed ? '最高价' : '最低价'}
                             />
                             <PriceInput
                                 value={priceUpper}
                                 onChange={(e) => handlePriceChange(e.target.value, 'upper')}
                                 onBlur={() => handlePriceBlur('upper')}
                                 onAdjust={(direction) => adjustPrice('max', direction)}
-                                label={isReversed ? '最低价' : '最高价'}
+                            //label={isReversed ? '最低价' : '最高价'}
                             />
                         </div>
                     </div>
