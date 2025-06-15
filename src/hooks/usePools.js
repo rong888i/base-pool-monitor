@@ -147,7 +147,8 @@ export function usePools(settings) {
 
     // 获取单个池子信息
     const fetchPoolInfo = useCallback(async (poolAddress, poolIndex) => {
-        if (cancelledFetches.current.has(poolAddress)) {
+        const pool = pools[poolIndex];
+        if (!pool || cancelledFetches.current.has(pool.uniqueId)) {
             return;
         }
 
@@ -177,7 +178,7 @@ export function usePools(settings) {
                 index === poolIndex ? { ...pool, error: error.message, isLoading: false } : pool
             ));
         }
-    }, [checkNFTPriceAndNotify, triggerMonitorFlash]);
+    }, [pools, checkNFTPriceAndNotify, triggerMonitorFlash, outOfRangeCounts]);
 
     // 刷新所有池子
     const refreshAllPools = useCallback(async () => {
@@ -196,10 +197,10 @@ export function usePools(settings) {
         }
 
         const address = customAddress.trim();
+        const uniqueId = generateUniqueId();
 
-        // 关键修复：从取消列表中移除该地址，允许新的请求
-        if (cancelledFetches.current.has(address)) {
-            cancelledFetches.current.delete(address);
+        if (cancelledFetches.current.has(uniqueId)) {
+            cancelledFetches.current.delete(uniqueId);
         }
 
         const newPool = {
@@ -211,7 +212,7 @@ export function usePools(settings) {
             nftInfo: null,
             isLoadingNft: false,
             nftError: null,
-            uniqueId: generateUniqueId()
+            uniqueId: uniqueId
         };
 
         // 先更新状态
@@ -231,7 +232,27 @@ export function usePools(settings) {
     const removePool = useCallback((poolIndex) => {
         const poolToRemove = pools[poolIndex];
         if (poolToRemove) {
-            cancelledFetches.current.add(poolToRemove.address);
+            cancelledFetches.current.add(poolToRemove.uniqueId);
+
+            // 清理相关的状态数据
+            // 只有当没有其他池子使用相同地址时，才清理 outOfRangeCounts
+            const hasOtherPoolsWithSameAddress = pools.some((pool, index) =>
+                index !== poolIndex && pool.address === poolToRemove.address
+            );
+
+            if (!hasOtherPoolsWithSameAddress) {
+                setOutOfRangeCounts(prev => {
+                    const newCounts = { ...prev };
+                    delete newCounts[poolToRemove.address];
+                    return newCounts;
+                });
+            }
+
+            setFlashingMonitors(prev => {
+                const newFlashing = { ...prev };
+                delete newFlashing[poolToRemove.uniqueId];
+                return newFlashing;
+            });
         }
         const newPools = pools.filter((_, index) => index !== poolIndex);
         setPools(newPools);
@@ -283,9 +304,10 @@ export function usePools(settings) {
             return;
         }
 
-        // 关键修复：从取消列表中移除该地址，允许新的请求
-        if (cancelledFetches.current.has(poolData.address)) {
-            cancelledFetches.current.delete(poolData.address);
+        const uniqueId = generateUniqueId();
+
+        if (cancelledFetches.current.has(uniqueId)) {
+            cancelledFetches.current.delete(uniqueId);
         }
 
         const newPool = {
@@ -297,7 +319,7 @@ export function usePools(settings) {
             nftInfo: null,
             isLoadingNft: false,
             nftError: null,
-            uniqueId: generateUniqueId()
+            uniqueId: uniqueId
         };
 
         // 先更新状态
