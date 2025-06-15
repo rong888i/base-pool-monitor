@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     getLiquidityForAmounts, getTickSpacing, calculatePriceFromTick, calculateTickFromPrice,
     getLiquidityForAmount0, getLiquidityForAmount1, getAmountsForLiquidity
@@ -31,7 +31,7 @@ const TokenInput = ({ symbol, value, onChange, placeholder }) => (
 );
 
 // 统一的价格输入框组件（与一键添加流动性保持一致）
-const PriceInput = ({ value, onChange, onAdjust, label }) => (
+const PriceInput = ({ value, onChange, onBlur, onAdjust, label }) => (
     <div className="space-y-1.5">
         <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{label}</label>
         <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
@@ -40,6 +40,7 @@ const PriceInput = ({ value, onChange, onAdjust, label }) => (
                 type="number"
                 value={value}
                 onChange={onChange}
+                onBlur={onBlur}
                 className="w-full bg-transparent text-center font-mono text-base font-medium text-neutral-800 dark:text-neutral-100 focus:outline-none"
                 placeholder="0.0"
             />
@@ -66,16 +67,19 @@ const LiquidityCalculator = ({
     const [activePoolAddress, setActivePoolAddress] = useState(null);
     const [lastEdited, setLastEdited] = useState(null);
     const isMobile = useIsMobile();
+    const [isUserInputting, setIsUserInputting] = useState(false);
+    const inputTimer = useRef(null);
 
-    const getDisplayPrice = (price) => {
+    const getDisplayPrice = useCallback((price) => {
         if (!price) return '';
         return isReversed ? (1 / price).toPrecision(6) : price.toPrecision(6);
-    }
-    const parseDisplayPrice = (displayPrice) => {
+    }, [isReversed]);
+
+    const parseDisplayPrice = useCallback((displayPrice) => {
         const price = parseFloat(displayPrice);
         if (isNaN(price) || price === 0) return 0;
         return isReversed ? 1 / price : price;
-    }
+    }, [isReversed]);
 
     const updateTicksFromPrices = (lowerPriceStr, upperPriceStr) => {
         if (!poolInfo) return;
@@ -118,7 +122,7 @@ const LiquidityCalculator = ({
     }, [tickLower, tickUpper]);
 
     useEffect(() => {
-        if (poolInfo && tickLower !== null && tickUpper !== null) {
+        if (poolInfo && tickLower !== null && tickUpper !== null && !isUserInputting) {
             const { token0, token1 } = poolInfo;
             const baseLowerPrice = calculatePriceFromTick(tickLower, token0.decimals, token1.decimals);
             const baseUpperPrice = calculatePriceFromTick(tickUpper, token0.decimals, token1.decimals);
@@ -132,7 +136,15 @@ const LiquidityCalculator = ({
                 setPriceUpper(getDisplayPrice(baseUpperPrice));
             }
         }
-    }, [tickLower, tickUpper, isReversed, poolInfo]);
+    }, [tickLower, tickUpper, isReversed, poolInfo, isUserInputting, getDisplayPrice]);
+
+    useEffect(() => {
+        if (!poolInfo || tickLower === null || tickUpper === null) {
+            setCalculatedRatio(null);
+            setActivePoolAddress(null);
+            setLastEdited(null);
+        }
+    }, [isVisible]);
 
     useEffect(() => {
         if (!poolInfo || tickLower === null || tickUpper === null) {
@@ -218,108 +230,120 @@ const LiquidityCalculator = ({
 
     }, [calcInput0, calcInput1, lastEdited, poolInfo, tickLower, tickUpper]);
 
-    useEffect(() => {
-        if (!isVisible) {
-            setCalcInput0('');
-            setCalcInput1('');
-            setCalculatedRatio(null);
-            setActivePoolAddress(null);
-            setLastEdited(null);
+    const handlePriceBlur = useCallback((type) => {
+        if (inputTimer.current) {
+            clearTimeout(inputTimer.current);
         }
-    }, [isVisible]);
+        setIsUserInputting(false);
 
-    const handlePriceBlur = (e, type) => {
-        const priceStr = e.target.value;
-        const price = parseDisplayPrice(priceStr);
-
-        if (poolInfo && price > 0) {
-            const { token0, token1, fee } = poolInfo;
-            const tickSpacing = getTickSpacing(fee);
-            const newTick = calculateTickFromPrice(price, token0.decimals, token1.decimals);
-            const alignedTick = Math.round(newTick / tickSpacing) * tickSpacing;
-
-            if (type === 'lower') {
-                setTickLower(alignedTick);
-            } else {
-                setTickUpper(alignedTick);
-            }
-        }
-    };
-
-    const adjustPrice = (boxType, direction) => {
-        const tickToAdjustName = (boxType === 'min' && !isReversed) || (boxType === 'max' && isReversed)
-            ? 'lower'
-            : 'upper';
-
-        const effectiveDirection = isReversed ? -direction : direction;
-
-        adjustPriceByTick(tickToAdjustName, effectiveDirection);
-    }
-
-    const adjustPriceByTick = (type, direction) => {
         if (!poolInfo) return;
+
+        const { token0, token1, fee } = poolInfo;
+        const tickSpacing = getTickSpacing(fee);
+
+        const isLowerBox = type === 'lower';
+        const priceStr = isLowerBox ? priceLower : priceUpper;
+        if (priceStr === '' || isNaN(parseFloat(priceStr))) return;
+
+        const internalPrice = parseDisplayPrice(priceStr);
+        if (internalPrice <= 0) return;
+
+        const rawTick = calculateTickFromPrice(internalPrice, token0.decimals, token1.decimals);
+        const alignedTick = Math.round(rawTick / tickSpacing) * tickSpacing;
+        const newInternalPrice = calculatePriceFromTick(alignedTick, token0.decimals, token1.decimals);
+        const newDisplayPrice = getDisplayPrice(newInternalPrice);
+
+        let newPriceLower = isLowerBox ? newDisplayPrice : priceLower;
+        let newPriceUpper = isLowerBox ? priceUpper : newDisplayPrice;
+        let newTickLower = tickLower;
+        let newTickUpper = tickUpper;
+
+        if (isLowerBox) {
+            if (isReversed) newTickUpper = alignedTick;
+            else newTickLower = alignedTick;
+        } else {
+            if (isReversed) newTickLower = alignedTick;
+            else newTickUpper = alignedTick;
+        }
+
+        if (newTickLower !== null && newTickUpper !== null && newTickLower > newTickUpper) {
+            [newTickLower, newTickUpper] = [newTickUpper, newTickLower];
+        }
+
+        if (isReversed) {
+            setPriceLower(getDisplayPrice(calculatePriceFromTick(newTickUpper, token0.decimals, token1.decimals)));
+            setPriceUpper(getDisplayPrice(calculatePriceFromTick(newTickLower, token0.decimals, token1.decimals)));
+        } else {
+            setPriceLower(getDisplayPrice(calculatePriceFromTick(newTickLower, token0.decimals, token1.decimals)));
+            setPriceUpper(getDisplayPrice(calculatePriceFromTick(newTickUpper, token0.decimals, token1.decimals)));
+        }
+
+        setTickLower(newTickLower);
+        setTickUpper(newTickUpper);
+    }, [isReversed, poolInfo, priceLower, priceUpper, tickLower, tickUpper, getDisplayPrice, parseDisplayPrice]);
+
+    const handlePriceChange = useCallback((value, type) => {
+        setIsUserInputting(true);
+        if (type === 'lower') {
+            setPriceLower(value);
+        } else {
+            setPriceUpper(value);
+        }
+
+        if (inputTimer.current) {
+            clearTimeout(inputTimer.current);
+        }
+
+        inputTimer.current = setTimeout(() => {
+            handlePriceBlur(type);
+        }, 1500);
+    }, [handlePriceBlur]);
+
+    const adjustPrice = useCallback((boxType, direction) => {
+        if (!poolInfo) return;
+
         const { fee } = poolInfo;
         const tickSpacing = getTickSpacing(fee);
-        const tickToAdjust = type === 'lower' ? tickLower : tickUpper;
-        const setter = type === 'lower' ? setTickLower : setTickUpper;
+        const isMinBox = boxType === 'min';
 
-        if (tickToAdjust !== null) {
-            const newTick = tickToAdjust + (direction * tickSpacing);
-            setter(newTick);
+        // Correctly determine which tick state to update
+        const isUpdatingTickLower = (isMinBox !== isReversed);
+        const tickToChange = isUpdatingTickLower ? tickLower : tickUpper;
+
+        if (tickToChange === null) return;
+
+        // When price is reversed, the direction of change for the tick is also reversed
+        const tickDirection = isReversed ? -direction : direction;
+        const newTick = tickToChange + (tickDirection * tickSpacing);
+
+        if (isUpdatingTickLower) {
+            setTickLower(newTick);
+        } else {
+            setTickUpper(newTick);
         }
-    };
+    }, [poolInfo, tickLower, tickUpper, isReversed]);
 
     const handleSetPriceRange = (percentage) => {
         if (!poolInfo) return;
 
         const currentPrice = poolInfo.price.token1PerToken0;
-        const range = currentPrice * percentage / 100;
-        const newLowerPrice = currentPrice - range;
-        const newUpperPrice = currentPrice + range;
+        const range = currentPrice * (percentage / 100);
+
+        const newLowerInternalPrice = currentPrice - range;
+        const newUpperInternalPrice = currentPrice + range;
 
         const { token0, token1, fee } = poolInfo;
         const tickSpacing = getTickSpacing(fee);
 
-        const lowerTick = calculateTickFromPrice(newLowerPrice, token0.decimals, token1.decimals);
-        const upperTick = calculateTickFromPrice(newUpperPrice, token0.decimals, token1.decimals);
+        const newTickLower = Math.round(calculateTickFromPrice(newLowerInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
+        const newTickUpper = Math.round(calculateTickFromPrice(newUpperInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
 
-        setTickLower(Math.round(lowerTick / tickSpacing) * tickSpacing);
-        setTickUpper(Math.round(upperTick / tickSpacing) * tickSpacing);
+        setTickLower(newTickLower);
+        setTickUpper(newTickUpper);
     };
 
-    // Debounced effect to update ticks from price inputs
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            if (!poolInfo) return;
-            const { token0, token1, fee } = poolInfo;
-            const tickSpacing = getTickSpacing(fee);
-
-            // Update lower tick
-            const lowerPrice = parseDisplayPrice(priceLower);
-            if (lowerPrice > 0) {
-                const newTick = calculateTickFromPrice(lowerPrice, token0.decimals, token1.decimals);
-                const alignedTick = Math.round(newTick / tickSpacing) * tickSpacing;
-                // Only set if changed to avoid re-triggering effects unnecessarily
-                if (alignedTick !== tickLower) {
-                    setTickLower(alignedTick);
-                }
-            }
-
-            // Update upper tick
-            const upperPrice = parseDisplayPrice(priceUpper);
-            if (upperPrice > 0) {
-                const newTick = calculateTickFromPrice(upperPrice, token0.decimals, token1.decimals);
-                const alignedTick = Math.round(newTick / tickSpacing) * tickSpacing;
-                if (alignedTick !== tickUpper) {
-                    setTickUpper(alignedTick);
-                }
-            }
-        }, 300); // 500ms debounce after user stops typing
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [priceLower, priceUpper, poolInfo, isReversed, tickLower, tickUpper]);
+    // This debounced effect is removed to prevent circular updates
+    // Price to tick conversion is now handled only in handlePriceBlur
 
     if (!poolInfo) return null;
 
@@ -391,7 +415,13 @@ const LiquidityCalculator = ({
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
                             <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">价格范围</label>
-                            <button onClick={() => setIsReversed(!isReversed)} className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 flex items-center gap-1 transition-colors">
+                            <button
+                                onClick={() => {
+                                    // Simply toggle the direction without complex state management
+                                    setIsReversed(!isReversed);
+                                }}
+                                className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 flex items-center gap-1 transition-colors"
+                            >
                                 {priceSymbol}
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -400,16 +430,18 @@ const LiquidityCalculator = ({
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <PriceInput
-                                label=""
                                 value={priceLower}
-                                onChange={(e) => setPriceLower(e.target.value)}
-                                onAdjust={(dir) => adjustPrice('min', dir)}
+                                onChange={(e) => handlePriceChange(e.target.value, 'lower')}
+                                onBlur={() => handlePriceBlur('lower')}
+                                onAdjust={(direction) => adjustPrice('min', direction)}
+                                label={isReversed ? '最高价' : '最低价'}
                             />
                             <PriceInput
-                                label=""
                                 value={priceUpper}
-                                onChange={(e) => setPriceUpper(e.target.value)}
-                                onAdjust={(dir) => adjustPrice('max', dir)}
+                                onChange={(e) => handlePriceChange(e.target.value, 'upper')}
+                                onBlur={() => handlePriceBlur('upper')}
+                                onAdjust={(direction) => adjustPrice('max', direction)}
+                                label={isReversed ? '最低价' : '最高价'}
                             />
                         </div>
                     </div>

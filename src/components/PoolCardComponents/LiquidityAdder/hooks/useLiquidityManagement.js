@@ -46,8 +46,10 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
     const [isLoadingBalances, setIsLoadingBalances] = useState(false);
     const [liquidityRatio, setLiquidityRatio] = useState(null);
     const [isClosing, setIsClosing] = useState(false);
-    const priceUpdateTimer = useRef(null);
+    const [isUserInputting, setIsUserInputting] = useState(false);
+    const [isAmountInputting, setIsAmountInputting] = useState(false);
     const amountUpdateTimer = useRef(null);
+    const inputTimer = useRef(null);
 
     const getDisplayPrice = (price) => {
         if (!price) return '';
@@ -105,7 +107,7 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
     }, [isReversed]);
 
     useEffect(() => {
-        if (poolInfo && tickLower !== null && tickUpper !== null && !isDirectionChanging) {
+        if (poolInfo && tickLower !== null && tickUpper !== null && !isDirectionChanging && !isUserInputting) {
             const { token0, token1 } = poolInfo;
             const baseLowerPrice = calculatePriceFromTick(tickLower, token0.decimals, token1.decimals);
             const baseUpperPrice = calculatePriceFromTick(tickUpper, token0.decimals, token1.decimals);
@@ -117,80 +119,91 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
                 newLowerDisplay = getDisplayPrice(baseLowerPrice);
                 newUpperDisplay = getDisplayPrice(baseUpperPrice);
             }
+
             setPriceLower(newLowerDisplay);
             setPriceUpper(newUpperDisplay);
         }
-    }, [tickLower, tickUpper, isReversed, poolInfo, isDirectionChanging]);
+    }, [tickLower, tickUpper, isReversed, poolInfo, isDirectionChanging, isUserInputting]);
 
     useEffect(() => {
-        if (amountUpdateTimer.current) clearTimeout(amountUpdateTimer.current);
-        amountUpdateTimer.current = setTimeout(() => {
-            if (!poolInfo || tickLower === null || tickUpper === null || !lastEdited || tickLower >= tickUpper) return;
+        if (isAmountInputting) return;
+
+        const canCalculate = poolInfo && tickLower !== null && tickUpper !== null && tickLower < tickUpper;
+
+        // Calculate the other token amount
+        if (canCalculate && lastEdited) {
             const { tick, sqrtPriceX96, token0, token1 } = poolInfo;
             const input0 = parseFloat(amount0);
             const input1 = parseFloat(amount1);
-
-            const getNewAmounts = (liquidity) => {
-                return getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-            };
+            const getNewAmounts = (l) => getAmountsForLiquidity(l.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
 
             if (lastEdited === 'amount0') {
-                if (amount0 === '' || input0 < 0) {
-                    if (amount1 !== '') setAmount1('');
-                    return;
-                }
-                const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
-                const { formatted } = getNewAmounts(liquidity);
-                if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) > 1e-9) {
-                    setAmount1(formatted.token1);
-                } else if (input1 === null || isNaN(input1)) {
-                    setAmount1(formatted.token1);
+                if (!amount0 || input0 <= 0) {
+                    setAmount1('');
+                } else {
+                    const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
+                    const { formatted } = getNewAmounts(liquidity);
+                    if (Math.abs(parseFloat(formatted.token1) - (input1 || 0)) > 1e-9 || !amount1) {
+                        setAmount1(formatted.token1);
+                    }
                 }
             } else if (lastEdited === 'amount1') {
-                if (amount1 === '' || input1 < 0) {
-                    if (amount0 !== '') setAmount0('');
-                    return;
-                }
-                const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
-                const { formatted } = getNewAmounts(liquidity);
-                if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) > 1e-9) {
-                    setAmount0(formatted.token0);
-                } else if (input0 === null || isNaN(input0)) {
-                    setAmount0(formatted.token0);
+                if (!amount1 || input1 <= 0) {
+                    setAmount0('');
+                } else {
+                    const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
+                    const { formatted } = getNewAmounts(liquidity);
+                    if (Math.abs(parseFloat(formatted.token0) - (input0 || 0)) > 1e-9 || !amount0) {
+                        setAmount0(formatted.token0);
+                    }
                 }
             }
-        }, 300);
-        return () => clearTimeout(amountUpdateTimer.current);
-    }, [amount0, amount1, lastEdited, poolInfo, tickLower, tickUpper]);
+        }
 
-    useEffect(() => {
-        if (priceUpdateTimer.current) clearTimeout(priceUpdateTimer.current);
-        priceUpdateTimer.current = setTimeout(() => {
-            if (!poolInfo || !priceLower || !priceUpper || isDirectionChanging) return;
-            const { token0, token1, fee } = poolInfo;
-            const tickSpacing = getTickSpacing(fee);
-            let shouldUpdate = false;
-            let newLowerTick = tickLower;
-            let newUpperTick = tickUpper;
-            const lowerPrice = parseDisplayPrice(priceLower);
-            const upperPrice = parseDisplayPrice(priceUpper);
-            if (lowerPrice > 0 && upperPrice > 0) {
-                const lowerTick = calculateTickFromPrice(lowerPrice, token0.decimals, token1.decimals);
-                const upperTick = calculateTickFromPrice(upperPrice, token0.decimals, token1.decimals);
-                const alignedLowerTick = Math.round(lowerTick / tickSpacing) * tickSpacing;
-                const alignedUpperTick = Math.round(upperTick / tickSpacing) * tickSpacing;
-                if (alignedLowerTick < alignedUpperTick) {
-                    if (alignedLowerTick !== tickLower) { newLowerTick = alignedLowerTick; shouldUpdate = true; }
-                    if (alignedUpperTick !== tickUpper) { newUpperTick = alignedUpperTick; shouldUpdate = true; }
+        // Calculate liquidity ratio
+        const input0ForRatio = parseFloat(amount0) || 0;
+        const input1ForRatio = parseFloat(amount1) || 0;
+        if (canCalculate && (input0ForRatio > 0 || input1ForRatio > 0)) {
+            try {
+                const userLiquidity = getLiquidityForAmounts(poolInfo, tickLower, tickUpper, amount0, amount1);
+                const poolLiquidity = BigInt(poolInfo.liquidity);
+                if (poolLiquidity > 0n) {
+                    const totalLiquidity = poolLiquidity + userLiquidity;
+                    const ratio = totalLiquidity > 0n ? (Number(userLiquidity * 10000n / totalLiquidity) / 100) : 0;
+                    setLiquidityRatio(ratio);
+                } else if (userLiquidity > 0n) {
+                    setLiquidityRatio(100);
+                } else {
+                    setLiquidityRatio(null);
                 }
+            } catch (error) {
+                console.error("计算流动性占比失败:", error);
+                setLiquidityRatio(null);
             }
-            if (shouldUpdate) {
-                setTickLower(newLowerTick);
-                setTickUpper(newUpperTick);
-            }
-        }, 300);
-        return () => clearTimeout(priceUpdateTimer.current);
-    }, [priceLower, priceUpper, poolInfo, isDirectionChanging]);
+        } else {
+            setLiquidityRatio(null);
+        }
+    }, [isAmountInputting, amount0, amount1, lastEdited, poolInfo, tickLower, tickUpper]);
+
+    const handleAmountChange = useCallback((value, tokenType) => {
+        setIsAmountInputting(true);
+        if (amountUpdateTimer.current) clearTimeout(amountUpdateTimer.current);
+
+        const setter = tokenType === 'amount0' ? setAmount0 : setAmount1;
+        const editType = tokenType === 'amount0' ? 'amount0' : 'amount1';
+
+        setter(value);
+        setLastEdited(editType);
+
+        amountUpdateTimer.current = setTimeout(() => {
+            setIsAmountInputting(false);
+        }, 800); // Debounce time
+    }, []);
+
+    const handleAmountBlur = useCallback(() => {
+        if (amountUpdateTimer.current) clearTimeout(amountUpdateTimer.current);
+        setIsAmountInputting(false);
+    }, []);
 
     const checkApprovalStatus = useCallback(async () => {
         if (!provider || !account || !signer || !amount0 || !amount1) return;
@@ -297,37 +310,152 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         }
     }, [isVisible, connected, provider, account]);
 
-    const adjustPriceByTick = (type, direction) => {
-        if (!poolInfo) return;
-        const { fee } = poolInfo;
-        const tickSpacing = getTickSpacing(fee);
-        const tickToAdjust = type === 'lower' ? tickLower : tickUpper;
-        const setter = type === 'lower' ? setTickLower : setTickUpper;
-        if (tickToAdjust !== null) {
-            const newTick = tickToAdjust + (direction * tickSpacing);
-            setter(newTick);
-        }
-    };
-
     const adjustPrice = (boxType, direction) => {
-        const tickToAdjustName = (boxType === 'min' && !isReversed) || (boxType === 'max' && isReversed) ? 'lower' : 'upper';
-        const effectiveDirection = isReversed ? -direction : direction;
-        adjustPriceByTick(tickToAdjustName, effectiveDirection);
+        if (!poolInfo) return;
+        const { fee, token0, token1 } = poolInfo;
+        const tickSpacing = getTickSpacing(fee);
+
+        const isMinBox = boxType === 'min';
+        // 根据UI上的框和价格方向，确定要修改哪个内部tick
+        const tickToChange = (isMinBox !== isReversed) ? tickLower : tickUpper;
+
+        if (tickToChange === null) return;
+
+        // isReversed时，UI上的+对应tick的-
+        const tickDirection = isReversed ? -direction : direction;
+
+        const newTick = tickToChange + (tickDirection * tickSpacing);
+
+        const newInternalPrice = calculatePriceFromTick(newTick, token0.decimals, token1.decimals);
+        const newDisplayPrice = getDisplayPrice(newInternalPrice);
+
+        let newPriceLower = priceLower;
+        let newPriceUpper = priceUpper;
+        let newTickLower = tickLower;
+        let newTickUpper = tickUpper;
+
+        if (isMinBox) {
+            newPriceLower = newDisplayPrice;
+            if (isReversed) newTickUpper = newTick;
+            else newTickLower = newTick;
+        } else {
+            newPriceUpper = newDisplayPrice;
+            if (isReversed) newTickLower = newTick;
+            else newTickUpper = newTick;
+        }
+
+        // 强制保证顺序
+        if (parseFloat(newPriceLower) > parseFloat(newPriceUpper)) {
+            [newPriceLower, newPriceUpper] = [newPriceUpper, newPriceLower];
+            [newTickLower, newTickUpper] = [newTickUpper, newTickLower];
+        }
+
+        setPriceLower(newPriceLower);
+        setPriceUpper(newPriceUpper);
+        setTickLower(newTickLower);
+        setTickUpper(newTickUpper);
     };
 
     const handleSetPriceRange = (percentage) => {
         if (!poolInfo) return;
         const currentPrice = poolInfo.price.token1PerToken0;
-        const range = currentPrice * percentage / 100;
-        const newLowerPrice = currentPrice - range;
-        const newUpperPrice = currentPrice + range;
+        const range = currentPrice * (percentage / 100);
+
+        const newLowerInternalPrice = currentPrice - range;
+        const newUpperInternalPrice = currentPrice + range;
+
         const { token0, token1, fee } = poolInfo;
         const tickSpacing = getTickSpacing(fee);
-        const lowerTick = calculateTickFromPrice(newLowerPrice, token0.decimals, token1.decimals);
-        const upperTick = calculateTickFromPrice(newUpperPrice, token0.decimals, token1.decimals);
-        setTickLower(Math.round(lowerTick / tickSpacing) * tickSpacing);
-        setTickUpper(Math.round(upperTick / tickSpacing) * tickSpacing);
+
+        const newTickLower = Math.round(calculateTickFromPrice(newLowerInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
+        const newTickUpper = Math.round(calculateTickFromPrice(newUpperInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
+
+        setTickLower(newTickLower);
+        setTickUpper(newTickUpper);
+
+        const alignedLowerInternal = calculatePriceFromTick(newTickLower, token0.decimals, token1.decimals);
+        const alignedUpperInternal = calculatePriceFromTick(newTickUpper, token0.decimals, token1.decimals);
+
+        // UI显示时，不需要考虑isReversed，因为这是基于当前价格的全新设定
+        setPriceLower(getDisplayPrice(alignedLowerInternal));
+        setPriceUpper(getDisplayPrice(alignedUpperInternal));
     };
+
+    // 价格失焦事件处理，立即触发价格调整
+    const handlePriceBlur = useCallback((type) => {
+        if (inputTimer.current) {
+            clearTimeout(inputTimer.current);
+        }
+        setIsUserInputting(false);
+
+        if (!poolInfo) return;
+
+        const { token0, token1, fee } = poolInfo;
+        const tickSpacing = getTickSpacing(fee);
+
+        // 确定当前操作的是哪个价格和tick
+        const isLowerBox = type === 'lower';
+        const priceStr = isLowerBox ? priceLower : priceUpper;
+
+        if (priceStr === '' || isNaN(parseFloat(priceStr))) return;
+
+        // 1. 将输入的显示价格转换为内部价格
+        const internalPrice = parseDisplayPrice(priceStr);
+        if (internalPrice <= 0) return;
+
+        // 2. 计算对齐的tick和新的显示价格
+        const rawTick = calculateTickFromPrice(internalPrice, token0.decimals, token1.decimals);
+        const alignedTick = Math.round(rawTick / tickSpacing) * tickSpacing;
+        const newInternalPrice = calculatePriceFromTick(alignedTick, token0.decimals, token1.decimals);
+        const newDisplayPrice = getDisplayPrice(newInternalPrice);
+
+        // 准备新的状态值
+        let newPriceLower = isLowerBox ? newDisplayPrice : priceLower;
+        let newPriceUpper = isLowerBox ? priceUpper : newDisplayPrice;
+        let newTickLower = tickLower;
+        let newTickUpper = tickUpper;
+
+        // 更新对应的tick值，注意方向反转
+        if (isLowerBox) {
+            if (isReversed) newTickUpper = alignedTick;
+            else newTickLower = alignedTick;
+        } else { // isUpperBox
+            if (isReversed) newTickLower = alignedTick;
+            else newTickUpper = alignedTick;
+        }
+
+        // 3. 检查并强制保证价格和tick的顺序正确
+        if (parseFloat(newPriceLower) > parseFloat(newPriceUpper)) {
+            [newPriceLower, newPriceUpper] = [newPriceUpper, newPriceLower]; // 交换价格
+            [newTickLower, newTickUpper] = [newTickUpper, newTickLower]; // 交换ticks
+        }
+
+        // 4. 一次性原子更新所有状态
+        setPriceLower(newPriceLower);
+        setPriceUpper(newPriceUpper);
+        setTickLower(newTickLower);
+        setTickUpper(newTickUpper);
+
+    }, [isReversed, poolInfo, priceLower, priceUpper, getDisplayPrice, parseDisplayPrice, tickLower, tickUpper]);
+
+    // 处理价格输入变化
+    const handlePriceChange = useCallback((value, type) => {
+        setIsUserInputting(true);
+
+        if (type === 'lower') {
+            setPriceLower(value);
+        } else {
+            setPriceUpper(value);
+        }
+
+        if (inputTimer.current) {
+            clearTimeout(inputTimer.current);
+        }
+
+        inputTimer.current = setTimeout(() => {
+            handlePriceBlur(type);
+        }, 800);
+    }, [handlePriceBlur]);
 
     const fetchBalances = useCallback(async () => {
         if (!provider || !account || !poolInfo) return;
@@ -354,41 +482,6 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             fetchBalances();
         }
     }, [isVisible, connected, provider, account, poolInfo, fetchBalances]);
-
-    useEffect(() => {
-        if (!poolInfo || tickLower === null || tickUpper === null) {
-            setLiquidityRatio(null);
-            return;
-        }
-        const input0 = parseFloat(amount0) || 0;
-        const input1 = parseFloat(amount1) || 0;
-        if ((input0 <= 0 && input1 <= 0) || tickLower >= tickUpper) {
-            setLiquidityRatio(null);
-            return;
-        }
-        try {
-            const userLiquidity = getLiquidityForAmounts(poolInfo, tickLower, tickUpper, input0.toString(), input1.toString());
-            const poolLiquidity = BigInt(poolInfo.liquidity);
-            if (poolLiquidity === 0n && userLiquidity > 0n) {
-                setLiquidityRatio(100);
-                return;
-            }
-            if (poolLiquidity > 0n) {
-                const totalLiquidity = poolLiquidity + userLiquidity;
-                if (totalLiquidity === 0n) {
-                    setLiquidityRatio(0);
-                    return;
-                }
-                const ratio = (Number(userLiquidity * 10000n / totalLiquidity) / 100);
-                setLiquidityRatio(ratio);
-            } else {
-                setLiquidityRatio(null);
-            }
-        } catch (error) {
-            console.error("计算流动性占比失败:", error);
-            setLiquidityRatio(null);
-        }
-    }, [amount0, amount1, tickLower, tickUpper, poolInfo]);
 
     return {
         // State
@@ -429,6 +522,10 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         handleAddLiquidity,
         adjustPrice,
         handleSetPriceRange,
+        handlePriceChange,
+        handlePriceBlur,
+        handleAmountChange,
+        handleAmountBlur,
 
         // Helpers
         getDisplayPrice

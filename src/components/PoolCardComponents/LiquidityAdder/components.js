@@ -2,15 +2,18 @@
 import React, { useState, useEffect } from 'react';
 
 // 价格输入框组件
-export const PriceInput = ({ value, onChange, onAdjust, label }) => (
+export const PriceInput = ({ value, onChange, onAdjust, onBlur, label }) => (
     <div className="space-y-1.5">
-        <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{label}</label>
+        <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            {label}
+        </label>
         <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
             <button onClick={() => onAdjust(-1)} className="w-7 h-7 rounded bg-white dark:bg-neutral-700/50 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-lg font-mono text-neutral-600 dark:text-neutral-300">-</button>
             <input
                 type="number"
                 value={value}
                 onChange={onChange}
+                onBlur={onBlur}
                 className="w-full bg-transparent text-center font-mono text-base font-medium text-neutral-800 dark:text-neutral-100 focus:outline-none"
                 placeholder="0.0"
             />
@@ -20,7 +23,7 @@ export const PriceInput = ({ value, onChange, onAdjust, label }) => (
 );
 
 // 代币输入框组件
-export const TokenInput = ({ symbol, value, onChange, balance, isLoading, placeholder }) => (
+export const TokenInput = ({ symbol, value, onChange, onBlur, balance, isLoading, placeholder }) => (
     <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700/60 space-y-2.5 transition-colors duration-300">
         <div className="flex justify-between items-baseline">
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
@@ -45,6 +48,7 @@ export const TokenInput = ({ symbol, value, onChange, balance, isLoading, placeh
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
+                onBlur={onBlur}
                 className="w-full pl-3 pr-32 py-2.5 bg-white dark:bg-neutral-900/50 rounded-lg text-lg font-mono font-medium border-2 border-neutral-200 dark:border-neutral-700 focus:border-primary-500 focus:ring-0 outline-none transition-all duration-300"
             />
             <div className="absolute right-2.5 flex items-center gap-1.5">
