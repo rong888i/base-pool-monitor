@@ -182,6 +182,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     />
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                                         设置BSC网络的RPC节点地址，可以前往
+                                        {' '}
                                         <a href="https://www.ankr.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
                                             Ankr
                                         </a>
