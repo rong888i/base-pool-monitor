@@ -363,13 +363,19 @@ export function usePools(settings) {
     }, [pools.length]); // 只依赖长度变化，避免无限循环
 
     // 自动刷新
+    const refreshAllPoolsRef = useRef();
+
+    useEffect(() => {
+        refreshAllPoolsRef.current = refreshAllPools;
+    });
+
     useEffect(() => {
         let interval;
         if (settings.autoRefresh && settings.refreshInterval > 0) {
-            interval = setInterval(refreshAllPools, settings.refreshInterval * 1000);
+            interval = setInterval(() => refreshAllPoolsRef.current && refreshAllPoolsRef.current(), settings.refreshInterval * 1000);
         }
         return () => clearInterval(interval);
-    }, [settings.autoRefresh, settings.refreshInterval, refreshAllPools]);
+    }, [settings.autoRefresh, settings.refreshInterval]);
 
     return {
         pools,

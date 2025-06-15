@@ -361,7 +361,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     </p>
                                 </div>
 
-                                <div className="mt-4">
+                                {/* <div className="mt-4">
                                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                                         通用通知间隔 (分钟)
                                     </label>
@@ -376,7 +376,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                                         同一类型的报警在设定时间内只通知一次。
                                     </p>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                     </div>
