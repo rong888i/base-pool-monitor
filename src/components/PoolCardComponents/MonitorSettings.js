@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getNotificationSettings } from '../../utils/notificationUtils';
 
 const Section = ({ title, icon, children }) => (
     <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700 space-y-4">
@@ -44,20 +45,24 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
     });
 
     const [isClosing, setIsClosing] = useState(false);
+    const [globalNotificationInterval, setGlobalNotificationInterval] = useState(1);
 
-    // 当传入的currentSettings变化时更新本地状态
     useEffect(() => {
-        // 从localStorage读取池子特定的设置
-        const poolIdentifier = poolUniqueId || poolAddress;
-        const allSettings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-        const poolSpecificSettings = allSettings.pools?.[poolIdentifier] || {};
+        // 加载全局设置，以获取默认通知间隔
+        const globalSettings = getNotificationSettings();
+        setGlobalNotificationInterval(globalSettings.notificationInterval);
 
-        if (Object.keys(poolSpecificSettings).length > 0) {
-            setSettings(prev => ({ ...prev, ...poolSpecificSettings }));
-        } else if (currentSettings) {
-            setSettings(prev => ({ ...prev, ...currentSettings }));
+        // 加载当前池子的独立设置
+        const poolIdentifier = poolUniqueId || poolAddress;
+        if (poolIdentifier) {
+            const allSettings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
+            const currentPoolSettings = allSettings.pools?.[poolIdentifier] || {};
+            setSettings(prev => ({
+                ...prev,
+                ...currentPoolSettings
+            }));
         }
-    }, [currentSettings, poolAddress, poolUniqueId]);
+    }, [poolAddress, poolUniqueId]);
 
     const handleClose = () => {
         setIsClosing(true);
@@ -367,13 +372,12 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
                                         <div className="flex items-center space-x-2">
                                             <input
                                                 type="number"
-                                                step="1"
                                                 min="1"
+                                                className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-neutral-700 dark:border-neutral-600 focus:ring-2 focus:ring-blue-500 outline-none"
                                                 value={settings.notificationInterval}
-                                                onChange={(e) => setSettings(prev => ({ ...prev, notificationInterval: parseInt(e.target.value, 10) || 1 }))}
-                                                className="input-field w-24"
+                                                onChange={(e) => setSettings({ ...settings, notificationInterval: e.target.value })}
+                                                placeholder={`默认 (全局: ${globalNotificationInterval} 分钟)`}
                                             />
-                                            <span className="text-sm text-neutral-600 dark:text-neutral-400">分钟</span>
                                         </div>
                                         <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
                                             同一类型的报警（如价格、流动性）在设定时间内将只通知一次，以避免打扰。
@@ -388,15 +392,9 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <button onClick={handleTestMonitor} className="btn-secondary">
-                                        {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                        </svg> */}
                                         测试
                                     </button>
                                     <button onClick={handleReset} className="btn-tertiary">
-                                        {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                                        </svg> */}
                                         重置
                                     </button>
                                 </div>
@@ -404,9 +402,6 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
                                     onClick={handleSave}
                                     className="btn-primary"
                                 >
-                                    {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                                    </svg> */}
                                     保存设置
                                 </button>
                             </div>

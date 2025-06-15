@@ -13,7 +13,31 @@ export function usePools(settings) {
     const [pools, setPools] = useState([]);
     const [customAddress, setCustomAddress] = useState('');
     const [outOfRangeCounts, setOutOfRangeCounts] = useState({});
+    const [flashingMonitors, setFlashingMonitors] = useState({});
     const cancelledFetches = useRef(new Set());
+
+    // 新增：触发监控闪烁的函数
+    const triggerMonitorFlash = (poolUniqueId, monitorType) => {
+        // 设置特定监控器为闪烁状态
+        setFlashingMonitors(prev => ({
+            ...prev,
+            [poolUniqueId]: {
+                ...prev[poolUniqueId],
+                [monitorType]: true,
+            }
+        }));
+
+        // 10秒后自动关闭闪烁
+        setTimeout(() => {
+            setFlashingMonitors(prev => ({
+                ...prev,
+                [poolUniqueId]: {
+                    ...prev[poolUniqueId],
+                    [monitorType]: false,
+                }
+            }));
+        }, 10000); // 持续10秒
+    };
 
     // 生成唯一ID的函数
     const generateUniqueId = () => {
@@ -144,7 +168,7 @@ export function usePools(settings) {
                 }
 
                 // 执行监控检查（流动性、价格等）
-                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0);
+                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
 
                 return newPools;
             });
@@ -153,7 +177,7 @@ export function usePools(settings) {
                 index === poolIndex ? { ...pool, error: error.message, isLoading: false } : pool
             ));
         }
-    }, [checkNFTPriceAndNotify]);
+    }, [checkNFTPriceAndNotify, triggerMonitorFlash]);
 
     // 刷新所有池子
     const refreshAllPools = useCallback(async () => {
@@ -323,11 +347,11 @@ export function usePools(settings) {
             if (targetPool.lpInfo) {
                 checkNFTPriceAndNotify(targetPool);
                 // 执行监控检查（流动性、价格等）
-                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0);
+                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
             }
             return newPools;
         });
-    }, [checkNFTPriceAndNotify, outOfRangeCounts]);
+    }, [checkNFTPriceAndNotify, outOfRangeCounts, triggerMonitorFlash]);
 
     // 初始化加载 - 简化依赖，避免复杂的字符串拼接
     useEffect(() => {
@@ -360,5 +384,6 @@ export function usePools(settings) {
         handleDragEnd,
         handleNftIdChange,
         handleNftInfoUpdate,
+        flashingMonitors,
     };
 } 

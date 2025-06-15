@@ -37,6 +37,8 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         refreshInterval: 3,
         enableBarkNotification: true,
         notificationLevel: 1, // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
+        notificationInterval: 1, // 新增：通用通知间隔，单位分钟
+        enableDesktopNotification: false, // 修改：是否启用桌面通知
         rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79', // 添加默认RPC URL
         defaultSlippage: 1.0 // 默认滑点设置
     });
@@ -77,6 +79,26 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         localStorage.setItem('poolMonitorSettings', JSON.stringify(settings));
         onSettingsUpdate(settings);
         onClose();
+    };
+
+    const handleDesktopNotificationToggle = (e) => {
+        const isEnabled = e.target.checked;
+
+        // 更新状态
+        setSettings(prev => ({ ...prev, enableDesktopNotification: isEnabled }));
+
+        // 如果是开启，则检查并请求权限
+        if (isEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                Notification.requestPermission().then(permission => {
+                    // 如果用户拒绝，则弹窗提示并把开关关掉
+                    if (permission === 'denied') {
+                        alert('您已阻止通知权限，如需使用请在浏览器设置中手动开启。');
+                        setSettings(prev => ({ ...prev, enableDesktopNotification: false }));
+                    }
+                });
+            }
+        }
     };
 
     // 处理点击背景关闭
@@ -276,6 +298,26 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     </p>
                                 </div>
 
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                            桌面通知和音乐
+                                        </label>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.enableDesktopNotification}
+                                                onChange={handleDesktopNotificationToggle}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-neutral-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        在电脑端直接显示通知并播放声音提醒。
+                                    </p>
+                                </div>
+
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -319,21 +361,22 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     </p>
                                 </div>
 
-                                {/* <div>
+                                <div className="mt-4">
                                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                        通知阈值
+                                        通用通知间隔 (分钟)
                                     </label>
                                     <input
                                         type="number"
                                         min="1"
-                                        value={settings.notificationThreshold}
-                                        onChange={(e) => setSettings(prev => ({ ...prev, notificationThreshold: parseInt(e.target.value) }))}
+                                        value={settings.notificationInterval}
+                                        onChange={(e) => setSettings(prev => ({ ...prev, notificationInterval: e.target.value }))}
                                         className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                                        placeholder="默认为 1"
                                     />
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        价格连续超出区间多少次后发送通知
+                                        同一类型的报警在设定时间内只通知一次。
                                     </p>
-                                </div> */}
+                                </div>
                             </div>
                         </div>
                     </div>

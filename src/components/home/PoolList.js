@@ -37,6 +37,7 @@ export default function PoolList({
     outOfRangeCounts,
     onNftInfoUpdate,
     onNftIdChange,
+    flashingMonitors,
 }) {
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -69,6 +70,7 @@ export default function PoolList({
                                         outOfRangeCount={outOfRangeCounts[pool.address] || 0}
                                         onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(index, updatedNftInfo)}
                                         onNftIdChange={(newId) => onNftIdChange(index, newId)}
+                                        isFlashing={flashingMonitors[pool.uniqueId]}
                                     />
                                 ))}
                             </AnimatePresence>

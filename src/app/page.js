@@ -33,6 +33,7 @@ export default function Home() {
     handleDragEnd,
     handleNftIdChange,
     handleNftInfoUpdate,
+    flashingMonitors,
   } = usePools(settings);
 
   return (
@@ -65,6 +66,7 @@ export default function Home() {
             outOfRangeCounts={outOfRangeCounts}
             onNftInfoUpdate={handleNftInfoUpdate}
             onNftIdChange={handleNftIdChange}
+            flashingMonitors={flashingMonitors}
           />
 
           <Footer />

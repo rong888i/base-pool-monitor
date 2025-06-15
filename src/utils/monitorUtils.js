@@ -28,7 +28,7 @@ const shouldExecuteMonitor = (poolAddress) => {
 };
 
 // 检查Token数量监控
-export const checkTokenMonitor = async (pool, combinedSettings, isTest = false) => {
+export const checkTokenMonitor = async (pool, combinedSettings, isTest = false, onNotificationSent) => {
     console.log('🔍 检查Token数量监控:', {
         poolAddress: pool.address.slice(0, 6) + '...' + pool.address.slice(-4),
         enableTokenMonitor: combinedSettings.enableTokenMonitor,
@@ -86,14 +86,14 @@ export const checkTokenMonitor = async (pool, combinedSettings, isTest = false) 
     }
 
     // 发送通知
-    const { barkKey, enableBarkNotification, notificationLevel } = combinedSettings;
+    const { barkKey, enableBarkNotification, enableDesktopNotification } = combinedSettings;
     console.log('🔔 准备发送通知 (Token):', {
         hasBarkKey: !!barkKey,
         enableBarkNotification,
-        notificationLevel
+        enableDesktopNotification
     });
 
-    if (barkKey && enableBarkNotification) {
+    if (enableDesktopNotification || (barkKey && enableBarkNotification)) {
         const title = isTest ? '🧪测试 - Token数量监控提醒' : 'Token数量监控提醒';
         const content = `池子 ${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol} (${pool.address.slice(0, 6)}...${pool.address.slice(-4)}) ${tokenSymbol}数量 ${currentAmount.toLocaleString()} ${direction === 'below' ? '低于' : '高于'} 阈值 ${threshold.toLocaleString()}`;
 
@@ -103,6 +103,11 @@ export const checkTokenMonitor = async (pool, combinedSettings, isTest = false) 
             uniqueId: `${pool.uniqueId || pool.address}-token`
         });
         console.log('📬 通知发送结果:', result);
+
+        // 如果发送成功，则触发回调
+        if (result && onNotificationSent) {
+            onNotificationSent(pool.uniqueId, 'token');
+        }
 
         // 更新最后通知时间（测试模式不更新）
         if (!isTest && result) {
@@ -123,7 +128,7 @@ export const checkTokenMonitor = async (pool, combinedSettings, isTest = false) 
 };
 
 // 检查价格监控
-export const checkPriceMonitor = async (pool, combinedSettings, isTest = false) => {
+export const checkPriceMonitor = async (pool, combinedSettings, isTest = false, onNotificationSent) => {
     console.log('🔍 检查价格监控:', {
         enablePriceMonitor: combinedSettings.enablePriceMonitor,
         hasPrice: !!pool.lpInfo?.price
@@ -175,13 +180,13 @@ export const checkPriceMonitor = async (pool, combinedSettings, isTest = false) 
     }
 
     // 发送通知
-    const { barkKey, enableBarkNotification, notificationLevel } = combinedSettings;
+    const { barkKey, enableBarkNotification, enableDesktopNotification } = combinedSettings;
     console.log('🔔 准备发送通知 (Price):', {
         hasBarkKey: !!barkKey,
         enableBarkNotification,
-        notificationLevel
+        enableDesktopNotification
     });
-    if (barkKey && enableBarkNotification) {
+    if (enableDesktopNotification || (barkKey && enableBarkNotification)) {
         const title = isTest ? '🧪测试 - 价格监控提醒' : '价格监控提醒';
         const priceTypeName = combinedSettings.priceType === 'token0PerToken1'
             ? `${pool.lpInfo.token0.symbol} / ${pool.lpInfo.token1.symbol}`
@@ -193,6 +198,11 @@ export const checkPriceMonitor = async (pool, combinedSettings, isTest = false) 
             ...combinedSettings,
             uniqueId: `${pool.uniqueId || pool.address}-price`
         });
+
+        // 如果发送成功，则触发回调
+        if (result && onNotificationSent) {
+            onNotificationSent(pool.uniqueId, 'price');
+        }
 
         // 更新最后通知时间（测试模式不更新）
         if (!isTest && result) {
@@ -211,7 +221,7 @@ export const checkPriceMonitor = async (pool, combinedSettings, isTest = false) 
 };
 
 // 检查NFT超出区间监控（修改现有逻辑使其使用单独的设置）
-export const checkNftOutOfRangeMonitor = async (pool, combinedSettings, currentOutOfRangeCount) => {
+export const checkNftOutOfRangeMonitor = async (pool, combinedSettings, currentOutOfRangeCount, onNotificationSent) => {
     if (!combinedSettings.enableNftOutOfRangeMonitor || !pool.nftInfo) {
         return { triggered: false };
     }
@@ -226,14 +236,19 @@ export const checkNftOutOfRangeMonitor = async (pool, combinedSettings, currentO
             return { triggered: true, notificationSent: false };
         }
 
-        const { barkKey, enableBarkNotification, notificationLevel } = combinedSettings;
-        if (barkKey && enableBarkNotification) {
+        const { barkKey, enableBarkNotification, enableDesktopNotification } = combinedSettings;
+        if (enableDesktopNotification || (barkKey && enableBarkNotification)) {
             const title = '池子价格超出区间提醒';
             const content = `池子 ${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol} (${pool.address.slice(0, 6)}...${pool.address.slice(-4)}) 已连续 ${currentOutOfRangeCount} 次超出价格范围。`;
             const result = await sendBarkNotification(title, content, {
                 ...combinedSettings,
                 uniqueId: `${pool.uniqueId || pool.address}-nft`
             });
+
+            // 如果发送成功，则触发回调
+            if (result && onNotificationSent) {
+                onNotificationSent(pool.uniqueId, 'nftOutOfRange');
+            }
 
             if (result) {
                 const poolIdentifier = pool.uniqueId || pool.address;
@@ -252,7 +267,7 @@ export const checkNftOutOfRangeMonitor = async (pool, combinedSettings, currentO
 };
 
 // 执行所有监控检查
-export const executeMonitorChecks = async (pool, outOfRangeCount, isTest = false) => {
+export const executeMonitorChecks = async (pool, outOfRangeCount, isTest = false, onNotificationSent) => {
     console.log('🔄 执行监控检查:', {
         poolAddress: pool.address.slice(0, 6) + '...' + pool.address.slice(-4),
         poolUniqueId: pool.uniqueId,
@@ -267,14 +282,14 @@ export const executeMonitorChecks = async (pool, outOfRangeCount, isTest = false
     }
 
     const allSettings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-    const globalSettings = {
-        barkKey: allSettings.barkKey || '',
-        notificationLevel: allSettings.notificationLevel || 1,
-        enableBarkNotification: allSettings.enableBarkNotification !== false,
-    };
+    const globalSettings = getNotificationSettings();
     const poolSettings = allSettings.pools?.[poolIdentifier] || {};
 
+    // 修正合并逻辑：只有当池子独立设置了间隔时才覆盖全局设置
     const combinedSettings = { ...globalSettings, ...poolSettings };
+    if (poolSettings.notificationInterval === undefined || poolSettings.notificationInterval === null || poolSettings.notificationInterval === '') {
+        combinedSettings.notificationInterval = globalSettings.notificationInterval;
+    }
 
     console.log('⚙️ 池子合并后监控设置:', combinedSettings);
 
@@ -291,7 +306,7 @@ export const executeMonitorChecks = async (pool, outOfRangeCount, isTest = false
         console.log('🧪 测试模式：已强制启用所有监控');
     }
 
-    await checkTokenMonitor(pool, combinedSettings, isTest);
-    await checkPriceMonitor(pool, combinedSettings, isTest);
-    await checkNftOutOfRangeMonitor(pool, combinedSettings, outOfRangeCount);
+    await checkTokenMonitor(pool, combinedSettings, isTest, onNotificationSent);
+    await checkPriceMonitor(pool, combinedSettings, isTest, onNotificationSent);
+    await checkNftOutOfRangeMonitor(pool, combinedSettings, outOfRangeCount, onNotificationSent);
 }; 

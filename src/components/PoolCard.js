@@ -12,7 +12,7 @@ import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
 import LiquidityAdder from './PoolCardComponents/LiquidityAdder/index.js';
 import MonitorSettings from './PoolCardComponents/MonitorSettings';
 
-const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange }) => {
+const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange, isFlashing }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [nftId, setNftId] = useState(pool.nftId || '');
     const [showCalculator, setShowCalculator] = useState(false);
@@ -337,7 +337,16 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                                 onNftIdChange={handleNftIdChange}
                                 onNftInfoUpdate={onNftInfoUpdate}
                             />
-                            <TechnicalInfo lpInfo={pool.lpInfo} outOfRangeCount={outOfRangeCount} poolAddress={pool.address} poolUniqueId={pool.uniqueId} />
+                            <TechnicalInfo
+                                pool={pool}
+                                onCalculatorClick={openCalculator}
+                                onLiquidityAdderClick={openLiquidityAdder}
+                                onMonitorSettingsClick={openMonitorSettings}
+                                calculatorIconRef={calculatorIconRef}
+                                liquidityAdderIconRef={liquidityAdderIconRef}
+                                monitorSettingsIconRef={monitorSettingsIconRef}
+                                isFlashing={isFlashing}
+                            />
                         </div>
                     </motion.div>
                 )}
