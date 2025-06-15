@@ -388,8 +388,8 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
                         </div>
 
                         {/* 底部 */}
-                        <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 border-t border-neutral-200 dark:border-neutral-700 flex-shrink-0">
-                            <div className="flex justify-between items-center">
+                        <div className="border-t border-neutral-200 dark:border-neutral-700 flex-shrink-0">
+                            <div className="flex justify-between items-center p-4">
                                 <div className="flex items-center gap-2">
                                     <button onClick={handleTestMonitor} className="btn-secondary">
                                         测试
