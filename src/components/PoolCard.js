@@ -251,32 +251,16 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         if (monitorSettingsIconRef.current) {
             const rect = monitorSettingsIconRef.current.getBoundingClientRect();
             const popoverWidth = 384; // w-96 from MonitorSettings component
-            const popoverMaxHeight = window.innerHeight * 0.8; // max-h-[80vh]
             const margin = 12;
-            const edgeMargin = 20;
 
-            // --- 水平位置计算 ---
+            // 水平位置计算 - 简化逻辑，参考Calculator的做法
             let left = rect.right + margin;
-            if (left + popoverWidth > window.innerWidth - edgeMargin) {
+            if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
                 left = rect.left - popoverWidth - margin;
             }
-            // 确保不会超出左边界
-            if (left < edgeMargin) {
-                left = edgeMargin;
-            }
-
-            // --- 垂直位置计算 ---
-            let top = rect.top;
-            // 检查下方空间是否足够
-            if (top + popoverMaxHeight > window.innerHeight - edgeMargin) {
-                // 如果下方空间不足，尝试向上弹出
-                const newTop = rect.bottom - popoverMaxHeight;
-                top = Math.max(edgeMargin, newTop); // 确保不会超出顶部边界
-            }
-
 
             setMonitorSettingsPopoverPosition({
-                top: top,
+                top: rect.top,
                 left: left,
             });
             setShowMonitorSettings(true);

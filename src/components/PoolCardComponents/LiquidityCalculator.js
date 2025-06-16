@@ -387,11 +387,11 @@ const LiquidityCalculator = ({
                     {/* 当前价格显示 */}
                     <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700 text-center">
                         <div className="text-sm font-mono font-medium text-neutral-700 dark:text-neutral-300">
-                            1 {isReversed ? poolInfo.token0?.symbol : poolInfo.token1?.symbol} = {
+                            1 {isReversed ? poolInfo.token1?.symbol : poolInfo.token0?.symbol} = {
                                 isReversed
                                     ? (1 / poolInfo.price?.token1PerToken0).toFixed(6)
                                     : poolInfo.price?.token1PerToken0.toFixed(6)
-                            } {isReversed ? poolInfo.token1?.symbol : poolInfo.token0?.symbol}
+                            } {isReversed ? poolInfo.token0?.symbol : poolInfo.token1?.symbol}
                         </div>
                     </div>
 
