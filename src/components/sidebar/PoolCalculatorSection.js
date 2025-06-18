@@ -45,7 +45,7 @@ const TokenInput = ({ value, onChange, commonTokens, label, id, icon }) => (
 const PoolCalculatorSection = ({ onAddPool }) => {
     const [token0, setToken0] = useState('');
     const [token1, setToken1] = useState('');
-    const [fee, setFee] = useState(3000); // Default to 0.3%
+    const [fee, setFee] = useState(100); // Default to 0.3%
     const [dex, setDex] = useState('uniswap'); // 'uniswap' or 'pancakeswap'
     const [poolAddress, setPoolAddress] = useState('');
     const [error, setError] = useState('');
@@ -150,7 +150,7 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                     >
                         <option value={100}>0.01% (适用于稳定币对)</option>
                         <option value={500}>0.05% (适用于主流币对)</option>
-                        <option value="3000">0.30% (适用于大多数币对)</option>
+                        <option value={3000}>0.30% (适用于大多数币对)</option>
                         <option value={10000}>1.00% (适用于小众币对)</option>
                     </select>
                 </div>
