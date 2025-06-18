@@ -146,44 +146,42 @@ export function usePools(settings) {
     }, [outOfRangeCounts]);
 
     // 获取单个池子信息
-    const fetchPoolInfo = useCallback(async (poolAddress, poolIndex) => {
-        const pool = pools[poolIndex];
-        if (!pool || cancelledFetches.current.has(pool.uniqueId)) {
+    const fetchPoolInfo = useCallback(async (poolAddress, poolUniqueId) => {
+        if (cancelledFetches.current.has(poolUniqueId)) {
             return;
         }
 
-        setPools(prev => prev.map((pool, index) =>
-            index === poolIndex ? { ...pool, isLoading: true, error: null } : pool
-        ));
+        setPools(prev => prev.map(p => p.uniqueId === poolUniqueId ? { ...p, isLoading: true, error: null } : p));
 
         try {
             const lpInfo = await getLPInfo(poolAddress);
-            setPools(prev => {
-                const newPools = [...prev];
-                const targetPool = { ...newPools[poolIndex], lpInfo, isLoading: false };
-                newPools[poolIndex] = targetPool;
+            setPools(prev => prev.map(p => {
+                if (p.uniqueId === poolUniqueId) {
+                    const targetPool = { ...p, lpInfo, isLoading: false };
 
-                // 当 LP 和 NFT 信息都存在时，进行价格检查
-                if (targetPool.nftInfo) {
-                    checkNFTPriceAndNotify(targetPool);
+                    // 当 LP 和 NFT 信息都存在时，进行价格检查
+                    if (targetPool.nftInfo) {
+                        checkNFTPriceAndNotify(targetPool);
+                    }
+
+                    // 执行监控检查（流动性、价格等）
+                    executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
+
+                    return targetPool;
                 }
-
-                // 执行监控检查（流动性、价格等）
-                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
-
-                return newPools;
-            });
+                return p;
+            }));
         } catch (error) {
-            setPools(prev => prev.map((pool, index) =>
-                index === poolIndex ? { ...pool, error: error.message, isLoading: false } : pool
+            setPools(prev => prev.map(p =>
+                p.uniqueId === poolUniqueId ? { ...p, error: error.message, isLoading: false } : p
             ));
         }
-    }, [pools, checkNFTPriceAndNotify, triggerMonitorFlash, outOfRangeCounts]);
+    }, [checkNFTPriceAndNotify, triggerMonitorFlash, outOfRangeCounts]);
 
     // 刷新所有池子
     const refreshAllPools = useCallback(async () => {
-        const promises = pools.map((pool, index) =>
-            fetchPoolInfo(pool.address, index)
+        const promises = pools.map((pool) =>
+            fetchPoolInfo(pool.address, pool.uniqueId)
         );
         await Promise.allSettled(promises);
     }, [pools, fetchPoolInfo]);
@@ -222,22 +220,20 @@ export function usePools(settings) {
             return newPools;
         });
 
-        // 使用当前pools长度作为新的index来获取池子信息
-        const newPoolIndex = pools.length;
-        fetchPoolInfo(newPool.address, newPoolIndex);
+        fetchPoolInfo(newPool.address, newPool.uniqueId);
         setCustomAddress('');
     }, [customAddress, pools, fetchPoolInfo, savePoolsToStorage]);
 
     // 删除池子
-    const removePool = useCallback((poolIndex) => {
-        const poolToRemove = pools[poolIndex];
+    const removePool = useCallback((poolUniqueId) => {
+        const poolToRemove = pools.find(p => p.uniqueId === poolUniqueId);
         if (poolToRemove) {
             cancelledFetches.current.add(poolToRemove.uniqueId);
 
             // 清理相关的状态数据
             // 只有当没有其他池子使用相同地址时，才清理 outOfRangeCounts
-            const hasOtherPoolsWithSameAddress = pools.some((pool, index) =>
-                index !== poolIndex && pool.address === poolToRemove.address
+            const hasOtherPoolsWithSameAddress = pools.some((pool) =>
+                pool.uniqueId !== poolUniqueId && pool.address === poolToRemove.address
             );
 
             if (!hasOtherPoolsWithSameAddress) {
@@ -254,14 +250,18 @@ export function usePools(settings) {
                 return newFlashing;
             });
         }
-        const newPools = pools.filter((_, index) => index !== poolIndex);
+        const newPools = pools.filter(p => p.uniqueId !== poolUniqueId);
         setPools(newPools);
         savePoolsToStorage(newPools);
     }, [pools, savePoolsToStorage]);
 
     // 克隆池子
-    const clonePool = useCallback((poolIndex) => {
-        const poolToClone = pools[poolIndex];
+    const clonePool = useCallback((poolUniqueId) => {
+        const poolToClone = pools.find(p => p.uniqueId === poolUniqueId);
+        if (!poolToClone) return;
+
+        const poolIndex = pools.findIndex(p => p.uniqueId === poolUniqueId);
+
         const newPool = {
             ...poolToClone,
             nftId: '',
@@ -278,25 +278,28 @@ export function usePools(settings) {
     // 从侧边栏添加
     const handleAddPoolFromSidebar = useCallback((poolData) => {
         if (poolData.isRemoving) {
-            const poolIndex = pools.findIndex(pool => pool && pool.address && pool.address.toLowerCase() === poolData.address.toLowerCase());
-            if (poolIndex !== -1) removePool(poolIndex);
+            const poolToRemove = pools.find(pool => pool && pool.address && pool.address.toLowerCase() === poolData.address.toLowerCase());
+            if (poolToRemove) removePool(poolToRemove.uniqueId);
             return;
         }
 
-        const existingPoolIndex = pools.findIndex(p => p && p.address && p.address.toLowerCase() === poolData.address.toLowerCase());
+        const existingPool = pools.find(p => p && p.address && p.address.toLowerCase() === poolData.address.toLowerCase());
 
-        if (existingPoolIndex !== -1) {
+        if (existingPool) {
             if (poolData.nftId) {
                 setPools(prevPools => {
-                    const newPools = [...prevPools];
-                    const existingPool = newPools[existingPoolIndex];
-                    newPools[existingPoolIndex] = {
-                        ...existingPool,
-                        nftId: poolData.nftId,
-                        nftInfo: existingPool.nftId !== poolData.nftId ? null : existingPool.nftInfo,
-                        isLoadingNft: existingPool.nftId !== poolData.nftId ? false : existingPool.isLoadingNft,
-                        nftError: existingPool.nftId !== poolData.nftId ? null : existingPool.nftError,
-                    };
+                    const newPools = prevPools.map(p => {
+                        if (p.uniqueId === existingPool.uniqueId) {
+                            return {
+                                ...p,
+                                nftId: poolData.nftId,
+                                nftInfo: p.nftId !== poolData.nftId ? null : p.nftInfo,
+                                isLoadingNft: p.nftId !== poolData.nftId ? false : p.isLoadingNft,
+                                nftError: p.nftId !== poolData.nftId ? null : p.nftError,
+                            };
+                        }
+                        return p;
+                    });
                     savePoolsToStorage(newPools);
                     return newPools;
                 });
@@ -329,9 +332,7 @@ export function usePools(settings) {
             return newPools;
         });
 
-        // 使用当前pools长度作为新的index来获取池子信息
-        const newPoolIndex = pools.length;
-        fetchPoolInfo(newPool.address, newPoolIndex);
+        fetchPoolInfo(newPool.address, newPool.uniqueId);
     }, [pools, removePool, savePoolsToStorage, fetchPoolInfo]);
 
     // 拖拽结束
@@ -339,8 +340,9 @@ export function usePools(settings) {
         const { active, over } = event;
         if (active.id !== over.id) {
             setPools((items) => {
-                const oldIndex = items.findIndex((item, index) => `${item.address}-${index}` === active.id);
-                const newIndex = items.findIndex((item, index) => `${item.address}-${index}` === over.id);
+                const oldIndex = items.findIndex(item => item.uniqueId === active.id);
+                const newIndex = items.findIndex(item => item.uniqueId === over.id);
+                if (oldIndex === -1 || newIndex === -1) return items;
                 const newItems = arrayMove(items, oldIndex, newIndex);
                 savePoolsToStorage(newItems);
                 return newItems;
@@ -349,10 +351,10 @@ export function usePools(settings) {
     }, [savePoolsToStorage]);
 
     // NFT ID 变化
-    const handleNftIdChange = useCallback((poolIndex, newNftId) => {
+    const handleNftIdChange = useCallback((poolUniqueId, newNftId) => {
         setPools(prevPools => {
-            const newPools = prevPools.map((pool, index) =>
-                index === poolIndex ? { ...pool, nftId: newNftId, nftInfo: null, isLoadingNft: false, nftError: null } : pool
+            const newPools = prevPools.map(pool =>
+                pool.uniqueId === poolUniqueId ? { ...pool, nftId: newNftId, nftInfo: null, isLoadingNft: false, nftError: null } : pool
             );
             savePoolsToStorage(newPools);
             return newPools;
@@ -360,29 +362,33 @@ export function usePools(settings) {
     }, [savePoolsToStorage]);
 
     // NFT 信息更新
-    const handleNftInfoUpdate = useCallback((poolIndex, updatedNftInfo) => {
+    const handleNftInfoUpdate = useCallback((poolUniqueId, updatedNftInfo) => {
         setPools(prev => {
-            const newPools = [...prev];
-            const targetPool = { ...newPools[poolIndex], nftInfo: updatedNftInfo };
-            newPools[poolIndex] = targetPool;
-            // 当 LP 和 NFT 信息都存在时，进行价格检查
-            if (targetPool.lpInfo) {
-                checkNFTPriceAndNotify(targetPool);
-                // 执行监控检查（流动性、价格等）
-                executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
-            }
+            const newPools = prev.map(p => {
+                if (p.uniqueId === poolUniqueId) {
+                    const targetPool = { ...p, nftInfo: updatedNftInfo };
+                    // 当 LP 和 NFT 信息都存在时，进行价格检查
+                    if (targetPool.lpInfo) {
+                        checkNFTPriceAndNotify(targetPool);
+                        // 执行监控检查（流动性、价格等）
+                        executeMonitorChecks(targetPool, outOfRangeCounts[targetPool.address] || 0, false, triggerMonitorFlash);
+                    }
+                    return targetPool;
+                }
+                return p;
+            });
             return newPools;
         });
     }, [checkNFTPriceAndNotify, outOfRangeCounts, triggerMonitorFlash]);
 
     // 初始化加载 - 简化依赖，避免复杂的字符串拼接
     useEffect(() => {
-        pools.forEach((pool, index) => {
+        pools.forEach((pool) => {
             if (!pool.lpInfo && !pool.isLoading && !pool.error) {
-                fetchPoolInfo(pool.address, index);
+                fetchPoolInfo(pool.address, pool.uniqueId);
             }
         });
-    }, [pools.length]); // 只依赖长度变化，避免无限循环
+    }, [pools.length, fetchPoolInfo]); // fetchPoolInfo 添加到依赖
 
     // 自动刷新
     const refreshAllPoolsRef = useRef();

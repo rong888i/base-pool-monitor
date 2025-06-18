@@ -55,21 +55,21 @@ export default function PoolList({
                     onDragEnd={onDragEnd}
                 >
                     <SortableContext
-                        items={pools.map((pool, index) => `${pool.address}-${index}`)}
+                        items={pools.map(pool => pool.uniqueId)}
                         strategy={rectSortingStrategy}
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                             <AnimatePresence>
-                                {pools.map((pool, index) => (
+                                {pools.map((pool) => (
                                     <SortablePoolCard
-                                        key={`${pool.address}-${index}`}
-                                        id={`${pool.address}-${index}`}
+                                        key={pool.uniqueId}
+                                        id={pool.uniqueId}
                                         pool={pool}
-                                        onRemove={() => onRemove(index)}
-                                        onClone={() => onClone(index)}
+                                        onRemove={() => onRemove(pool.uniqueId)}
+                                        onClone={() => onClone(pool.uniqueId)}
                                         outOfRangeCount={outOfRangeCounts[pool.address] || 0}
-                                        onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(index, updatedNftInfo)}
-                                        onNftIdChange={(newId) => onNftIdChange(index, newId)}
+                                        onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(pool.uniqueId, updatedNftInfo)}
+                                        onNftIdChange={(newId) => onNftIdChange(pool.uniqueId, newId)}
                                         isFlashing={flashingMonitors[pool.uniqueId]}
                                     />
                                 ))}
