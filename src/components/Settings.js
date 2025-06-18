@@ -119,7 +119,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
 
     return (
         <div
-            className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
+            className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[999] transition-all duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
                 }`}
             onClick={handleBackdropClick}
         >
