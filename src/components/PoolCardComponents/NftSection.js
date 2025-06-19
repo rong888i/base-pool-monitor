@@ -300,7 +300,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 {/* <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                 </svg> */}
-                                                &nbsp;&nbsp;+&nbsp;&nbsp;
+                                                &nbsp;+&nbsp;
                                             </button>
                                             <button
                                                 ref={quickRemoverRef}
@@ -318,7 +318,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 {/* <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" />
                                                 </svg> */}
-                                                &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                &nbsp;-&nbsp;
                                             </button>
                                         </>
                                     )}
@@ -389,15 +389,20 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
 
                                 return (
                                     <>
-                                        <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
-                                            <div
-                                                className="h-full bg-primary-500 transition-all duration-300"
-                                                style={{ width: `${percent0}%`, minWidth: percent0 > 0 ? '4px' : '0' }}
-                                            ></div>
-                                            <div
-                                                className="h-full bg-success-500 transition-all duration-300"
-                                                style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
-                                            ></div>
+                                        <div
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content={`${pool.lpInfo.token0.symbol}: ${percent0.toFixed(2)}% / ${pool.lpInfo.token1.symbol}: ${percent1.toFixed(2)}%`}
+                                        >
+                                            <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
+                                                <div
+                                                    className="h-full bg-primary-500 transition-all duration-300"
+                                                    style={{ width: `${percent0}%`, minWidth: percent0 > 0 ? '4px' : '0' }}
+                                                ></div>
+                                                <div
+                                                    className="h-full bg-success-500 transition-all duration-300"
+                                                    style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
+                                                ></div>
+                                            </div>
                                         </div>
                                         <div className="mt-2 space-y-1.5">
                                             <div className="flex justify-between items-baseline bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-xs font-mono">
@@ -468,6 +473,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 const viewPriceUpper = displayPriceUpper + padding;
                                 const viewRange = viewPriceUpper - viewPriceLower;
 
+                                const tickSpacing = getTickSpacing(pool.lpInfo.fee);
+                                const numTicks = (nftInfo.tickUpper - nftInfo.tickLower) / tickSpacing;
+
                                 const priceToPercentage = (price) => {
                                     if (viewRange <= 0) return 50;
                                     const rawPercent = ((price - viewPriceLower) / viewRange) * 100;
@@ -480,7 +488,6 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 const centerPrice = (displayPriceLower + displayPriceUpper) / 2;
                                 const centerPos = priceToPercentage(centerPrice);
 
-                                const tickSpacing = getTickSpacing(pool.lpInfo.fee);
                                 const marks = [];
                                 for (let tick = nftInfo.tickLower; tick <= nftInfo.tickUpper; tick += tickSpacing) {
                                     const markPriceRaw = calculatePriceFromTick(tick, pool.lpInfo.token0.decimals, pool.lpInfo.token1.decimals);
@@ -495,8 +502,12 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
 
                                 return (
                                     <div>
-                                        <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                            价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`}):
+                                        <div
+                                            className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2"
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content={`价格范围 tickLower: ${nftInfo.tickLower}, tickUpper: ${nftInfo.tickUpper}, tickSpacing: ${tickSpacing}`}
+                                        >
+                                            价格范围可视化 {showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`} {numTicks}格:
                                         </div>
                                         <div className="relative h-5 text-xs font-medium px-1 mb-1">
                                             <div style={{ position: 'absolute', left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-success-500">下限</div>

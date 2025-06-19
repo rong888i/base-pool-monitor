@@ -40,15 +40,20 @@ const PoolInfo = ({ pool, outOfRangeCount }) => {
                         }
                         return (
                             <>
-                                <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
-                                    <div
-                                        className="h-full bg-primary-500 transition-all duration-300"
-                                        style={{ width: `${percent0}%`, minWidth: percent0 > 0 ? '4px' : '0' }}
-                                    ></div>
-                                    <div
-                                        className="h-full bg-success-500 transition-all duration-300"
-                                        style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
-                                    ></div>
+                                <div
+                                    data-tooltip-id="my-tooltip"
+                                    data-tooltip-content={`${pool.lpInfo.token0.symbol}: ${percent0.toFixed(2)}% / ${pool.lpInfo.token1.symbol}: ${percent1.toFixed(2)}%`}
+                                >
+                                    <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
+                                        <div
+                                            className="h-full bg-primary-500 transition-all duration-300"
+                                            style={{ width: `${percent0}%`, minWidth: percent0 > 0 ? '4px' : '0' }}
+                                        ></div>
+                                        <div
+                                            className="h-full bg-success-500 transition-all duration-300"
+                                            style={{ width: `${percent1}%`, minWidth: percent1 > 0 ? '4px' : '0' }}
+                                        ></div>
+                                    </div>
                                 </div>
                             </>
                         );
