@@ -507,7 +507,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             data-tooltip-id="my-tooltip"
                                             data-tooltip-content={`价格范围 tickLower: ${nftInfo.tickLower}, tickUpper: ${nftInfo.tickUpper}, tickSpacing: ${tickSpacing}`}
                                         >
-                                            价格范围可视化 {showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`} {numTicks}格:
+                                            价格范围可视化 ({showReversedPrice ? `${pool.lpInfo.token1.symbol}/${pool.lpInfo.token0.symbol}` : `${pool.lpInfo.token0.symbol}/${pool.lpInfo.token1.symbol}`} {numTicks}格):
                                         </div>
                                         <div className="relative h-5 text-xs font-medium px-1 mb-1">
                                             <div style={{ position: 'absolute', left: `${lowerBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-success-500">下限</div>
@@ -526,7 +526,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                         className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-neutral-400 dark:bg-neutral-500 opacity-50"
                                                         style={{ left: `${mark.position}%`, transform: 'translateX(-50%)' }}
                                                         data-tooltip-id="my-tooltip"
-                                                        data-tooltip-content={`Tick Price: ${mark.price.toPrecision(6)}`}
+                                                        data-tooltip-content={`${mark.price.toPrecision(6)}`}
                                                     ></div>
                                                 ))}
 
