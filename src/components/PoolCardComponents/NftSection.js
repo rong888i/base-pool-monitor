@@ -569,9 +569,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                     const upperPrice = showReversedPrice ? nftInfo.priceRange.upper : (1 / nftInfo.priceRange.lower);
 
                                                     if (displayCurrentPrice < lowerPrice) {
-                                                        return `⬇️ 价格低于下限 ${(((lowerPrice - displayCurrentPrice) / displayCurrentPrice) * 100).toFixed(1)}%`;
+                                                        return `⬇️ 价格低于下限 ${(((lowerPrice - displayCurrentPrice) / displayCurrentPrice) * 100).toFixed(3)}%`;
                                                     } else {
-                                                        return `⬆️ 价格高于上限 ${(((displayCurrentPrice - upperPrice) / upperPrice) * 100).toFixed(1)}%`;
+                                                        return `⬆️ 价格高于上限 ${(((displayCurrentPrice - upperPrice) / upperPrice) * 100).toFixed(3)}%`;
                                                     }
                                                 })()
                                             }
@@ -581,7 +581,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                             })()}
 
                             <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                                <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(1)}%</span>
+                                <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(2)}%</span>
                             </div>
                         </div>
 
