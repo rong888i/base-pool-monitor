@@ -61,7 +61,7 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                 </AccordionSection>
 
                 <AccordionSection
-                    title="计算V3池地址"
+                    title="查询V3池地址"
                     id="calculate"
                     icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-600 dark:text-blue-400">
                         <path d="M12.378 1.602a.75.75 0 0 0-.756 0L3.322 6.002a.75.75 0 0 0-.322.65v9.5c0 .26.11.5.322.65l8.25 4.5a.75.75 0 0 0 .756 0l8.25-4.5a.75.75 0 0 0 .322-.65v-9.5a.75.75 0 0 0-.322-.65L12.378 1.602ZM12 3.541 19.332 7.5 12 11.46 4.668 7.5 12 3.541ZM13.5 12.952v6.64l6.75-3.692v-6.5L13.5 12.952ZM3.75 16.6v-6.5l6.75 3.598v6.64L3.75 16.6Z" />
