@@ -6,7 +6,7 @@ import { executeMonitorChecks } from '../utils/monitorUtils';
 
 // 预设的池子地址
 const DEFAULT_POOLS = [
-    '0x099F84dE4Fb511e861cA8F635623Eae409405873',
+    '0x92b7807bF19b7DDdf89b706143896d05228f3121',
 ];
 
 export function usePools(settings) {
