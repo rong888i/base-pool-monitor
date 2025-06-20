@@ -193,7 +193,7 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         if (calculatorIconRef.current) {
             const rect = calculatorIconRef.current.getBoundingClientRect();
             const popoverWidth = 320;
-            const popoverHeight = 450; // 预估计算器弹窗高度
+            const popoverHeight = 420; // 预估计算器弹窗高度
             const margin = 12;
             const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
 
