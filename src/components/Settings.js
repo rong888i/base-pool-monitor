@@ -256,23 +256,39 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                                         默认滑点 (%)
                                     </label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0.1"
-                                        max="50"
-                                        value={settings.defaultSlippage}
-                                        onChange={(e) => {
-                                            const value = parseFloat(e.target.value);
-                                            if (!isNaN(value) && value >= 0.1 && value <= 50) {
-                                                setSettings(prev => ({ ...prev, defaultSlippage: value }));
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
-                                        placeholder="1.0"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={settings.defaultSlippage}
+                                            onChange={(e) => {
+                                                let value = e.target.value;
+                                                // 允许用户清空输入框
+                                                if (value === '') {
+                                                    setSettings(prev => ({ ...prev, defaultSlippage: '' }));
+                                                    return;
+                                                }
+                                                // 确保是数字且在合理范围内
+                                                const numValue = parseFloat(value);
+                                                if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                                                    setSettings(prev => ({ ...prev, defaultSlippage: value }));
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                let value = parseFloat(e.target.value);
+                                                if (isNaN(value) || value < 0) {
+                                                    value = 1;
+                                                } else if (value > 50) {
+                                                    value = 50;
+                                                }
+                                                // 格式化为一位小数
+                                                setSettings(prev => ({ ...prev, defaultSlippage: value.toFixed(1) }));
+                                            }}
+                                            placeholder="例如 0.5"
+                                            className="w-full px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                                        />
+                                    </div>
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        设置一键添加流动性、快速移除流动性、快速增加流动性的默认滑点容限
+                                        设置一键添加流动性、快速移除流动性、快速增加流动性的默认滑点容限1-50。
                                     </p>
                                 </div>
                             </div>

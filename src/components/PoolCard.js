@@ -199,13 +199,38 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         if (calculatorIconRef.current) {
             const rect = calculatorIconRef.current.getBoundingClientRect();
             const popoverWidth = 320;
-            let left = rect.right + 12;
-            if (left + popoverWidth > window.innerWidth) {
-                left = rect.left - popoverWidth - 12;
+            const popoverHeight = 450; // 预估计算器弹窗高度
+            const margin = 12;
+            const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
+
+            // 水平位置计算
+            let left = rect.right + margin;
+            if (left + popoverWidth > window.innerWidth - 20) {
+                left = rect.left - popoverWidth - margin;
+            }
+
+            // 垂直位置计算
+            let top = rect.top;
+            const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
+            const availableSpaceAbove = rect.top - 20; // 顶部预留20px
+
+            // 如果下方空间不足，则尝试放在上方
+            if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
+                top = rect.top - popoverHeight - margin;
+                // 确保不超出顶部
+                if (top < 20) {
+                    top = 20;
+                }
+            } else {
+                // 确保不超出底部
+                const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
+                if (top > maxTop) {
+                    top = maxTop;
+                }
             }
 
             setCalculatorPopoverPosition({
-                top: rect.top,
+                top: Math.max(20, top),
                 left: left,
             });
             setShowCalculator(true);
@@ -223,18 +248,44 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         if (liquidityAdderIconRef.current) {
             const rect = liquidityAdderIconRef.current.getBoundingClientRect();
             const popoverWidth = 384; // w-96
-            let left = rect.right + 12;
+            const popoverHeight = 600; // 预估流动性添加器弹窗高度
+            const margin = 12;
+            const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
+
+            // 水平位置计算
+            let left = rect.right + margin;
             if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
-                left = rect.left - popoverWidth - 12;
+                left = rect.left - popoverWidth - margin;
             }
 
-            // 计算可用高度，防止弹窗超出视窗
-            const availableHeight = window.innerHeight - rect.top - 20; // 20px margin from bottom
+            // 垂直位置计算
+            let top = rect.top;
+            const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
+            const availableSpaceAbove = rect.top - 20; // 顶部预留20px
+
+            // 如果下方空间不足，则尝试放在上方
+            if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
+                top = rect.top - popoverHeight - margin;
+                // 确保不超出顶部
+                if (top < 20) {
+                    top = 20;
+                }
+            } else {
+                // 确保不超出底部
+                const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
+                if (top > maxTop) {
+                    top = maxTop;
+                }
+            }
+
+            // 计算实际可用高度
+            const finalTop = Math.max(20, top);
+            const availableHeight = window.innerHeight - finalTop - bottomSafeZone;
 
             setLiquidityAdderPopoverPosition({
-                top: rect.top,
+                top: finalTop,
                 left: left,
-                maxHeight: availableHeight
+                maxHeight: Math.max(300, availableHeight) // 确保最小高度
             });
             setShowLiquidityAdder(true);
         }
@@ -251,16 +302,38 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
         if (monitorSettingsIconRef.current) {
             const rect = monitorSettingsIconRef.current.getBoundingClientRect();
             const popoverWidth = 384; // w-96 from MonitorSettings component
+            const popoverHeight = 500; // 预估监控设置弹窗高度
             const margin = 12;
+            const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
 
-            // 水平位置计算 - 简化逻辑，参考Calculator的做法
+            // 水平位置计算
             let left = rect.right + margin;
             if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
                 left = rect.left - popoverWidth - margin;
             }
 
+            // 垂直位置计算
+            let top = rect.top;
+            const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
+            const availableSpaceAbove = rect.top - 20; // 顶部预留20px
+
+            // 如果下方空间不足，则尝试放在上方
+            if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
+                top = rect.top - popoverHeight - margin;
+                // 确保不超出顶部
+                if (top < 20) {
+                    top = 20;
+                }
+            } else {
+                // 确保不超出底部
+                const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
+                if (top > maxTop) {
+                    top = maxTop;
+                }
+            }
+
             setMonitorSettingsPopoverPosition({
-                top: rect.top,
+                top: Math.max(20, top),
                 left: left,
             });
             setShowMonitorSettings(true);
