@@ -583,7 +583,7 @@ const QuickLiquidityEnhancer = ({
                                     <div className="flex items-center gap-2 text-sm">
                                         <span className="text-green-500">🎯</span>
                                         <span className="font-medium text-green-700 dark:text-green-300">
-                                            增加到 NFT #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
+                                            增加 #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
                                         </span>
                                     </div>
                                 </div>

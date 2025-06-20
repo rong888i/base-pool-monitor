@@ -317,7 +317,7 @@ const QuickLiquidityRemover = ({
                                     <div className="flex items-center gap-2 text-sm">
                                         <span className="text-red-500">🎯</span>
                                         <span className="font-medium text-red-700 dark:text-red-300">
-                                            移除 NFT #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
+                                            移除 #{nftInfo?.nftId} • {poolInfo.token0?.symbol}/{poolInfo.token1?.symbol}
                                         </span>
                                     </div>
                                 </div>
