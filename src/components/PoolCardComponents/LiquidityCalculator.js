@@ -354,22 +354,45 @@ const LiquidityCalculator = ({
     return (
         <div
             ref={popoverRef}
-            style={isMobile ? {} : { top: `${position.top}px`, left: `${position.left}px` }}
+            style={isMobile ? {} : {
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                ...(position.maxHeight && { maxHeight: `${position.maxHeight}px` })
+            }}
             className={`fixed z-50 transition-all duration-300 ease-in-out
                 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
                 ${isMobile
-                    ? 'inset-0 flex items-center justify-center bg-black/50'
+                    ? 'inset-0 flex items-center justify-center'
                     : ''
                 }`
             }
+            onClick={onClose}
         >
+            {/* 移动端背景遮罩 */}
+            {isMobile && (
+                <div
+                    className="absolute inset-0 bg-black/50"
+                    onClick={onClose}
+                />
+            )}
+
+            {/* 桌面端背景遮罩 */}
+            {!isMobile && (
+                <div
+                    className="fixed inset-0 bg-black/20 -z-10"
+                    onClick={onClose}
+                />
+            )}
+
             <div
-                className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl p-5 transform-gpu transition-all duration-300 ease-in-out
+                className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl transform-gpu transition-all duration-300 ease-in-out flex flex-col relative z-10
                     ${isMobile ? 'w-full max-w-sm mx-4 max-h-[90vh]' : 'w-96'}
                     ${isVisible ? 'scale-100' : 'scale-95'}
                 `}
+                style={!isMobile && position.maxHeight ? { maxHeight: `${position.maxHeight}px` } : {}}
+                onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center p-5 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m3 1a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h3m3-4a2 2 0 012 2v2H9V6a2 2 0 012-2zm-3 8h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01" />
@@ -383,7 +406,7 @@ const LiquidityCalculator = ({
                     </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto px-5 pb-5 custom-scrollbar space-y-4">
                     {/* 当前价格显示 */}
                     <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700 text-center">
                         <div className="text-sm font-mono font-medium text-neutral-700 dark:text-neutral-300">

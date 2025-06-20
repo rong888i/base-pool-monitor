@@ -190,8 +190,9 @@ const MonitorSettings = ({ poolInfo, poolAddress, poolUniqueId, position, isVisi
 
                     <motion.div
                         className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-700 flex flex-col relative z-10
-                            ${isMobile ? 'w-full max-w-md mx-4 max-h-[90vh]' : 'w-96 max-h-[80vh]'}
+                            ${isMobile ? 'w-full max-w-md mx-4 max-h-[90vh]' : 'w-96'}
                         `}
+                        style={!isMobile && position.maxHeight ? { maxHeight: `${position.maxHeight}px` } : {}}
                         variants={modalVariants}
                         onClick={(e) => e.stopPropagation()}
                     >

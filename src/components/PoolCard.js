@@ -71,15 +71,9 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
             }
         }
 
-        function handleScroll() {
-            closeCalculator();
-        }
-
         document.addEventListener("mousedown", handleClickOutside);
-        window.addEventListener("scroll", handleScroll, true);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            window.removeEventListener("scroll", handleScroll, true);
         };
     }, [showCalculator]);
 
@@ -229,9 +223,14 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                 }
             }
 
+            // 计算实际可用高度
+            const finalTop = Math.max(20, top);
+            const availableHeight = window.innerHeight - finalTop - bottomSafeZone;
+
             setCalculatorPopoverPosition({
-                top: Math.max(20, top),
+                top: finalTop,
                 left: left,
+                maxHeight: Math.max(300, availableHeight) // 确保最小高度并支持滚动
             });
             setShowCalculator(true);
         }
@@ -332,9 +331,14 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                 }
             }
 
+            // 计算实际可用高度
+            const finalTop = Math.max(20, top);
+            const availableHeight = window.innerHeight - finalTop - bottomSafeZone;
+
             setMonitorSettingsPopoverPosition({
-                top: Math.max(20, top),
+                top: finalTop,
                 left: left,
+                maxHeight: Math.max(350, availableHeight) // 确保最小高度并支持滚动
             });
             setShowMonitorSettings(true);
         }
