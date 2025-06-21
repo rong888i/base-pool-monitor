@@ -566,7 +566,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             const gridDisplayPriceUpper = showReversedPrice ? gridPriceUpperRaw : (1 / gridPriceLowerRaw);
 
                                             return (
-                                                <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400 font-medium">
+                                                <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400">
                                                     {nftInfo.isInRange ? (
                                                         <span>
                                                             当前位于第 {Math.floor((currentTick - nftInfo.tickLower) / tickSpacing) + 1} 格 (共 {numTicks} 格)
@@ -607,8 +607,10 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 );
                             })()}
 
-                            <div className="mt-3 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                                <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(2)}%</span>
+                            <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400r">
+                                <div className="text-neutral-800 dark:text-neutral-200">
+                                    <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(2)}%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
