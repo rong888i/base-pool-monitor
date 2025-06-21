@@ -199,7 +199,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     if (!pool.lpInfo) return null;
 
     return (
-        <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg">
+        <div className="bg-neutral-50 dark:bg-neutral-800/50 p-2.5 rounded-lg">
             <div className="flex items-center justify-between mb-2">
                 <div className="text-xs text-neutral-700 dark:text-neutral-300 font-medium">🎯 V3 NFT 查询</div>
                 {nftId.trim() && (
@@ -208,7 +208,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                     </div>
                 )}
             </div>
-            <div className="flex gap-2 mb-2 relative">
+            <div className="flex gap-2 mb-1.5 relative">
                 <input
                     type="text"
                     placeholder="输入NFT ID"
@@ -238,7 +238,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
             </div>
 
             {nftError && (
-                <div className="bg-error-50 border border-error-200 text-error-700 px-3 py-2 rounded text-xs mb-2">
+                <div className="bg-error-50 border border-error-200 text-error-700 px-2.5 py-1.5 rounded text-xs mb-1.5">
                     <strong>错误:</strong> {nftError}
                 </div>
             )}
@@ -248,9 +248,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 : 'max-h-0 opacity-0 transform -translate-y-2'
                 }`}>
                 {nftInfo && nftInfo.isValid && (
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-2 space-y-2.5">
                         {/* Price direction toggle */}
-                        <div className="bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
+                        <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 flex items-center">
                             <div className="flex items-center justify-between w-full">
                                 <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">价格显示方向:</span>
                                 <div className="flex gap-2">
@@ -277,7 +277,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                         </div>
 
                         {/* Position Details */}
-                        <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                        <div className="bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
                                 <div className="flex items-center gap-2">
@@ -404,7 +404,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 ></div>
                                             </div>
                                         </div>
-                                        <div className="mt-2 space-y-1.5">
+                                        <div className="mt-1.5 space-y-1.5">
                                             <div className="flex justify-between items-baseline bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-xs font-mono">
                                                 <span className="text-primary-700 dark:text-primary-400 font-semibold">{pool.lpInfo.token0.symbol}</span>
                                                 <div className="text-right">
@@ -565,17 +565,21 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             const gridDisplayPriceLower = showReversedPrice ? gridPriceLowerRaw : (1 / gridPriceUpperRaw);
                                             const gridDisplayPriceUpper = showReversedPrice ? gridPriceUpperRaw : (1 / gridPriceLowerRaw);
 
+                                            const gridIndex = showReversedPrice
+                                                ? Math.floor((currentTick - nftInfo.tickLower) / tickSpacing)
+                                                : Math.floor((nftInfo.tickUpper - currentTick) / tickSpacing);
+
                                             return (
                                                 <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400">
                                                     {nftInfo.isInRange ? (
                                                         <span>
-                                                            当前位于第 {Math.floor((currentTick - nftInfo.tickLower) / tickSpacing) + 1} 格 (共 {numTicks} 格)
+                                                            当前位于第 {gridIndex + 1} 格 (共 {numTicks} 格)
                                                         </span>
                                                     ) : (
                                                         <span>当前池子价格已超出您的仓位范围</span>
                                                     )}
+                                                    {/* <span>当前 tick ({currentTick}) 所在的价格区间:</span><br /> */}
                                                     <div className="mt-1 text-neutral-800 dark:text-neutral-200">
-                                                        {/* <span>当前 tick ({currentTick}) 所在的价格区间:</span><br /> */}
                                                         <span>{gridDisplayPriceLower.toPrecision(6)} - {gridDisplayPriceUpper.toPrecision(6)}</span>
                                                     </div>
                                                 </div>
