@@ -11,6 +11,8 @@ const NftSearchSection = ({ pools, onAddPool }) => {
     const [nftSearchResults, setNftSearchResults] = useState([]);
     const [nftSearchError, setNftSearchError] = useState(null);
     const [walletSearchHistory, setWalletSearchHistory] = useState([]);
+    const [editingAddress, setEditingAddress] = useState(null);
+    const [remarkInput, setRemarkInput] = useState('');
 
     // 获取钱包连接状态
     const { account, connected } = useWallet();
@@ -19,7 +21,15 @@ const NftSearchSection = ({ pools, onAddPool }) => {
         if (typeof window !== 'undefined') {
             const savedWalletHistory = localStorage.getItem('walletSearchHistory');
             if (savedWalletHistory) {
-                setWalletSearchHistory(JSON.parse(savedWalletHistory));
+                const parsed = JSON.parse(savedWalletHistory);
+                // 兼容旧的字符串数组格式
+                if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                    const migratedHistory = parsed.map(address => ({ address, remark: '' }));
+                    setWalletSearchHistory(migratedHistory);
+                    localStorage.setItem('walletSearchHistory', JSON.stringify(migratedHistory));
+                } else {
+                    setWalletSearchHistory(parsed);
+                }
             }
         }
     }, []);
@@ -30,12 +40,13 @@ const NftSearchSection = ({ pools, onAddPool }) => {
             return walletSearchHistory;
         }
 
-        // 将连接的钱包地址放在第一位，移除历史中的重复项
         const historyWithoutCurrent = walletSearchHistory.filter(
-            addr => addr.toLowerCase() !== account.toLowerCase()
+            item => item.address.toLowerCase() !== account.toLowerCase()
         );
 
-        return [account, ...historyWithoutCurrent];
+        const currentAccountItem = walletSearchHistory.find(item => item.address.toLowerCase() === account.toLowerCase()) || { address: account, remark: '' };
+
+        return [currentAccountItem, ...historyWithoutCurrent];
     };
 
     // 检查地址是否是当前连接的钱包
@@ -58,7 +69,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
             return;
         }
 
-        const newHistory = walletSearchHistory.filter(address => address !== addressToRemove);
+        const newHistory = walletSearchHistory.filter(item => item.address !== addressToRemove);
         setWalletSearchHistory(newHistory);
         localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
     };
@@ -96,7 +107,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
 
         // 只有在不是当前连接钱包的情况下才添加到历史记录
         if (!isConnectedWallet(trimmedAddress)) {
-            const newHistory = [trimmedAddress, ...walletSearchHistory.filter(item => item.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+            const newHistory = [{ address: trimmedAddress, remark: '' }, ...walletSearchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
             setWalletSearchHistory(newHistory);
             localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
         }
@@ -137,6 +148,23 @@ const NftSearchSection = ({ pools, onAddPool }) => {
         } finally {
             setIsSearchingNfts(false);
         }
+    };
+
+    const handleEditRemark = (address, currentRemark) => {
+        setEditingAddress(address);
+        setRemarkInput(currentRemark || '');
+    };
+
+    const handleSaveRemark = (address) => {
+        const newHistory = walletSearchHistory.map(item =>
+            item.address.toLowerCase() === address.toLowerCase()
+                ? { ...item, remark: remarkInput }
+                : item
+        );
+        setWalletSearchHistory(newHistory);
+        localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
+        setEditingAddress(null);
+        setRemarkInput('');
     };
 
     // 获取要显示的历史记录列表
@@ -214,24 +242,48 @@ const NftSearchSection = ({ pools, onAddPool }) => {
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {displayHistory.map((address) => {
+                        {displayHistory.map((item) => {
+                            const { address, remark } = item;
                             const isCurrentWallet = isConnectedWallet(address);
+
+                            if (editingAddress === address) {
+                                return (
+                                    <input
+                                        key={`${address}-input`}
+                                        type="text"
+                                        value={remarkInput}
+                                        onChange={(e) => setRemarkInput(e.target.value)}
+                                        onBlur={() => handleSaveRemark(address)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveRemark(address);
+                                            if (e.key === 'Escape') setEditingAddress(null);
+                                        }}
+                                        className="px-2 py-1 text-xs rounded-md bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white font-mono w-32"
+                                        autoFocus
+                                    />
+                                );
+                            }
+
                             return (
                                 <div key={address} className="relative group">
                                     <button
                                         onClick={() => setWalletAddress(address)}
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            if (!isCurrentWallet) handleEditRemark(address, remark);
+                                        }}
                                         className={`${isCurrentWallet ? 'px-2.5' : 'pr-7 pl-2.5'} py-1 text-xs rounded-md transition-all duration-200 font-mono
                                             ${isCurrentWallet
                                                 ? 'bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/40 dark:to-green-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50 shadow-sm'
                                                 : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white'
                                             }`}
                                         data-tooltip-id="my-tooltip"
-                                        data-tooltip-content={isCurrentWallet ? `${address} (当前连接钱包)` : address}
+                                        data-tooltip-content={isCurrentWallet ? `${address} (当前连接钱包)` : `${remark ? remark + ' - ' : ''}${address}`}
                                     >
                                         {isCurrentWallet && (
                                             <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
                                         )}
-                                        {formatAddress(address)}
+                                        {remark || formatAddress(address)}
                                     </button>
                                     {!isCurrentWallet && (
                                         <button

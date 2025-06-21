@@ -9,12 +9,22 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
     const [searchAddress, setSearchAddress] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [searchHistory, setSearchHistory] = useState([]);
+    const [editingAddress, setEditingAddress] = useState(null);
+    const [remarkInput, setRemarkInput] = useState('');
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedHistory = localStorage.getItem('poolSearchHistory');
             if (savedHistory) {
-                setSearchHistory(JSON.parse(savedHistory));
+                const parsed = JSON.parse(savedHistory);
+                // 兼容旧的字符串数组格式
+                if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                    const migratedHistory = parsed.map(address => ({ address, remark: '' }));
+                    setSearchHistory(migratedHistory);
+                    localStorage.setItem('poolSearchHistory', JSON.stringify(migratedHistory));
+                } else {
+                    setSearchHistory(parsed);
+                }
             }
         }
     }, []);
@@ -55,7 +65,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
     };
 
     const handleRemoveHistoryItem = (addressToRemove) => {
-        const newHistory = searchHistory.filter(address => address !== addressToRemove);
+        const newHistory = searchHistory.filter(item => item.address !== addressToRemove);
         setSearchHistory(newHistory);
         localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
     };
@@ -67,7 +77,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
         }
 
         const trimmedAddress = searchAddress.trim();
-        const newHistory = [trimmedAddress, ...searchHistory.filter(item => item.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+        const newHistory = [{ address: trimmedAddress, remark: '' }, ...searchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
         setSearchHistory(newHistory);
         localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
 
@@ -193,9 +203,25 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
         }
     };
 
+    const handleEditRemark = (address, currentRemark) => {
+        setEditingAddress(address);
+        setRemarkInput(currentRemark || '');
+    };
+
+    const handleSaveRemark = (address) => {
+        const newHistory = searchHistory.map(item =>
+            item.address.toLowerCase() === address.toLowerCase()
+                ? { ...item, remark: remarkInput }
+                : item
+        );
+        setSearchHistory(newHistory);
+        localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
+        setEditingAddress(null);
+        setRemarkInput('');
+    };
 
     return (
-        <div className="space-y-4">
+        <div>
             <div className="p-4 space-y-3">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -255,9 +281,10 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                 </button>
             </div>
 
+            {/* 搜索历史 */}
             {searchHistory.length > 0 && (
-                <div className="px-4 pb-4 border-t border-neutral-200 dark:border-neutral-800 animate-in fade-in duration-300">
-                    <div className="flex justify-between items-center my-2 px-1">
+                <div className="px-4 pb-4 animate-in fade-in duration-300">
+                    <div className="flex justify-between items-center mb-2 px-1">
                         <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                             搜索历史
                         </h3>
@@ -269,28 +296,56 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {searchHistory.map((address) => (
-                            <div key={address} className="relative group">
-                                <button
-                                    onClick={() => setSearchAddress(address)}
-                                    className="pr-7 pl-2.5 py-1 bg-neutral-100 dark:bg-neutral-800/80 text-xs text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white transition-all duration-200 font-mono"
-                                    data-tooltip-id="my-tooltip"
-                                    data-tooltip-content={address}
-                                >
-                                    {formatAddress(address)}
-                                </button>
-                                <button
-                                    onClick={() => handleRemoveHistoryItem(address)}
-                                    className="absolute top-0 right-0 h-full px-1.5 flex items-center text-neutral-400 hover:text-red-500 rounded-r-md opacity-50 group-hover:opacity-100 transition-opacity"
-                                    data-tooltip-id="my-tooltip"
-                                    data-tooltip-content="删除此条"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))}
+                        {searchHistory.map((item) => {
+                            const { address, remark } = item;
+
+                            if (editingAddress === address) {
+                                return (
+                                    <input
+                                        key={`${address}-input`}
+                                        type="text"
+                                        value={remarkInput}
+                                        onChange={(e) => setRemarkInput(e.target.value)}
+                                        onBlur={() => handleSaveRemark(address)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveRemark(address);
+                                            if (e.key === 'Escape') setEditingAddress(null);
+                                        }}
+                                        className="px-2 py-1 text-xs rounded-md bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white font-mono w-32"
+                                        autoFocus
+                                    />
+                                );
+                            }
+
+                            return (
+                                <div key={address} className="relative group">
+                                    <button
+                                        onClick={() => setSearchAddress(address)}
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            handleEditRemark(address, remark);
+                                        }}
+                                        className="pr-7 pl-2.5 py-1 text-xs rounded-md transition-all duration-200 font-mono
+                                            bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 
+                                            hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white"
+                                        data-tooltip-id="my-tooltip"
+                                        data-tooltip-content={`${remark ? remark + ' - ' : ''}${address}`}
+                                    >
+                                        {remark || formatAddress(address)}
+                                    </button>
+                                    <button
+                                        onClick={() => handleRemoveHistoryItem(address)}
+                                        className="absolute top-0 right-0 h-full px-1.5 flex items-center text-neutral-400 hover:text-red-500 rounded-r-md opacity-50 group-hover:opacity-100 transition-opacity"
+                                        data-tooltip-id="my-tooltip"
+                                        data-tooltip-content="删除此条"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -320,7 +375,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             )}
 
             {searchResults.length > 0 && (
-                <div className="p-4 space-y-3 border-t border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 space-y-3 ">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">搜索结果</h3>
                         <span className="px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-full">{searchResults.length}个</span>
