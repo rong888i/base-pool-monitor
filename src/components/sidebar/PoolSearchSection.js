@@ -328,9 +328,9 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                                             e.preventDefault();
                                             handleEditRemark(address, remark);
                                         }}
-                                        className="pr-7 pl-2.5 py-1 text-xs rounded-md transition-all duration-200 font-mono
+                                        className={`pr-7 pl-2.5 py-1 text-xs rounded-md transition-all duration-200 ${remark ? 'font-medium' : 'font-mono'}
                                             bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 
-                                            hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white"
+                                            hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white`}
                                         data-tooltip-id="my-tooltip"
                                         data-tooltip-content={`${remark ? remark + ' - ' : ''}${address}`}
                                     >

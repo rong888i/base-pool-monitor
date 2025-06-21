@@ -275,7 +275,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
                                             e.preventDefault();
                                             if (!isCurrentWallet) handleEditRemark(address, remark);
                                         }}
-                                        className={`${isCurrentWallet ? 'px-2.5' : 'pr-7 pl-2.5'} py-1 text-xs rounded-md transition-all duration-200 font-mono
+                                        className={`${isCurrentWallet ? 'px-2.5' : 'pr-7 pl-2.5'} py-1 text-xs rounded-md transition-all duration-200 ${remark ? 'font-medium' : 'font-mono'}
                                             ${isCurrentWallet
                                                 ? 'bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/40 dark:to-green-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50 shadow-sm'
                                                 : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 hover:text-neutral-900 dark:hover:text-white'
