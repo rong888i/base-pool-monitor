@@ -58,7 +58,7 @@ export default function PoolList({
                         items={pools.map(pool => pool.uniqueId)}
                         strategy={rectSortingStrategy}
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+                        <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
                             <AnimatePresence>
                                 {pools.map((pool) => (
                                     <SortablePoolCard
@@ -71,6 +71,7 @@ export default function PoolList({
                                         onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(pool.uniqueId, updatedNftInfo)}
                                         onNftIdChange={(newId) => onNftIdChange(pool.uniqueId, newId)}
                                         isFlashing={flashingMonitors[pool.uniqueId]}
+                                        className="break-inside-avoid mb-4"
                                     />
                                 ))}
                             </AnimatePresence>

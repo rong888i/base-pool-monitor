@@ -554,6 +554,33 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             <div style={{ position: 'absolute', left: `${upperBoundPos}%`, transform: 'translateX(-50%)' }} className="font-bold text-error-500">{displayPriceUpper.toPrecision(6)}</div>
                                         </div>
 
+                                        {(() => {
+                                            const currentTick = pool.lpInfo.tick;
+                                            const currentGridTickLower = Math.floor(currentTick / tickSpacing) * tickSpacing;
+                                            const currentGridTickUpper = currentGridTickLower + tickSpacing;
+
+                                            const gridPriceLowerRaw = calculatePriceFromTick(currentGridTickLower, pool.lpInfo.token0.decimals, pool.lpInfo.token1.decimals);
+                                            const gridPriceUpperRaw = calculatePriceFromTick(currentGridTickUpper, pool.lpInfo.token0.decimals, pool.lpInfo.token1.decimals);
+
+                                            const gridDisplayPriceLower = showReversedPrice ? gridPriceLowerRaw : (1 / gridPriceUpperRaw);
+                                            const gridDisplayPriceUpper = showReversedPrice ? gridPriceUpperRaw : (1 / gridPriceLowerRaw);
+
+                                            return (
+                                                <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400 font-medium">
+                                                    {nftInfo.isInRange ? (
+                                                        <span>
+                                                            当前位于第 {Math.floor((currentTick - nftInfo.tickLower) / tickSpacing) + 1} 格 (共 {numTicks} 格)
+                                                        </span>
+                                                    ) : (
+                                                        <span>当前池子价格已超出您的仓位范围</span>
+                                                    )}
+                                                    <div className="mt-1 text-neutral-800 dark:text-neutral-200">
+                                                        {/* <span>当前 tick ({currentTick}) 所在的价格区间:</span><br /> */}
+                                                        <span>{gridDisplayPriceLower.toPrecision(6)} - {gridDisplayPriceUpper.toPrecision(6)}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         <div className={`mt-3 p-3 rounded-lg text-xs text-center font-medium ${nftInfo.isInRange
                                             ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-300'
@@ -584,8 +611,6 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 <span>范围宽度: ±{(((nftInfo.priceRange.upper - nftInfo.priceRange.lower) / ((nftInfo.priceRange.upper + nftInfo.priceRange.lower) / 2)) * 100).toFixed(2)}%</span>
                             </div>
                         </div>
-
-
                     </div>
                 )}
             </div>

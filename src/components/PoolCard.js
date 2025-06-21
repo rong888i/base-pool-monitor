@@ -12,7 +12,7 @@ import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
 import LiquidityAdder from './PoolCardComponents/LiquidityAdder/index.js';
 import MonitorSettings from './PoolCardComponents/MonitorSettings';
 
-const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange, isFlashing }) => {
+const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange, isFlashing, className }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [nftId, setNftId] = useState(pool.nftId || '');
     const [showCalculator, setShowCalculator] = useState(false);
@@ -365,6 +365,7 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
+            className={className}
         >
             <div
                 ref={setNodeRef}
