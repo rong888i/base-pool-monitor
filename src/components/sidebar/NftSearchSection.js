@@ -107,7 +107,10 @@ const NftSearchSection = ({ pools, onAddPool }) => {
 
         // 只有在不是当前连接钱包的情况下才添加到历史记录
         if (!isConnectedWallet(trimmedAddress)) {
-            const newHistory = [{ address: trimmedAddress, remark: '' }, ...walletSearchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+            const existingEntry = walletSearchHistory.find(item => item.address.toLowerCase() === trimmedAddress.toLowerCase());
+            const remark = existingEntry ? existingEntry.remark : '';
+
+            const newHistory = [{ address: trimmedAddress, remark }, ...walletSearchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
             setWalletSearchHistory(newHistory);
             localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
         }

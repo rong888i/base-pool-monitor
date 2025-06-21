@@ -77,7 +77,11 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
         }
 
         const trimmedAddress = searchAddress.trim();
-        const newHistory = [{ address: trimmedAddress, remark: '' }, ...searchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+
+        const existingEntry = searchHistory.find(item => item.address.toLowerCase() === trimmedAddress.toLowerCase());
+        const remark = existingEntry ? existingEntry.remark : '';
+
+        const newHistory = [{ address: trimmedAddress, remark }, ...searchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
         setSearchHistory(newHistory);
         localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
 
@@ -221,7 +225,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
     };
 
     return (
-        <div>
+        <div className="space-y-4">
             <div className="p-4 space-y-3">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -281,10 +285,9 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                 </button>
             </div>
 
-            {/* 搜索历史 */}
             {searchHistory.length > 0 && (
                 <div className="px-4 pb-4 animate-in fade-in duration-300">
-                    <div className="flex justify-between items-center mb-2 px-1">
+                    <div className="flex justify-between items-center my-2 px-1">
                         <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                             搜索历史
                         </h3>
@@ -375,7 +378,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             )}
 
             {searchResults.length > 0 && (
-                <div className="p-4 space-y-3 ">
+                <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">搜索结果</h3>
                         <span className="px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-full">{searchResults.length}个</span>
