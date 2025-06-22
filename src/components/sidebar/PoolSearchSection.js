@@ -102,15 +102,15 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
 
                 const dexscreenerPools = bscPairs.map(pool => {
                     return {
-                        name: `${pool.baseToken.symbol}/${pool.quoteToken.symbol}`,
+                        name: `${pool.baseToken?.symbol || 'Unknown'}/${pool.quoteToken?.symbol || 'Unknown'}`,
                         address: pool.pairAddress,
                         chain: pool.chainId,
                         dexId: pool.dexId,
                         labels: pool.labels,
-                        price: pool.priceUsd,
-                        volume24h: pool.volume.h24,
-                        volume5m: pool.volume.m5,
-                        liquidity: pool.liquidity.usd,
+                        price: pool?.priceUsd || 0,
+                        volume24h: pool.volume?.h24 || 0,
+                        volume5m: pool.volume?.m5 || 0,
+                        liquidity: pool.liquidity?.usd || 0,
                         baseToken: pool.baseToken,
                         quoteToken: pool.quoteToken
                     };
@@ -225,7 +225,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             <div className="p-4 space-y-3">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -286,7 +286,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             </div>
 
             {searchHistory.length > 0 && (
-                <div className="px-4 pb-4 animate-in fade-in duration-300">
+                <div className="px-4 pb-2 animate-in fade-in duration-300">
                     <div className="flex justify-between items-center my-2 px-1">
                         <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                             搜索历史
@@ -378,8 +378,8 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             )}
 
             {searchResults.length > 0 && (
-                <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between px-1">
+                <div className="p-4 pt-2 space-y-3">
+                    <div className="flex justify-between items-center">
                         <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">搜索结果</h3>
                         <span className="px-2 py-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-full">{searchResults.length}个</span>
                     </div>
