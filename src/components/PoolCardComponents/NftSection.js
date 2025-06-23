@@ -573,7 +573,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                 <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400">
                                                     {nftInfo.isInRange ? (
                                                         <span>
-                                                            当前位于第 {gridIndex} 格 (共 {numTicks} 格)
+                                                            当前位于第 {gridIndex + 1} 格 (共 {numTicks} 格)
                                                         </span>
                                                     ) : (
                                                         <span>当前池子价格已超出您的仓位范围</span>
