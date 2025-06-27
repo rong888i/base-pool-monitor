@@ -565,9 +565,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             const gridDisplayPriceLower = showReversedPrice ? gridPriceLowerRaw : (1 / gridPriceUpperRaw);
                                             const gridDisplayPriceUpper = showReversedPrice ? gridPriceUpperRaw : (1 / gridPriceLowerRaw);
 
-                                            const gridIndex = (showReversedPrice
-                                                ? Math.floor((currentTick - nftInfo.tickLower) / tickSpacing)
-                                                : Math.floor((nftInfo.tickUpper - currentTick) / tickSpacing)) + 1;
+                                            const gridIndex = (!showReversedPrice
+                                                ? Math.floor(((nftInfo.tickUpper - currentTick) - 1) / tickSpacing)
+                                                : Math.floor((currentTick - nftInfo.tickLower) / tickSpacing)) + 1;
 
                                             return (
                                                 <div className="mt-3 p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg text-xs text-center text-neutral-600 dark:text-neutral-400">
