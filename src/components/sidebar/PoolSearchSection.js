@@ -81,7 +81,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
         const existingEntry = searchHistory.find(item => item.address.toLowerCase() === trimmedAddress.toLowerCase());
         const remark = existingEntry ? existingEntry.remark : '';
 
-        const newHistory = [{ address: trimmedAddress, remark }, ...searchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+        const newHistory = [{ address: trimmedAddress, remark }, ...searchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())];
         setSearchHistory(newHistory);
         localStorage.setItem('poolSearchHistory', JSON.stringify(newHistory));
 

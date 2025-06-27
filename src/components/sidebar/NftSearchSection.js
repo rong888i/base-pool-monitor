@@ -110,7 +110,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
             const existingEntry = walletSearchHistory.find(item => item.address.toLowerCase() === trimmedAddress.toLowerCase());
             const remark = existingEntry ? existingEntry.remark : '';
 
-            const newHistory = [{ address: trimmedAddress, remark }, ...walletSearchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())].slice(0, 10);
+            const newHistory = [{ address: trimmedAddress, remark }, ...walletSearchHistory.filter(item => item.address.toLowerCase() !== trimmedAddress.toLowerCase())];
             setWalletSearchHistory(newHistory);
             localStorage.setItem('walletSearchHistory', JSON.stringify(newHistory));
         }
