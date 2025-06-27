@@ -3,18 +3,30 @@
 import { useState } from 'react';
 import { ethers, getAddress, Contract } from 'ethers';
 
-const TokenInput = ({ value, onChange, commonTokens, label, id, icon }) => (
+const feeTiers = {
+    uniswap: [
+        { value: 100, label: '0.01% (适用于稳定币对)' },
+        { value: 500, label: '0.05% (适用于主流币对)' },
+        { value: 3000, label: '0.30% (适用于大多数币对)' },
+        { value: 10000, label: '1.00% (适用于小众币对)' },
+    ],
+    pancakeswap: [
+        { value: 100, label: '0.01% (适用于稳定币对)' },
+        { value: 500, label: '0.05% (适用于主流币对)' },
+        { value: 2500, label: '0.25% (适用于大多数币对)' },
+        { value: 10000, label: '1.00% (适用于小众币对)' },
+    ],
+};
+
+const TokenInput = ({ value, onChange, commonTokens, label, id }) => (
     <div>
         <label htmlFor={id} className="block text-sm font-semibold text-neutral-600 dark:text-neutral-300 mb-1.5">{label}</label>
         <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                {icon}
-            </div>
             <input
                 type="text"
                 name={id}
                 id={id}
-                className="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent rounded-lg 
+                className="w-full pl-4 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent rounded-lg 
                            text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 font-mono text-sm
                            focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent focus:bg-white dark:focus:bg-neutral-900
                            transition-all duration-300"
@@ -45,7 +57,7 @@ const TokenInput = ({ value, onChange, commonTokens, label, id, icon }) => (
 const PoolCalculatorSection = ({ onAddPool }) => {
     const [token0, setToken0] = useState('');
     const [token1, setToken1] = useState('');
-    const [fee, setFee] = useState(100); // Default to 0.3%
+    const [fee, setFee] = useState(100); // Default to 0.01%
     const [dex, setDex] = useState('uniswap'); // 'uniswap' or 'pancakeswap'
     const [poolAddress, setPoolAddress] = useState('');
     const [error, setError] = useState('');
@@ -55,6 +67,15 @@ const PoolCalculatorSection = ({ onAddPool }) => {
         'WBNB': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
         'USDT': '0x55d398326f99059fF775485246999027B3197955',
         'USDC': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+    };
+
+    const handleDexChange = (newDex) => {
+        if (newDex === 'pancakeswap' && fee === 3000) {
+            setFee(2500);
+        } else if (newDex === 'uniswap' && fee === 2500) {
+            setFee(3000);
+        }
+        setDex(newDex);
     };
 
     const factoryAddresses = {
@@ -108,16 +129,7 @@ const PoolCalculatorSection = ({ onAddPool }) => {
     };
 
     return (
-        <div className="p-4 space-y-5">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200/60 dark:border-blue-800/50 rounded-lg text-xs text-blue-800 dark:text-blue-200 flex items-start gap-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <div className="font-medium">
-                    <strong className="font-semibold">提示:</strong> 输入两个代币地址和费用等级，即可计算出对应的V3池地址。
-                </div>
-            </div>
-
+        <div className="py-4 px-5 space-y-3">
             <div className="space-y-4">
                 <TokenInput
                     label="代币 0"
@@ -125,7 +137,6 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                     value={token0}
                     onChange={setToken0}
                     commonTokens={commonTokens}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-neutral-400 dark:text-neutral-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M17.707 9.293a1 1 0 0 1 0 1.414l-7 7a1 1 0 0 1-1.414 0l-7-7A.997.997 0 0 1 2 10V5a1 1 0 0 1 1-1h5a1 1 0 0 1 .707.293l7 7zM5 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clipRule="evenodd" /></svg>}
                 />
                 <TokenInput
                     label="代币 1"
@@ -133,8 +144,35 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                     value={token1}
                     onChange={setToken1}
                     commonTokens={commonTokens}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-neutral-400 dark:text-neutral-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M17.707 9.293a1 1 0 0 1 0 1.414l-7 7a1 1 0 0 1-1.414 0l-7-7A.997.997 0 0 1 2 10V5a1 1 0 0 1 1-1h5a1 1 0 0 1 .707.293l7 7zM5 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clipRule="evenodd" /></svg>}
                 />
+
+                <div>
+                    <label className="block text-sm font-semibold text-neutral-600 dark:text-neutral-300 mb-1.5">交易所 (DEX)</label>
+                    <div className="mt-2 grid grid-cols-2 gap-3">
+                        <label className={`flex items-center justify-center p-3 rounded-lg cursor-pointer text-sm font-semibold transition-all duration-200 ${dex === 'uniswap' ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700'}`}>
+                            <input
+                                type="radio"
+                                name="dex"
+                                value="uniswap"
+                                checked={dex === 'uniswap'}
+                                onChange={() => handleDexChange('uniswap')}
+                                className="sr-only"
+                            />
+                            <span>Uniswap V3</span>
+                        </label>
+                        <label className={`flex items-center justify-center p-3 rounded-lg cursor-pointer text-sm font-semibold transition-all duration-200 ${dex === 'pancakeswap' ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700'}`}>
+                            <input
+                                type="radio"
+                                name="dex"
+                                value="pancakeswap"
+                                checked={dex === 'pancakeswap'}
+                                onChange={() => handleDexChange('pancakeswap')}
+                                className="sr-only"
+                            />
+                            <span>PancakeSwap V3</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div>
                     <label htmlFor="fee" className="block text-sm font-semibold text-neutral-600 dark:text-neutral-300 mb-1.5">费用等级 (Fee Tier)</label>
@@ -148,39 +186,10 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                         value={fee}
                         onChange={(e) => setFee(Number(e.target.value))}
                     >
-                        <option value={100}>0.01% (适用于稳定币对)</option>
-                        <option value={500}>0.05% (适用于主流币对)</option>
-                        <option value={3000}>0.30% (适用于大多数币对)</option>
-                        <option value={10000}>1.00% (适用于小众币对)</option>
+                        {feeTiers[dex].map(tier => (
+                            <option key={tier.value} value={tier.value}>{tier.label}</option>
+                        ))}
                     </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-semibold text-neutral-600 dark:text-neutral-300 mb-1.5">交易所 (DEX)</label>
-                    <div className="mt-2 grid grid-cols-2 gap-3">
-                        <label className={`flex items-center justify-center p-3 rounded-lg cursor-pointer text-sm font-semibold transition-all duration-200 ${dex === 'uniswap' ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700'}`}>
-                            <input
-                                type="radio"
-                                name="dex"
-                                value="uniswap"
-                                checked={dex === 'uniswap'}
-                                onChange={() => setDex('uniswap')}
-                                className="sr-only"
-                            />
-                            <span>Uniswap V3</span>
-                        </label>
-                        <label className={`flex items-center justify-center p-3 rounded-lg cursor-pointer text-sm font-semibold transition-all duration-200 ${dex === 'pancakeswap' ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700'}`}>
-                            <input
-                                type="radio"
-                                name="dex"
-                                value="pancakeswap"
-                                checked={dex === 'pancakeswap'}
-                                onChange={() => setDex('pancakeswap')}
-                                className="sr-only"
-                            />
-                            <span>PancakeSwap V3</span>
-                        </label>
-                    </div>
                 </div>
             </div>
 
