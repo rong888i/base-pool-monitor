@@ -22,12 +22,21 @@ const PoolCardHeader = ({
     monitorSettingsIconRef,
 }) => {
     const [isCopied, setIsCopied] = useState(false);
+    const [copiedSymbol, setCopiedSymbol] = useState(null);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(pool.address);
         setIsCopied(true);
         setTimeout(() => {
             setIsCopied(false);
+        }, 1500);
+    };
+
+    const handleSymbolCopy = (address, symbol) => {
+        navigator.clipboard.writeText(address);
+        setCopiedSymbol(symbol);
+        setTimeout(() => {
+            setCopiedSymbol(null);
         }, 1500);
     };
 
@@ -48,9 +57,25 @@ const PoolCardHeader = ({
                         <div className="flex-grow min-w-0">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <h3 className="font-semibold text-base text-neutral-800 dark:text-neutral-100 truncate">
+                                    <h3 className="font-semibold text-base text-neutral-800 dark:text-neutral-100 truncate flex items-center">
                                         <span className="mr-1.5">{getStatusIcon()}</span>
-                                        {pool.lpInfo.token0.symbol} / {pool.lpInfo.token1.symbol}
+                                        <span
+                                            className="cursor-pointer hover:text-primary-500 transition-colors"
+                                            onClick={() => handleSymbolCopy(pool.lpInfo.token0.address, 'token0')}
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content={copiedSymbol === 'token0' ? '已复制地址!' : `复制 ${pool.lpInfo.token0.symbol} 地址`}
+                                        >
+                                            {pool.lpInfo.token0.symbol}
+                                        </span>
+                                        <span className="mx-1"> / </span>
+                                        <span
+                                            className="cursor-pointer hover:text-primary-500 transition-colors"
+                                            onClick={() => handleSymbolCopy(pool.lpInfo.token1.address, 'token1')}
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content={copiedSymbol === 'token1' ? '已复制地址!' : `复制 ${pool.lpInfo.token1.symbol} 地址`}
+                                        >
+                                            {pool.lpInfo.token1.symbol}
+                                        </span>
                                     </h3>
                                     <div className="px-1.5 py-0.5 border border-neutral-300 dark:border-neutral-600 rounded-md text-xs text-neutral-500 dark:text-neutral-400 font-medium flex-shrink-0">
                                         {pool.lpInfo.feePercentage}%
