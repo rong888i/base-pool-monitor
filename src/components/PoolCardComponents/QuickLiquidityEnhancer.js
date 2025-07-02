@@ -428,6 +428,21 @@ const QuickLiquidityEnhancer = ({
         }
     }, [isVisible, connected, provider, account, poolInfo, fetchBalances]);
 
+    // 定时刷新余额
+    useEffect(() => {
+        if (!isVisible || !connected || !provider || !account || !poolInfo) return;
+
+        // 立即获取一次余额
+        fetchBalances();
+
+        // 设置定时器，每15秒刷新一次余额
+        const balanceInterval = setInterval(() => {
+            fetchBalances();
+        }, 15000);
+
+        return () => clearInterval(balanceInterval);
+    }, [isVisible, connected, provider, account, poolInfo, fetchBalances]);
+
     if (!isVisible) return null;
 
     // 动画配置
