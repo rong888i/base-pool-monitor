@@ -592,7 +592,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                             }`}>
                                             {nftInfo.isInRange
                                                 ? <>
-                                                    ✅ 价格 ${displayCurrentPrice.toPrecision(6)} 在范围内
+                                                    ✅ 价格 {displayCurrentPrice.toPrecision(6)} 在范围内
                                                 </>
                                                 : (() => {
                                                     // 根据显示方向计算价格偏离百分比
@@ -600,9 +600,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                                     const upperPrice = showReversedPrice ? nftInfo.priceRange.upper : (1 / nftInfo.priceRange.lower);
 
                                                     if (displayCurrentPrice < lowerPrice) {
-                                                        return `⬇️ 价格低于下限 ${(((lowerPrice - displayCurrentPrice) / displayCurrentPrice) * 100).toFixed(3)}%`;
+                                                        return `⬇️ 价格 ${displayCurrentPrice.toPrecision(6)} 低于下限 ${(((lowerPrice - displayCurrentPrice) / displayCurrentPrice) * 100).toFixed(3)}%`;
                                                     } else {
-                                                        return `⬆️ 价格高于上限 ${(((displayCurrentPrice - upperPrice) / upperPrice) * 100).toFixed(3)}%`;
+                                                        return `⬆️ 价格 ${displayCurrentPrice.toPrecision(6)} 高于上限 ${(((displayCurrentPrice - upperPrice) / upperPrice) * 100).toFixed(3)}%`;
                                                     }
                                                 })()
                                             }
