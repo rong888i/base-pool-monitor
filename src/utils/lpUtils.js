@@ -1306,4 +1306,153 @@ export async function findNftPositionsByOwner(ownerAddress) {
   }
 }
 
-export { getLPInfo, getBatchLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo, getAmountsForLiquidity }; 
+/**
+ * 通过NFT ID获取池子地址
+ * @param {string} nftId - NFT ID
+ * @returns {Object} 包含池子地址和NFT ID的对象
+ */
+async function getPoolAddressFromNftId(nftId) {
+  try {
+    console.log(`🔍 正在通过NFT ID获取池子地址: ${nftId}`);
+
+    // 根据NFT ID大小确定优先尝试的协议
+    const nftIdNumber = parseInt(nftId);
+    let protocolOrder;
+
+    if (nftIdNumber > 2500000) {
+      // NFT ID > 2500000，优先尝试PancakeSwap
+      protocolOrder = ['PANCAKESWAP_V3', 'UNISWAP_V3'];
+      console.log(`NFT ID ${nftId} > 2500000，优先尝试 PancakeSwap`);
+    } else {
+      // NFT ID <= 2500000，优先尝试Uniswap  
+      protocolOrder = ['UNISWAP_V3', 'PANCAKESWAP_V3'];
+      console.log(`NFT ID ${nftId} <= 2500000，优先尝试 Uniswap`);
+    }
+
+    // 按照优先级顺序尝试协议
+    for (const protocol of protocolOrder) {
+      const managerAddress = POSITION_MANAGER_ADDRESSES[protocol];
+      try {
+        // 调用positions函数获取NFT信息
+        const response = await fetch(getRpcUrl(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_call',
+            params: [{
+              to: managerAddress,
+              data: encodeFunctionData({
+                abi: POSITION_MANAGER_ABI,
+                functionName: 'positions',
+                args: [BigInt(nftId)]
+              })
+            }, 'latest']
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          console.log(`❌ ${protocol}: ${result.error.message}`);
+          continue;
+        }
+
+        // 解码position数据
+        const positionData = decodeAbiParameters([
+          { type: 'uint96' },   // nonce
+          { type: 'address' },  // operator
+          { type: 'address' },  // token0
+          { type: 'address' },  // token1
+          { type: 'uint24' },   // fee
+          { type: 'int24' },    // tickLower
+          { type: 'int24' },    // tickUpper
+          { type: 'uint128' },  // liquidity
+          { type: 'uint256' },  // feeGrowthInside0LastX128
+          { type: 'uint256' },  // feeGrowthInside1LastX128
+          { type: 'uint128' },  // tokensOwed0
+          { type: 'uint128' }   // tokensOwed1
+        ], result.result);
+
+        const [nonce, operator, token0, token1, fee] = positionData;
+
+        // 检查token地址是否有效（不是零地址）
+        if (token0 === '0x0000000000000000000000000000000000000000' ||
+          token1 === '0x0000000000000000000000000000000000000000') {
+          continue;
+        }
+
+        // 获取对应的工厂地址
+        const factoryAddress = PROTOCOL_FACTORIES[protocol];
+        if (!factoryAddress) {
+          continue;
+        }
+
+        // 通过工厂合约获取池子地址
+        const poolResponse = await fetch(getRpcUrl(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'eth_call',
+            params: [{
+              to: factoryAddress,
+              data: encodeFunctionData({
+                abi: FACTORY_ABI,
+                functionName: 'getPool',
+                args: [token0, token1, fee]
+              })
+            }, 'latest']
+          })
+        });
+
+        const poolResult = await poolResponse.json();
+
+        if (poolResult.error) {
+          console.log(`❌ 获取池子地址失败 (${protocol}): ${poolResult.error.message}`);
+          continue;
+        }
+
+        const poolAddress = decodeAbiParameters([{ type: 'address' }], poolResult.result)[0];
+
+        // 检查池子地址是否有效（不是零地址）
+        if (poolAddress === '0x0000000000000000000000000000000000000000') {
+          continue;
+        }
+
+        console.log(`✅ 找到有效的NFT (${protocol}): 池子地址 ${poolAddress}`);
+
+        return {
+          success: true,
+          poolAddress: poolAddress,
+          nftId: nftId,
+          protocol: protocol,
+          token0: token0,
+          token1: token1,
+          fee: Number(fee)
+        };
+
+      } catch (error) {
+        console.log(`❌ 检查 ${protocol} 时出错: ${error.message}`);
+        continue;
+      }
+    }
+
+    throw new Error('未找到有效的NFT或NFT不存在');
+
+  } catch (error) {
+    console.error('❌ 通过NFT ID获取池子地址时出错:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+export { getLPInfo, getBatchLPInfo, calculatePriceFromSqrtPriceX96, getNFTPositionInfo, getAmountsForLiquidity, getPoolAddressFromNftId }; 

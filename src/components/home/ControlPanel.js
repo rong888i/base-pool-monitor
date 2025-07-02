@@ -79,7 +79,7 @@ export default function ControlPanel({
                     </div>
                     <input
                         type="text"
-                        placeholder="输入BSC网络上V3池子地址..."
+                        placeholder="输入V3池子地址或NFT ID..."
                         value={customAddress}
                         onChange={(e) => onCustomAddressChange(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addPool()}

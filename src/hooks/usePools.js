@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
-import { getLPInfo } from '../utils/lpUtils';
+import { getLPInfo, getPoolAddressFromNftId } from '../utils/lpUtils';
 import { sendBarkNotification, isNFTInRange, getNotificationSettings } from '../utils/notificationUtils';
 import { executeMonitorChecks } from '../utils/monitorUtils';
 
@@ -186,42 +186,107 @@ export function usePools(settings) {
         await Promise.allSettled(promises);
     }, [pools, fetchPoolInfo]);
 
+    // 检查输入是否为NFT ID（纯数字）
+    const isNftId = (input) => {
+        const trimmed = input.trim();
+        return /^\d+$/.test(trimmed) && trimmed.length > 0;
+    };
+
+    // 检查输入是否为地址（以0x开头的42字符）
+    const isAddress = (input) => {
+        const trimmed = input.trim();
+        return /^0x[a-fA-F0-9]{40}$/.test(trimmed);
+    };
+
     // 添加新池子
-    const addPool = useCallback(() => {
+    const addPool = useCallback(async () => {
         if (!customAddress.trim()) return;
-        if (pools.some(pool => pool && pool.address && pool.address.toLowerCase() === customAddress.toLowerCase())) {
-            alert('该池子地址已存在！');
-            return;
+
+        const input = customAddress.trim();
+        let poolAddress = '';
+        let nftId = '';
+
+        try {
+            if (isNftId(input)) {
+                // 输入是NFT ID，需要获取对应的池子地址
+                console.log('检测到NFT ID输入:', input);
+
+                const result = await getPoolAddressFromNftId(input);
+                if (!result.success) {
+                    alert(`获取NFT池子地址失败: ${result.error}`);
+                    return;
+                }
+
+                poolAddress = result.poolAddress;
+                nftId = input;
+                console.log(`NFT ${input} 对应的池子地址: ${poolAddress}`);
+
+            } else if (isAddress(input)) {
+                // 输入是池子地址
+                poolAddress = input;
+                nftId = '';
+
+            } else {
+                alert('请输入有效的V3池子地址（以0x开头的42字符）或NFT ID（纯数字）');
+                return;
+            }
+
+            // 检查池子是否已存在
+            if (pools.some(pool => pool && pool.address && pool.address.toLowerCase() === poolAddress.toLowerCase())) {
+                // 如果池子已存在但是通过NFT ID添加，则更新现有池子的NFT ID
+                if (nftId) {
+                    const existingPool = pools.find(pool => pool.address.toLowerCase() === poolAddress.toLowerCase());
+                    if (existingPool && !existingPool.nftId) {
+                        setPools(prevPools => {
+                            const newPools = prevPools.map(pool =>
+                                pool.uniqueId === existingPool.uniqueId
+                                    ? { ...pool, nftId: nftId }
+                                    : pool
+                            );
+                            savePoolsToStorage(newPools);
+                            return newPools;
+                        });
+                        setCustomAddress('');
+                        alert(`已为现有池子填充NFT ID: ${nftId}`);
+                        return;
+                    }
+                }
+                alert('该池子地址已存在！');
+                return;
+            }
+
+            const uniqueId = generateUniqueId();
+
+            if (cancelledFetches.current.has(uniqueId)) {
+                cancelledFetches.current.delete(uniqueId);
+            }
+
+            const newPool = {
+                address: poolAddress,
+                lpInfo: null,
+                isLoading: true, // 立即设置为loading状态
+                error: null,
+                nftId: nftId,
+                nftInfo: null,
+                isLoadingNft: false,
+                nftError: null,
+                uniqueId: uniqueId
+            };
+
+            // 先更新状态
+            setPools(prevPools => {
+                const newPools = [...prevPools, newPool];
+                savePoolsToStorage(newPools);
+                return newPools;
+            });
+
+            fetchPoolInfo(newPool.address, newPool.uniqueId);
+            setCustomAddress('');
+
+        } catch (error) {
+            console.error('添加池子时出错:', error);
+            alert(`添加失败: ${error.message}`);
         }
-
-        const address = customAddress.trim();
-        const uniqueId = generateUniqueId();
-
-        if (cancelledFetches.current.has(uniqueId)) {
-            cancelledFetches.current.delete(uniqueId);
-        }
-
-        const newPool = {
-            address: address,
-            lpInfo: null,
-            isLoading: true, // 立即设置为loading状态
-            error: null,
-            nftId: '',
-            nftInfo: null,
-            isLoadingNft: false,
-            nftError: null,
-            uniqueId: uniqueId
-        };
-
-        // 先更新状态
-        setPools(prevPools => {
-            const newPools = [...prevPools, newPool];
-            savePoolsToStorage(newPools);
-            return newPools;
-        });
-
-        fetchPoolInfo(newPool.address, newPool.uniqueId);
-        setCustomAddress('');
     }, [customAddress, pools, fetchPoolInfo, savePoolsToStorage]);
 
     // 删除池子
