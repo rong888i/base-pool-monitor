@@ -232,27 +232,28 @@ export function usePools(settings) {
             }
 
             // 检查池子是否已存在
-            if (pools.some(pool => pool && pool.address && pool.address.toLowerCase() === poolAddress.toLowerCase())) {
-                // 如果池子已存在但是通过NFT ID添加，则更新现有池子的NFT ID
+            const existingPool = pools.find(pool => pool && pool.address && pool.address.toLowerCase() === poolAddress.toLowerCase());
+            if (existingPool) {
+                // 如果池子已存在，默认覆盖NFT ID
                 if (nftId) {
-                    const existingPool = pools.find(pool => pool.address.toLowerCase() === poolAddress.toLowerCase());
-                    if (existingPool && !existingPool.nftId) {
-                        setPools(prevPools => {
-                            const newPools = prevPools.map(pool =>
-                                pool.uniqueId === existingPool.uniqueId
-                                    ? { ...pool, nftId: nftId }
-                                    : pool
-                            );
-                            savePoolsToStorage(newPools);
-                            return newPools;
-                        });
-                        setCustomAddress('');
-                        alert(`已为现有池子填充NFT ID: ${nftId}`);
-                        return;
-                    }
+                    setPools(prevPools => {
+                        const newPools = prevPools.map(pool =>
+                            pool.uniqueId === existingPool.uniqueId
+                                ? { ...pool, nftId: nftId, nftInfo: null, isLoadingNft: false, nftError: null }
+                                : pool
+                        );
+                        savePoolsToStorage(newPools);
+                        return newPools;
+                    });
+                    setCustomAddress('');
+                    //alert(`已更新现有池子的NFT ID: ${nftId}`);
+                    return;
+                } else {
+                    // 如果是重复添加相同地址，提示但不阻止
+                    setCustomAddress('');
+                    //alert('该池子地址已存在！');
+                    return;
                 }
-                alert('该池子地址已存在！');
-                return;
             }
 
             const uniqueId = generateUniqueId();
