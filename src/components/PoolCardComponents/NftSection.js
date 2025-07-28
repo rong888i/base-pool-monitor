@@ -372,9 +372,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                             className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto"
                         >
                             <div className="p-1">
-                                <div className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 border-b border-neutral-100 dark:border-neutral-700">
+                                {/* <div className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 border-b border-neutral-100 dark:border-neutral-700">
                                     历史记录
-                                </div>
+                                </div> */}
                                 {nftHistory.map((historyRecord, index) => {
                                     const nftId = typeof historyRecord === 'string' ? historyRecord : historyRecord.id;
                                     const timestamp = typeof historyRecord === 'string' ? Date.now() : historyRecord.timestamp;
