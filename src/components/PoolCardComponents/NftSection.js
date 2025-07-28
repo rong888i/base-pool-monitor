@@ -279,7 +279,28 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                         {/* Position Details */}
                         <div className="bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
+                                    {nftInfo?.owner && (
+                                        <button
+                                            onClick={() => window.open(`https://bscscan.com/address/${nftInfo.owner}`, '_blank')}
+                                            className="flex text-xs font-mono px-2 py-0.5 rounded-full border
+                                                 bg-neutral-50 text-neutral-600 border-neutral-200
+                                                 dark:bg-neutral-800/50 dark:text-neutral-400 dark:border-neutral-600
+                                                 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300
+                                                 dark:hover:bg-primary-900/20 dark:hover:text-primary-300 dark:hover:border-primary-600
+                                                 transition-all duration-200 items-center gap-1
+                                                 hover:scale-[1.02] active:scale-[0.98]"
+                                            data-tooltip-id="my-tooltip"
+                                            data-tooltip-content={`NFT 所有者: ${nftInfo.owner}`}
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                            <span className="hidden md:inline">{nftInfo.owner.slice(-4)}</span>
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                     {/* 快速操作按钮 - 仅当用户是NFT所有者时显示 */}
                                     {isNftOwner() && (
@@ -489,14 +510,35 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 const centerPos = priceToPercentage(centerPrice);
 
                                 const marks = [];
+                                const totalTicks = Math.floor((nftInfo.tickUpper - nftInfo.tickLower) / tickSpacing) + 1;
+                                const maxMarks = 25;
+
+                                // 先收集所有有效的刻度
+                                const allValidMarks = [];
                                 for (let tick = nftInfo.tickLower; tick <= nftInfo.tickUpper; tick += tickSpacing) {
                                     const markPriceRaw = calculatePriceFromTick(tick, pool.lpInfo.token0.decimals, pool.lpInfo.token1.decimals);
                                     const markPrice = showReversedPrice ? markPriceRaw : (1 / markPriceRaw);
                                     if (markPrice >= viewPriceLower && markPrice <= viewPriceUpper) {
-                                        marks.push({
+                                        allValidMarks.push({
+                                            tick,
                                             position: priceToPercentage(markPrice),
                                             price: markPrice,
                                         });
+                                    }
+                                }
+
+                                // 如果有效刻度数量少于等于最大显示数量，显示所有
+                                if (allValidMarks.length <= maxMarks) {
+                                    marks.push(...allValidMarks);
+                                } else {
+                                    // 否则按比例选择刻度显示
+                                    const step = Math.ceil(allValidMarks.length / maxMarks);
+                                    for (let i = 0; i < allValidMarks.length; i += step) {
+                                        marks.push(allValidMarks[i]);
+                                    }
+                                    // 确保最后一个刻度也被包含
+                                    if (marks[marks.length - 1] !== allValidMarks[allValidMarks.length - 1]) {
+                                        marks.push(allValidMarks[allValidMarks.length - 1]);
                                     }
                                 }
 
