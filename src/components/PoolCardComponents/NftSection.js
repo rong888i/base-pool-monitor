@@ -37,29 +37,65 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     // 获取钱包信息
     const { account, connected } = useWallet();
 
+    // 获取当前池子的历史记录键名
+    const getHistoryKey = () => {
+        if (!pool.address) return 'nft-id-history-default';
+        return `nft-id-history-${pool.address.toLowerCase()}`;
+    };
+
     // 初始化历史记录
     useEffect(() => {
-        const savedHistory = localStorage.getItem('nft-id-history');
+        if (!pool.address) return;
+
+        const historyKey = getHistoryKey();
+        const savedHistory = localStorage.getItem(historyKey);
         if (savedHistory) {
             try {
                 const history = JSON.parse(savedHistory);
-                setNftHistory(Array.isArray(history) ? history.slice(0, 5) : []);
+                if (Array.isArray(history)) {
+                    // 兼容旧格式，将字符串转换为对象格式
+                    const formattedHistory = history.map(item => {
+                        if (typeof item === 'string') {
+                            return {
+                                id: item,
+                                timestamp: Date.now() // 为旧记录设置当前时间
+                            };
+                        }
+                        return item;
+                    }).slice(0, 5);
+                    setNftHistory(formattedHistory);
+                } else {
+                    setNftHistory([]);
+                }
             } catch (error) {
                 console.warn('Failed to parse NFT history:', error);
                 setNftHistory([]);
             }
+        } else {
+            setNftHistory([]);
         }
-    }, []);
+    }, [pool.address]);
 
     // 保存NFT ID到历史记录
     const saveToHistory = (nftIdValue) => {
         if (!nftIdValue.trim()) return;
 
+        const newRecord = {
+            id: nftIdValue,
+            timestamp: Date.now()
+        };
+
         setNftHistory(prevHistory => {
-            // 移除重复项并添加到开头
-            const newHistory = [nftIdValue, ...prevHistory.filter(id => id !== nftIdValue)].slice(0, 5);
-            // 保存到localStorage
-            localStorage.setItem('nft-id-history', JSON.stringify(newHistory));
+            // 移除重复的ID并添加到开头
+            const filteredHistory = prevHistory.filter(record => {
+                // 兼容旧格式（字符串）和新格式（对象）
+                const recordId = typeof record === 'string' ? record : record.id;
+                return recordId !== nftIdValue;
+            });
+            const newHistory = [newRecord, ...filteredHistory].slice(0, 5);
+            // 保存到池子专属的localStorage
+            const historyKey = getHistoryKey();
+            localStorage.setItem(historyKey, JSON.stringify(newHistory));
             return newHistory;
         });
     };
@@ -254,14 +290,42 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
         }, 150);
     };
 
+    // 格式化时间显示
+    const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('zh-CN', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    };
+
     // 选择历史记录项
-    const selectHistoryItem = (historyId) => {
-        onNftIdChange(historyId);
+    const selectHistoryItem = (historyRecord) => {
+        const nftId = typeof historyRecord === 'string' ? historyRecord : historyRecord.id;
+        onNftIdChange(nftId);
         setShowHistory(false);
         setIsInputFocused(false);
         if (inputRef.current) {
             inputRef.current.blur();
         }
+    };
+
+    // 删除单个历史记录项
+    const deleteHistoryItem = (historyRecord, event) => {
+        event.stopPropagation(); // 阻止事件冒泡，避免触发选择
+        const targetId = typeof historyRecord === 'string' ? historyRecord : historyRecord.id;
+        setNftHistory(prevHistory => {
+            const newHistory = prevHistory.filter(record => {
+                const recordId = typeof record === 'string' ? record : record.id;
+                return recordId !== targetId;
+            });
+            // 更新池子专属的localStorage
+            const historyKey = getHistoryKey();
+            localStorage.setItem(historyKey, JSON.stringify(newHistory));
+            return newHistory;
+        });
     };
 
     if (!pool.lpInfo) return null;
@@ -311,15 +375,36 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 <div className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 border-b border-neutral-100 dark:border-neutral-700">
                                     历史记录
                                 </div>
-                                {nftHistory.map((historyId, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => selectHistoryItem(historyId)}
-                                        className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors text-neutral-700 dark:text-neutral-300 font-mono"
-                                    >
-                                        {historyId}
-                                    </button>
-                                ))}
+                                {nftHistory.map((historyRecord, index) => {
+                                    const nftId = typeof historyRecord === 'string' ? historyRecord : historyRecord.id;
+                                    const timestamp = typeof historyRecord === 'string' ? Date.now() : historyRecord.timestamp;
+                                    const displayText = `${nftId} (${formatTime(timestamp)})`;
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="group flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors px-2 py-1.5"
+                                        >
+                                            <button
+                                                onClick={() => selectHistoryItem(historyRecord)}
+                                                className="flex-1 text-left text-xs text-neutral-700 dark:text-neutral-300 font-mono truncate"
+                                                title={displayText}
+                                            >
+                                                {displayText}
+                                            </button>
+                                            <button
+                                                onClick={(e) => deleteHistoryItem(historyRecord, e)}
+                                                className="ml-2 p-0.5 text-neutral-400 hover:text-error-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                                data-tooltip-id="my-tooltip"
+                                                data-tooltip-content="删除此记录"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
