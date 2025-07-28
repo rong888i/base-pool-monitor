@@ -21,14 +21,48 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
     const [isQuickRemoverVisible, setIsQuickRemoverVisible] = useState(false);
     const [isQuickEnhancerVisible, setIsQuickEnhancerVisible] = useState(false);
 
+    // 历史记录状态
+    const [nftHistory, setNftHistory] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [isInputFocused, setIsInputFocused] = useState(false);
+
     // Refs for positioning
     const quickRemoverRef = useRef(null);
     const quickEnhancerRef = useRef(null);
     const quickRemoverPopoverRef = useRef(null);
     const quickEnhancerPopoverRef = useRef(null);
+    const inputRef = useRef(null);
+    const historyRef = useRef(null);
 
     // 获取钱包信息
     const { account, connected } = useWallet();
+
+    // 初始化历史记录
+    useEffect(() => {
+        const savedHistory = localStorage.getItem('nft-id-history');
+        if (savedHistory) {
+            try {
+                const history = JSON.parse(savedHistory);
+                setNftHistory(Array.isArray(history) ? history.slice(0, 5) : []);
+            } catch (error) {
+                console.warn('Failed to parse NFT history:', error);
+                setNftHistory([]);
+            }
+        }
+    }, []);
+
+    // 保存NFT ID到历史记录
+    const saveToHistory = (nftIdValue) => {
+        if (!nftIdValue.trim()) return;
+
+        setNftHistory(prevHistory => {
+            // 移除重复项并添加到开头
+            const newHistory = [nftIdValue, ...prevHistory.filter(id => id !== nftIdValue)].slice(0, 5);
+            // 保存到localStorage
+            localStorage.setItem('nft-id-history', JSON.stringify(newHistory));
+            return newHistory;
+        });
+    };
 
     // 获取NFT信息
     const fetchNftInfo = async () => {
@@ -44,6 +78,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 setNftInfo(info);
                 setShowNftPanel(true);
                 setNftError(null);
+                // 查询成功时保存到历史记录
+                saveToHistory(nftId.trim());
                 if (onNftInfoUpdate) {
                     onNftInfoUpdate(info);
                 }
@@ -175,9 +211,9 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
         }
     }, [showQuickEnhancer]);
 
-    // 处理点击外部关闭弹窗
+    // 处理点击外部关闭弹窗和历史记录
     useEffect(() => {
-        if (!showQuickRemover && !showQuickEnhancer) return;
+        if (!showQuickRemover && !showQuickEnhancer && !showHistory) return;
 
         function handleClickOutside(event) {
             if (showQuickRemover && quickRemoverPopoverRef.current && !quickRemoverPopoverRef.current.contains(event.target) &&
@@ -188,13 +224,45 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 quickEnhancerRef.current && !quickEnhancerRef.current.contains(event.target)) {
                 closeQuickEnhancer();
             }
+            if (showHistory && historyRef.current && !historyRef.current.contains(event.target) &&
+                inputRef.current && !inputRef.current.contains(event.target)) {
+                setShowHistory(false);
+                setIsInputFocused(false);
+            }
         }
 
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [showQuickRemover, showQuickEnhancer]);
+    }, [showQuickRemover, showQuickEnhancer, showHistory]);
+
+    // 处理输入框焦点
+    const handleInputFocus = () => {
+        setIsInputFocused(true);
+        if (nftHistory.length > 0) {
+            setShowHistory(true);
+        }
+    };
+
+    const handleInputBlur = () => {
+        // 延迟失焦，以便点击历史记录项
+        setTimeout(() => {
+            if (!showHistory) {
+                setIsInputFocused(false);
+            }
+        }, 150);
+    };
+
+    // 选择历史记录项
+    const selectHistoryItem = (historyId) => {
+        onNftIdChange(historyId);
+        setShowHistory(false);
+        setIsInputFocused(false);
+        if (inputRef.current) {
+            inputRef.current.blur();
+        }
+    };
 
     if (!pool.lpInfo) return null;
 
@@ -209,25 +277,53 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                 )}
             </div>
             <div className="flex gap-2 mb-1.5 relative">
-                <input
-                    type="text"
-                    placeholder="输入NFT ID"
-                    value={nftId}
-                    onChange={(e) => onNftIdChange(e.target.value)}
-                    className="input-primary flex-1 text-xs pr-8"
-                />
-                {nftId && (
-                    <button
-                        onClick={clearNftInfo}
-                        className="absolute right-[calc(4rem+1rem)] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full"
-                        data-tooltip-id="my-tooltip"
-                        data-tooltip-content="清除"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
-                )}
+                <div className="relative flex-1">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder="输入NFT ID"
+                        value={nftId}
+                        onChange={(e) => onNftIdChange(e.target.value)}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
+                        className="input-primary w-full text-xs pr-8"
+                    />
+                    {nftId && (
+                        <button
+                            onClick={clearNftInfo}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-error-500 transition-colors p-1 rounded-full"
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content="清除"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                    )}
+
+                    {/* 历史记录下拉列表 */}
+                    {showHistory && nftHistory.length > 0 && (
+                        <div
+                            ref={historyRef}
+                            className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto"
+                        >
+                            <div className="p-1">
+                                <div className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 border-b border-neutral-100 dark:border-neutral-700">
+                                    历史记录
+                                </div>
+                                {nftHistory.map((historyId, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => selectHistoryItem(historyId)}
+                                        className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded transition-colors text-neutral-700 dark:text-neutral-300 font-mono"
+                                    >
+                                        {historyId}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
                 <button
                     onClick={fetchNftInfo}
                     disabled={!nftId.trim() || isLoadingNft}
