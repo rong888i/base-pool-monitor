@@ -15,6 +15,15 @@ const ERC20_ABI = [
     "function name() view returns (string)"
 ];
 
+// ERC721 NFT ABI (用于授权检查)
+const ERC721_ABI = [
+    "function isApprovedForAll(address owner, address operator) view returns (bool)",
+    "function setApprovalForAll(address operator, bool approved)",
+    "function getApproved(uint256 tokenId) view returns (address)",
+    "function approve(address to, uint256 tokenId)",
+    "function ownerOf(uint256 tokenId) view returns (address)"
+];
+
 // Uniswap V3 NonfungiblePositionManager ABI (部分)
 const POSITION_MANAGER_ABI = [
     {
@@ -91,6 +100,54 @@ export const approveToken = async (tokenAddress, spenderAddress, amount, signer)
         return tx;
     } catch (error) {
         console.error('授权失败:', error);
+        throw error;
+    }
+};
+
+// 检查NFT是否已授权给指定操作员
+export const checkNFTApproval = async (nftContractAddress, ownerAddress, operatorAddress, provider) => {
+    try {
+        const nftContract = new ethers.Contract(nftContractAddress, ERC721_ABI, provider);
+        const isApproved = await nftContract.isApprovedForAll(ownerAddress, operatorAddress);
+        return isApproved;
+    } catch (error) {
+        console.error('检查NFT授权失败:', error);
+        throw error;
+    }
+};
+
+// 检查单个NFT是否已授权给指定地址
+export const checkNFTTokenApproval = async (nftContractAddress, tokenId, operatorAddress, provider) => {
+    try {
+        const nftContract = new ethers.Contract(nftContractAddress, ERC721_ABI, provider);
+        const approvedAddress = await nftContract.getApproved(tokenId);
+        return approvedAddress.toLowerCase() === operatorAddress.toLowerCase();
+    } catch (error) {
+        console.error('检查NFT单个授权失败:', error);
+        throw error;
+    }
+};
+
+// 授权NFT给指定操作员（全部授权）
+export const approveNFTForAll = async (nftContractAddress, operatorAddress, signer) => {
+    try {
+        const nftContract = new ethers.Contract(nftContractAddress, ERC721_ABI, signer);
+        const tx = await nftContract.setApprovalForAll(operatorAddress, true);
+        return tx;
+    } catch (error) {
+        console.error('NFT授权失败:', error);
+        throw error;
+    }
+};
+
+// 授权单个NFT给指定地址
+export const approveNFTToken = async (nftContractAddress, tokenId, operatorAddress, signer) => {
+    try {
+        const nftContract = new ethers.Contract(nftContractAddress, ERC721_ABI, signer);
+        const tx = await nftContract.approve(operatorAddress, tokenId);
+        return tx;
+    } catch (error) {
+        console.error('NFT单个授权失败:', error);
         throw error;
     }
 };

@@ -277,8 +277,8 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                                 let value = parseFloat(e.target.value);
                                                 if (isNaN(value) || value < 0) {
                                                     value = 1;
-                                                } else if (value > 50) {
-                                                    value = 50;
+                                                } else if (value >= 100) {
+                                                    value = 99;
                                                 }
                                                 // 格式化为一位小数
                                                 setSettings(prev => ({ ...prev, defaultSlippage: value.toFixed(1) }));
@@ -288,7 +288,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                         />
                                     </div>
                                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        设置一键添加流动性、快速移除流动性、快速增加流动性的默认滑点容限1-50。
+                                        设置一键添加流动性、快速移除流动性、快速增加流动性的默认滑点容限1-99。
                                     </p>
                                 </div>
                             </div>

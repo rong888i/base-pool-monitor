@@ -12,7 +12,11 @@ import {
     formatTokenAmount,
     decreaseLiquidity,
     collectFromPosition,
-    decreaseLiquidityAndCollect
+    decreaseLiquidityAndCollect,
+    checkNFTApproval,
+    checkNFTTokenApproval,
+    approveNFTForAll,
+    approveNFTToken
 } from '@/utils/web3Utils';
 import useIsMobile from '../../hooks/useIsMobile';
 import { getDefaultSlippage } from '../../utils/settingsUtils';
@@ -42,6 +46,9 @@ const QuickLiquidityRemover = ({
     const [result, setResult] = useState(null);
     const [transactionHash, setTransactionHash] = useState('');
     const [isClosing, setIsClosing] = useState(false);
+    const [nftNeedsApproval, setNftNeedsApproval] = useState(false);
+    const [isApprovingNFT, setIsApprovingNFT] = useState(false);
+    const [isCheckingApproval, setIsCheckingApproval] = useState(false);
     const isMobile = useIsMobile();
 
     // 处理关闭动画
@@ -59,8 +66,127 @@ const QuickLiquidityRemover = ({
             setRemovePercentage(100);
             setError('');
             setResult(null);
+            setNftNeedsApproval(false);
         }
     }, [isVisible]);
+
+    // 获取Position Manager地址的辅助函数
+    const getPositionManagerAddress = (protocolName, chainId) => {
+        const contracts = {
+            // BSC (Binance Smart Chain)
+            56: {
+                PANCAKESWAP_V3_POSITION_MANAGER: "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364",
+                UNISWAP_V3_POSITION_MANAGER: "0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613",
+            },
+            // Ethereum Mainnet
+            1: {
+                UNISWAP_V3_POSITION_MANAGER: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+            }
+        };
+
+        const networkContracts = contracts[chainId];
+        if (!networkContracts) {
+            throw new Error(`不支持的网络: ${chainId}`);
+        }
+
+        if (protocolName?.toLowerCase().includes('pancake')) {
+            return networkContracts.PANCAKESWAP_V3_POSITION_MANAGER;
+        } else {
+            return networkContracts.UNISWAP_V3_POSITION_MANAGER;
+        }
+    };
+
+    // 检查NFT授权状态
+    const checkNFTApprovalStatus = useCallback(async () => {
+        if (!connected || !provider || !account || !nftInfo?.nftId || !poolInfo.protocol?.name) {
+            return;
+        }
+
+        try {
+            setIsCheckingApproval(true);
+            setError('');
+
+            const positionManagerAddress = getPositionManagerAddress(poolInfo.protocol.name, chainId);
+
+            // 检查用户是否已经授权Position Manager操作所有NFT
+            const isApprovedForAll = await checkNFTApproval(
+                positionManagerAddress, // NFT合约地址就是Position Manager
+                account,               // NFT所有者
+                positionManagerAddress, // 被授权的操作员
+                provider
+            );
+
+            if (isApprovedForAll) {
+                setNftNeedsApproval(false);
+                return;
+            }
+
+            // 如果没有全局授权，检查单个NFT授权
+            const isTokenApproved = await checkNFTTokenApproval(
+                positionManagerAddress, // NFT合约地址
+                nftInfo.nftId,         // NFT ID
+                positionManagerAddress, // 被授权的地址
+                provider
+            );
+
+            setNftNeedsApproval(!isTokenApproved);
+
+        } catch (error) {
+            console.error('检查NFT授权状态失败:', error);
+            // 如果检查失败，为了安全起见，假设需要授权
+            setNftNeedsApproval(true);
+        } finally {
+            setIsCheckingApproval(false);
+        }
+    }, [connected, provider, account, nftInfo?.nftId, poolInfo.protocol?.name, chainId]);
+
+    // 当钱包连接状态或NFT信息变化时检查授权状态
+    useEffect(() => {
+        if (isVisible && connected && nftInfo?.nftId) {
+            checkNFTApprovalStatus();
+        }
+    }, [isVisible, connected, nftInfo?.nftId, checkNFTApprovalStatus]);
+
+    // 处理NFT授权
+    const handleNFTApproval = async () => {
+        if (!connected || !signer || !nftInfo?.nftId || !poolInfo.protocol?.name) {
+            setError('钱包连接异常或缺少必要信息');
+            return;
+        }
+
+        try {
+            setIsApprovingNFT(true);
+            setError('');
+
+            const positionManagerAddress = getPositionManagerAddress(poolInfo.protocol.name, chainId);
+
+            // 使用全局授权，这样用户不需要为每个NFT单独授权
+            const tx = await approveNFTForAll(positionManagerAddress, positionManagerAddress, signer);
+
+            console.log('NFT授权交易已发送:', tx.hash);
+
+            // 等待交易确认
+            const receipt = await tx.wait();
+            console.log('NFT授权交易确认:', receipt);
+
+            // 重新检查授权状态
+            await checkNFTApprovalStatus();
+
+        } catch (error) {
+            console.error('NFT授权失败:', error);
+
+            let errorMessage = 'NFT授权失败';
+            if (error.code === 4001) {
+                errorMessage = '用户取消授权';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            setError(errorMessage);
+        } finally {
+            setIsApprovingNFT(false);
+        }
+    };
 
     // 移除流动性
     const handleRemoveLiquidity = async () => {
@@ -76,6 +202,12 @@ const QuickLiquidityRemover = ({
 
         if (!nftInfo || !nftInfo.nftId) {
             setError('NFT信息无效');
+            return;
+        }
+
+        // 检查NFT授权状态
+        if (nftNeedsApproval) {
+            setError('请先授权NFT才能移除流动性');
             return;
         }
 
@@ -366,6 +498,66 @@ const QuickLiquidityRemover = ({
                                             </div> */}
                                         </div>
 
+                                        {/* NFT授权部分 */}
+                                        {isCheckingApproval && (
+                                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                                                <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                    检查NFT授权状态...
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {nftNeedsApproval && !isCheckingApproval && (
+                                            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                                                        <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-2">
+                                                            需要NFT授权
+                                                        </div>
+                                                        <div className="text-xs text-orange-700 dark:text-orange-400 mb-3">
+                                                            您需要授权Position Manager合约操作您的NFT才能移除流动性
+                                                        </div>
+                                                        <button
+                                                            onClick={handleNFTApproval}
+                                                            disabled={isApprovingNFT}
+                                                            className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                        >
+                                                            {isApprovingNFT ? (
+                                                                <>
+                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                                    授权中...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    授权NFT
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!nftNeedsApproval && !isCheckingApproval && connected && (
+                                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    NFT已授权，可以移除流动性
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* 滑点设置 */}
                                         <div className="flex justify-between items-center bg-neutral-100/80 dark:bg-neutral-800/60 p-2.5 pr-3 rounded-lg">
                                             <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300 ml-1">滑点容限</label>
@@ -463,7 +655,7 @@ const QuickLiquidityRemover = ({
                                         {/* 移除按钮 */}
                                         <button
                                             onClick={handleRemoveLiquidity}
-                                            disabled={isRemoving || removePercentage <= 0}
+                                            disabled={isRemoving || removePercentage <= 0 || nftNeedsApproval || isCheckingApproval || isApprovingNFT}
                                             className="w-full bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 
                                                 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl 
                                                 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl
@@ -473,6 +665,18 @@ const QuickLiquidityRemover = ({
                                                 <>
                                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                     移除中...
+                                                </>
+                                            ) : nftNeedsApproval ? (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                    请先授权NFT
+                                                </>
+                                            ) : isCheckingApproval ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                    检查授权中...
                                                 </>
                                             ) : (
                                                 <>
@@ -514,7 +718,7 @@ const QuickLiquidityRemover = ({
                                         )}
 
                                         {/* 风险提示 */}
-                                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700/50">
+                                        {/* <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700/50">
                                             <div className="flex items-start gap-3">
                                                 <div className="flex-shrink-0 w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                                                     <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -531,7 +735,7 @@ const QuickLiquidityRemover = ({
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </>
                                 )}
                             </div>
