@@ -652,7 +652,7 @@ const QuickLiquidityEnhancer = ({
                                                         }
                                                         const numValue = parseFloat(value);
                                                         if (!isNaN(numValue) && numValue >= 0) {
-                                                            setSlippage(numValue > 50 ? 50 : numValue);
+                                                            setSlippage(numValue => 100 ? 99 : numValue);
                                                         }
                                                     }}
                                                     onBlur={(e) => {

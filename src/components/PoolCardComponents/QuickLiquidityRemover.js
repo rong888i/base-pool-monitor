@@ -547,7 +547,7 @@ const QuickLiquidityRemover = ({
                                             </div>
                                         )}
 
-                                        {!nftNeedsApproval && !isCheckingApproval && connected && (
+                                        {/* {!nftNeedsApproval && !isCheckingApproval && connected && (
                                             <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
                                                 <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -556,7 +556,7 @@ const QuickLiquidityRemover = ({
                                                     NFT已授权，可以移除流动性
                                                 </div>
                                             </div>
-                                        )}
+                                        )} */}
 
                                         {/* 滑点设置 */}
                                         <div className="flex justify-between items-center bg-neutral-100/80 dark:bg-neutral-800/60 p-2.5 pr-3 rounded-lg">
@@ -576,7 +576,7 @@ const QuickLiquidityRemover = ({
                                                         }
                                                         const numValue = parseFloat(value);
                                                         if (!isNaN(numValue) && numValue >= 0) {
-                                                            setSlippage(numValue > 50 ? 50 : numValue);
+                                                            setSlippage(numValue => 100 ? 99 : numValue);
                                                         }
                                                     }}
                                                     onBlur={(e) => {
