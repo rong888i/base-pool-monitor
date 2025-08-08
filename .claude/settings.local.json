@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint -- src/components/sidebar/PoolCalculatorSection.js)"
+    ],
+    "deny": []
+  }
+}

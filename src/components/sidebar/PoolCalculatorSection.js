@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ethers, getAddress, Contract } from 'ethers';
+import { useWallet } from '../../providers/WalletProvider';
 
 const feeTiers = {
     uniswap: [
@@ -62,6 +63,10 @@ const PoolCalculatorSection = ({ onAddPool }) => {
     const [poolAddress, setPoolAddress] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [showCreateButton, setShowCreateButton] = useState(false);
+
+    const { signer, connected } = useWallet();
 
     const commonTokens = {
         'WBNB': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
@@ -84,7 +89,8 @@ const PoolCalculatorSection = ({ onAddPool }) => {
     };
 
     const V3_FACTORY_ABI = [
-        'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)'
+        'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)',
+        'function createPool(address tokenA, address tokenB, uint24 fee) external returns (address pool)'
     ];
 
     const calculatePoolAddress = async () => {
@@ -117,14 +123,66 @@ const PoolCalculatorSection = ({ onAddPool }) => {
             if (fetchedPoolAddress === '0x0000000000000000000000000000000000000000') {
                 setError('未找到该组合的池子');
                 setPoolAddress('');
+                setShowCreateButton(true);
             } else {
                 setPoolAddress(fetchedPoolAddress);
+                setShowCreateButton(false);
             }
         } catch (e) {
             setError('地址无效或RPC出错');
             console.error(e);
+            setShowCreateButton(false);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const createPool = async () => {
+        if (!connected || !signer) {
+            setError('请先连接钱包');
+            return;
+        }
+
+        setIsCreating(true);
+        setError('');
+
+        try {
+            const tokenA = getAddress(token0);
+            const tokenB = getAddress(token1);
+
+            const factoryAddress = factoryAddresses[dex];
+            const factoryContract = new Contract(factoryAddress, V3_FACTORY_ABI, signer);
+
+            console.log('Creating pool with tokens:', tokenA, tokenB, 'fee:', fee);
+            
+            const tx = await factoryContract.createPool(tokenA, tokenB, fee);
+            console.log('Transaction sent:', tx.hash);
+            
+            setError(`交易已发送: ${tx.hash}`);
+            
+            const receipt = await tx.wait();
+            console.log('Transaction confirmed:', receipt);
+            
+            if (receipt.status === 1) {
+                // 池子创建成功，重新查询池地址
+                await calculatePoolAddress();
+                setShowCreateButton(false);
+                setError('');
+            } else {
+                setError('交易失败');
+            }
+        } catch (e) {
+            console.error('Create pool error:', e);
+            if (e.code === 'ACTION_REJECTED') {
+                setError('用户取消了交易');
+            } else if (e.message.includes('already exists')) {
+                setError('池子已存在，请重新查询');
+                await calculatePoolAddress();
+            } else {
+                setError(`创建失败: ${e.message || '未知错误'}`);
+            }
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -222,6 +280,47 @@ const PoolCalculatorSection = ({ onAddPool }) => {
             </button>
 
             {error && <p className="text-red-500 text-sm text-center font-semibold animate-shake">{error}</p>}
+
+            {showCreateButton && !poolAddress && (
+                <div className="p-4 bg-orange-50 dark:bg-orange-900/40 rounded-lg animate-in fade-in duration-500">
+                    <p className="text-sm font-semibold text-orange-800 dark:text-orange-200 mb-3">
+                        池子尚未创建，您可以创建新的流动性池
+                    </p>
+                    {!connected ? (
+                        <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
+                            请先连接钱包以创建池子
+                        </p>
+                    ) : (
+                        <button
+                            onClick={createPool}
+                            disabled={isCreating}
+                            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
+                                     disabled:from-neutral-300 disabled:to-neutral-400 dark:disabled:from-neutral-600 dark:disabled:to-neutral-700
+                                     text-white font-semibold py-2.5 px-4 rounded-lg 
+                                     disabled:opacity-70 disabled:cursor-not-allowed 
+                                     hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]
+                                     transition-all duration-200 text-sm flex items-center justify-center gap-2 group"
+                        >
+                            {isCreating ? (
+                                <>
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>创建中...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4 -ml-1 group-hover:scale-110 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                                    </svg>
+                                    <span>一键创建池子</span>
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+            )}
 
             {poolAddress && (
                 <div className="p-4 bg-green-50 dark:bg-green-900/40 rounded-lg animate-in fade-in duration-500">
