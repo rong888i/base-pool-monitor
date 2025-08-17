@@ -40,7 +40,9 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         notificationInterval: 1, // 新增：通用通知间隔，单位分钟
         enableDesktopNotification: false, // 修改：是否启用桌面通知
         rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79', // 添加默认RPC URL
-        defaultSlippage: 1.0 // 默认滑点设置
+        defaultSlippage: 1.0, // 默认滑点设置
+        wssUrl: '', // 新增：WSS节点地址
+        enableLogs: false // 新增：是否启用控制台日志
     });
 
     // 添加动画状态
@@ -192,6 +194,80 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
                                         </a>
                                         {' '}申请免费BSC节点
                                     </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                        WSS 节点
+                                    </label>
+                                    <div className="flex space-x-2">
+                                        <input
+                                            type="text"
+                                            value={settings.wssUrl || ''}
+                                            onChange={(e) => setSettings(prev => ({ ...prev, wssUrl: e.target.value }))}
+                                            placeholder="输入WSS节点地址"
+                                            className="flex-1 px-3 py-2 bg-white dark:bg-neutral-600 border border-neutral-200 dark:border-neutral-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                                        />
+                                        <button
+                                            onClick={async () => {
+                                                if (!settings.wssUrl?.trim()) {
+                                                    alert('请先输入WSS节点地址');
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const ws = new WebSocket(settings.wssUrl.trim());
+                                                    const timeout = setTimeout(() => {
+                                                        ws.close();
+                                                        alert('连接超时，请检查WSS节点地址');
+                                                    }, 5000);
+
+                                                    ws.onopen = () => {
+                                                        clearTimeout(timeout);
+                                                        ws.close();
+                                                        alert('✅ WSS节点连接成功！');
+                                                    };
+
+                                                    ws.onerror = () => {
+                                                        clearTimeout(timeout);
+                                                        alert('❌ WSS节点连接失败，请检查地址是否正确');
+                                                    };
+                                                } catch (error) {
+                                                    alert('❌ 连接测试失败：' + error.message);
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                            title="测试WSS连接"
+                                        >
+                                            测试
+                                        </button>
+                                    </div>
+                                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        设置BSC网络的WebSocket节点地址，用于实时监控交易事件。
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                        调试选项
+                                    </label>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center space-x-3">
+                                            <input
+                                                type="checkbox"
+                                                id="enableLogs"
+                                                checked={settings.enableLogs || false}
+                                                onChange={(e) => setSettings(prev => ({ ...prev, enableLogs: e.target.checked }))}
+                                                className="w-4 h-4 text-blue-600 bg-neutral-100 border-neutral-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-neutral-800 focus:ring-2 dark:bg-neutral-700 dark:border-neutral-600"
+                                            />
+                                            <label htmlFor="enableLogs" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                                启用控制台日志
+                                            </label>
+                                        </div>
+                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                            在生产环境中启用此选项可以显示调试信息。建议仅在需要调试时启用。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

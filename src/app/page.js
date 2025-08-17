@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import Sidebar from '../components/Sidebar';
+import RightSidebar from '../components/RightSidebar';
 import Settings from '../components/Settings';
 import ControlPanel from '../components/home/ControlPanel';
 import PoolList from '../components/home/PoolList';
@@ -43,6 +44,8 @@ export default function Home() {
         pools={pools}
         onToggle={setIsSidebarOpen}
       />
+
+      <RightSidebar settings={settings} />
 
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-3 py-4 min-h-full flex flex-col">

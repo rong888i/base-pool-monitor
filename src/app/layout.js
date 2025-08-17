@@ -4,6 +4,7 @@ import { WalletProvider } from "@/providers/WalletProvider";
 import MyTooltip from "@/components/MyTooltip";
 import "react-tooltip/dist/react-tooltip.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import "@/utils/logger"; // 导入日志管理工具，在生产环境中自动屏蔽console.log
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
