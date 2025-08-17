@@ -1,0 +1,11 @@
+{
+    "env": {
+        "NODE_ENV": "production",
+        "VERCEL": "1"
+    },
+    "build": {
+        "env": {
+            "NODE_ENV": "production"
+        }
+    }
+}

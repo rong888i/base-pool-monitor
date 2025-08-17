@@ -1,103 +1,76 @@
 // 日志管理工具
-// 在开发环境中正常显示日志，在生产环境中自动屏蔽
-// 支持用户手动控制是否启用日志
+// 在开发环境显示所有日志，在生产环境屏蔽日志
 
+// 检测当前环境
 const isDevelopment = process.env.NODE_ENV === 'development';
-const isProduction = process.env.NODE_ENV === 'production';
+const isVercel = process.env.VERCEL === '1';
+const isProduction = process.env.NODE_ENV === 'production' || isVercel;
 
-// 从localStorage获取用户设置
-const getUserLogSetting = () => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-        return settings.enableLogs;
-    } catch (e) {
-        return null;
+// 日志级别配置
+const LOG_LEVELS = {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4
+};
+
+// 获取当前日志级别
+const getLogLevel = () => {
+    if (isProduction) {
+        // 生产环境只显示错误和警告
+        return LOG_LEVELS.WARN;
     }
+    // 开发环境显示所有日志
+    return LOG_LEVELS.DEBUG;
 };
 
-// 保存原始的console方法
-const originalConsole = {
-    log: console.log,
-    warn: console.warn,
-    error: console.error,
-    info: console.info,
-    debug: console.debug
-};
+const currentLogLevel = getLogLevel();
 
-// 生产环境下的空函数
-const noop = () => { };
-
-// 根据环境和用户设置配置console方法
-const configureConsole = () => {
-    const userSetting = getUserLogSetting();
-
-    if (isProduction && userSetting !== true) {
-        // 生产环境且用户未明确启用：屏蔽所有console方法
-        console.log = noop;
-        console.warn = noop;
-        console.info = noop;
-        console.debug = noop;
-        // 保留error，因为错误日志在生产环境中仍然重要
-        // console.error = noop;
-    } else if (isDevelopment || userSetting === true) {
-        // 开发环境或用户明确启用：保持原始功能
-        console.log = originalConsole.log;
-        console.warn = originalConsole.warn;
-        console.error = originalConsole.error;
-        console.info = originalConsole.info;
-        console.debug = originalConsole.debug;
-    }
-};
-
-// 初始化时配置console
-configureConsole();
-
-// 导出一个统一的日志接口
+// 日志函数
 export const logger = {
-    log: (...args) => {
-        if (isDevelopment || getUserLogSetting() === true) {
-            originalConsole.log(...args);
-        }
-    },
-    warn: (...args) => {
-        if (isDevelopment || getUserLogSetting() === true) {
-            originalConsole.warn(...args);
-        }
-    },
-    error: (...args) => {
-        // 错误日志在所有环境中都显示
-        originalConsole.error(...args);
-    },
-    info: (...args) => {
-        if (isDevelopment || getUserLogSetting() === true) {
-            originalConsole.info(...args);
-        }
-    },
     debug: (...args) => {
-        if (isDevelopment || getUserLogSetting() === true) {
-            originalConsole.debug(...args);
+        if (currentLogLevel <= LOG_LEVELS.DEBUG) {
+            console.log('[DEBUG]', ...args);
         }
-    }
+    },
+
+    info: (...args) => {
+        if (currentLogLevel <= LOG_LEVELS.INFO) {
+            console.log('[INFO]', ...args);
+        }
+    },
+
+    warn: (...args) => {
+        if (currentLogLevel <= LOG_LEVELS.WARN) {
+            console.warn('[WARN]', ...args);
+        }
+    },
+
+    error: (...args) => {
+        if (currentLogLevel <= LOG_LEVELS.ERROR) {
+            console.error('[ERROR]', ...args);
+        }
+    },
+
+    // 强制显示日志（不受环境限制）
+    force: (...args) => {
+        console.log('[FORCE]', ...args);
+    },
+
+    // 获取当前环境信息
+    getEnvironment: () => ({
+        isDevelopment,
+        isVercel,
+        isProduction,
+        logLevel: currentLogLevel
+    })
 };
 
 // 导出环境检测函数
-export const isDev = () => isDevelopment;
-export const isProd = () => isProduction;
+export const isDev = isDevelopment;
+export const isProd = isProduction;
+export const isVercelEnv = isVercel;
 
-// 导出原始console方法（如果需要的话）
-export const originalConsoleMethods = originalConsole;
-
-// 导出重新配置函数（当用户设置改变时调用）
-export const reconfigureLogger = () => {
-    configureConsole();
-};
-
-// 监听设置变化
-if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'poolMonitorSettings') {
-            reconfigureLogger();
-        }
-    });
-} 
+// 导出日志级别常量
+export { LOG_LEVELS }; 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IoStatsChart, IoClose, IoExpand, IoContract, IoRefresh } from 'react-icons/io5';
 import { useVolumeMonitor } from '../hooks/useVolumeMonitor';
 import PoolList from './PoolList';
+import { logger } from '../utils/logger';
 
 const RightSidebar = ({ settings = {} }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -52,7 +53,7 @@ const RightSidebar = ({ settings = {} }) => {
     });
 
     // 调试信息：显示池子数量和过滤状态
-    console.log('池子监控调试信息:', {
+    logger.debug('池子监控调试信息:', {
         totalPools: pools.length,
         filteredPools: filteredPools.length,
         excludeLowFeePools,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 
 export function useSettings() {
     const [settings, setSettings] = useState({
@@ -7,7 +8,6 @@ export function useSettings() {
         defaultSlippage: 1.0,
         rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
         wssUrl: '', // 新增：WSS节点地址
-        enableLogs: false, // 新增：是否启用控制台日志
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -28,7 +28,7 @@ export function useSettings() {
             setSettings(currentSettings => {
                 const updatedSettings = { ...currentSettings, ...newSettings };
                 localStorage.setItem('poolMonitorSettings', JSON.stringify(updatedSettings));
-                console.log('Settings updated:', updatedSettings);
+                logger.info('Settings updated:', updatedSettings);
                 return updatedSettings;
             });
         }

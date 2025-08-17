@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { formatVolume, formatAddress } from '../utils/volumeMonitorUtils';
+import { logger } from '../utils/logger';
 
 const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isCompact = false }) => {
     const [copiedStates, setCopiedStates] = useState({});
@@ -22,7 +23,7 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                 }));
             }, 2000);
         } catch (err) {
-            console.error('复制失败:', err);
+            logger.error('复制失败:', err);
         }
     };
 
