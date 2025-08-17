@@ -15,6 +15,7 @@ import { usePools } from '../hooks/usePools';
 
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const {
     settings,
     isSettingsOpen,
@@ -46,8 +47,6 @@ export default function Home() {
         onToggle={setIsSidebarOpen}
       />
 
-      <RightSidebar settings={settings} />
-
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-3 py-4 min-h-full flex flex-col">
           <ControlPanel
@@ -76,6 +75,12 @@ export default function Home() {
           <Footer />
         </div>
       </main>
+
+      <RightSidebar
+        settings={settings}
+        isOpen={isRightSidebarOpen}
+        onToggle={setIsRightSidebarOpen}
+      />
 
       <Settings
         isOpen={isSettingsOpen}

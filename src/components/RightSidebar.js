@@ -7,8 +7,7 @@ import { useVolumeMonitor } from '../hooks/useVolumeMonitor';
 import PoolList from './PoolList';
 import { logger } from '../utils/logger';
 
-const RightSidebar = ({ settings = {} }) => {
-    const [isCollapsed, setIsCollapsed] = useState(true);
+const RightSidebar = ({ settings = {}, isOpen, onToggle }) => {
     const [openSection, setOpenSection] = useState('monitor'); // 'monitor' or 'stats'
     const [excludeLowFeePools, setExcludeLowFeePools] = useState(true); // 新增：是否排除0.01%池子
 
@@ -27,7 +26,9 @@ const RightSidebar = ({ settings = {} }) => {
 
     // 处理侧边栏切换
     const handleToggle = () => {
-        setIsCollapsed(!isCollapsed);
+        if (onToggle) {
+            onToggle(!isOpen);
+        }
     };
 
     // 处理连接/断开
@@ -74,7 +75,7 @@ const RightSidebar = ({ settings = {} }) => {
     });
 
     return (
-        <div className={`fixed right-0 top-0 h-full z-40 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-0' : 'w-96'}`}>
+        <div className={`${isOpen ? 'w-96' : 'w-0'} bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
@@ -84,21 +85,21 @@ const RightSidebar = ({ settings = {} }) => {
                 shadow-md hover:shadow-lg
                 hover:bg-white/90 dark:hover:bg-neutral-800
                 transition-all duration-300
-                ${isCollapsed
-                        ? 'right-2'
-                        : 'sm:right-[23rem] right-[calc(100%-3.25rem)]'
+                ${isOpen
+                        ? 'right-[23rem]'
+                        : 'right-2'
                     }`}
-                aria-label={isCollapsed ? "展开右侧栏" : "收起右侧栏"}
+                aria-label={isOpen ? "收起右侧栏" : "展开右侧栏"}
             >
                 <svg
-                    className={`w-6 h-6 text-neutral-600 dark:text-neutral-300 transition-transform duration-300 ${!isCollapsed ? 'rotate-180' : ''}`}
+                    className={`w-6 h-6 text-neutral-600 dark:text-neutral-300 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
 
             {/* 内容区域 */}
-            <div className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`h-full transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 {/* 头部 */}
                 <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800">
                     <div className="flex items-center space-x-3">
