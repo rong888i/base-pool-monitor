@@ -44,6 +44,7 @@ export const useVolumeMonitor = (settings = {}) => {
     const poolsDataRef = useRef(new Map());
     const reconnectTimeoutRef = useRef(null);
     const reconnectAttemptsRef = useRef(0);
+    const userDisconnectedRef = useRef(false); // 新增：用户主动断开标志
 
     // 初始化池子数据（使用真实的区块链数据）
     const initializePool = useCallback(async (poolAddress, protocol) => {
@@ -59,7 +60,7 @@ export const useVolumeMonitor = (settings = {}) => {
             logger.info(`正在初始化池子: ${poolAddress} (${protocol})`);
 
             // 获取池子基本信息（通过合约调用）
-            const poolInfo = await getPoolBasicInfo(poolAddress);
+            const poolInfo = await getPoolBasicInfo(poolAddress, settings.rpcUrl);
 
             // 如果获取失败或不是常用代币池子，跳过
             if (!poolInfo) {
@@ -75,8 +76,8 @@ export const useVolumeMonitor = (settings = {}) => {
 
             // 获取代币信息
             const [token0Info, token1Info] = await Promise.all([
-                getTokenInfo(poolInfo.token0),
-                getTokenInfo(poolInfo.token1)
+                getTokenInfo(poolInfo.token0, settings.rpcUrl),
+                getTokenInfo(poolInfo.token1, settings.rpcUrl)
             ]);
 
             // 初始化交易量数据
@@ -104,7 +105,7 @@ export const useVolumeMonitor = (settings = {}) => {
         } catch (error) {
             logger.error(`初始化池子失败 ${poolAddress}:`, error);
         }
-    }, []);
+    }, [settings.rpcUrl]);
 
     // 添加交易记录（使用USD交易量计算）
     const addTransaction = useCallback((poolAddress, amount0, amount1, timestamp) => {
@@ -121,7 +122,8 @@ export const useVolumeMonitor = (settings = {}) => {
                 poolData.token0,
                 poolData.token1,
                 poolData.token0Info?.decimals || 18,
-                poolData.token1Info?.decimals || 18
+                poolData.token1Info?.decimals || 18,
+                settings.rpcUrl
             );
 
             // 如果USD交易量为0，跳过（不包含常用代币的交易）
@@ -170,7 +172,7 @@ export const useVolumeMonitor = (settings = {}) => {
         } else {
             logger.warn(`池子数据不存在: ${poolAddress}`);
         }
-    }, []);
+    }, [settings.rpcUrl]);
 
     // 更新统计信息
     const updateStats = useCallback(() => {
@@ -243,8 +245,11 @@ export const useVolumeMonitor = (settings = {}) => {
         try {
             logger.info('开始连接WebSocket...');
 
+            // 重置用户断开标志
+            userDisconnectedRef.current = false;
+
             // 首先检查BSC网络连接
-            const bscConnected = await checkBSCConnection();
+            const bscConnected = await checkBSCConnection(settings.rpcUrl);
             if (!bscConnected) {
                 setConnectionStatus('BSC网络连接失败');
                 logger.error('无法连接到BSC网络，请检查网络连接');
@@ -263,42 +268,61 @@ export const useVolumeMonitor = (settings = {}) => {
 
             wsRef.current = new WebSocket(wsUrl);
 
+            // 添加连接超时处理
+            const connectionTimeout = setTimeout(() => {
+                if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
+                    logger.error('WebSocket连接超时');
+                    wsRef.current.close();
+                    setConnectionStatus('连接超时');
+                    setIsConnected(false);
+                }
+            }, 10000); // 10秒超时
+
             wsRef.current.onopen = () => {
+                clearTimeout(connectionTimeout);
                 logger.info('WebSocket连接已建立');
                 setIsConnected(true);
                 setConnectionStatus('已连接');
 
-                // 订阅PancakeSwap V3 Swap事件
-                const pancakeswapSub = {
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method: 'eth_subscribe',
-                    params: [
-                        'logs',
-                        {
-                            topics: [TOPICS.PANCAKESWAP_V3_SWAP]
-                        }
-                    ]
-                };
+                // 添加延迟确保连接完全建立
+                setTimeout(() => {
+                    try {
+                        // 订阅PancakeSwap V3 Swap事件
+                        const pancakeswapSub = {
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'eth_subscribe',
+                            params: [
+                                'logs',
+                                {
+                                    topics: [TOPICS.PANCAKESWAP_V3_SWAP]
+                                }
+                            ]
+                        };
 
-                // 订阅Uniswap V3 Swap事件
-                const uniswapSub = {
-                    jsonrpc: '2.0',
-                    id: 2,
-                    method: 'eth_subscribe',
-                    params: [
-                        'logs',
-                        {
-                            topics: [TOPICS.UNISWAP_V3_SWAP]
-                        }
-                    ]
-                };
+                        // 订阅Uniswap V3 Swap事件
+                        const uniswapSub = {
+                            jsonrpc: '2.0',
+                            id: 2,
+                            method: 'eth_subscribe',
+                            params: [
+                                'logs',
+                                {
+                                    topics: [TOPICS.UNISWAP_V3_SWAP]
+                                }
+                            ]
+                        };
 
-                logger.info('发送订阅请求...');
-                wsRef.current.send(JSON.stringify(pancakeswapSub));
-                wsRef.current.send(JSON.stringify(uniswapSub));
+                        logger.info('发送订阅请求...');
+                        wsRef.current.send(JSON.stringify(pancakeswapSub));
+                        wsRef.current.send(JSON.stringify(uniswapSub));
 
-                logger.info('等待真实的Swap事件...');
+                        logger.info('等待真实的Swap事件...');
+                    } catch (error) {
+                        logger.error('发送订阅请求失败:', error);
+                        setConnectionStatus('订阅失败');
+                    }
+                }, 1000); // 延迟1秒确保连接稳定
             };
 
             wsRef.current.onmessage = (event) => {
@@ -343,18 +367,37 @@ export const useVolumeMonitor = (settings = {}) => {
             };
 
             wsRef.current.onerror = (error) => {
+                clearTimeout(connectionTimeout);
                 logger.error('WebSocket错误:', error);
                 setConnectionStatus('连接错误');
                 setIsConnected(false);
+
+                // 尝试获取更详细的错误信息
+                if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
+                    setConnectionStatus('连接被拒绝或网络错误');
+                }
             };
 
-            wsRef.current.onclose = () => {
-                logger.info('WebSocket连接已关闭');
-                setConnectionStatus('连接断开');
+            wsRef.current.onclose = (event) => {
+                clearTimeout(connectionTimeout);
+                logger.info('WebSocket连接已关闭', {
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean
+                });
+
+                let closeReason = '连接断开';
+                if (event.code === 1006) {
+                    closeReason = '连接异常断开';
+                } else if (event.code === 1015) {
+                    closeReason = 'TLS握手失败';
+                }
+
+                setConnectionStatus(closeReason);
                 setIsConnected(false);
 
-                // 智能重连逻辑
-                if (reconnectAttemptsRef.current < RECONNECT_CONFIG.MAX_ATTEMPTS) {
+                // 只有在用户没有主动断开的情况下才进行重连
+                if (!userDisconnectedRef.current && reconnectAttemptsRef.current < RECONNECT_CONFIG.MAX_ATTEMPTS) {
                     const delay = Math.min(
                         RECONNECT_CONFIG.INITIAL_DELAY * Math.pow(RECONNECT_CONFIG.BACKOFF_MULTIPLIER, reconnectAttemptsRef.current),
                         RECONNECT_CONFIG.MAX_DELAY
@@ -369,6 +412,10 @@ export const useVolumeMonitor = (settings = {}) => {
                     reconnectTimeoutRef.current = setTimeout(() => {
                         connectWebSocket();
                     }, delay);
+                } else if (userDisconnectedRef.current) {
+                    // 用户主动断开，不进行重连
+                    setConnectionStatus('已断开');
+                    reconnectAttemptsRef.current = 0;
                 } else {
                     setConnectionStatus('重连失败，请手动重试');
                     reconnectAttemptsRef.current = 0;
@@ -393,6 +440,7 @@ export const useVolumeMonitor = (settings = {}) => {
         }
         setIsConnected(false);
         setConnectionStatus('已断开');
+        userDisconnectedRef.current = true; // 设置用户主动断开标志
     }, []);
 
     // 刷新数据

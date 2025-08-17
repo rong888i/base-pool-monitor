@@ -74,7 +74,7 @@ const RightSidebar = ({ settings = {} }) => {
     });
 
     return (
-        <div className={`fixed right-0 top-0 h-full z-40 transition-all duration-500 ease-in-out ${isCollapsed ? 'w-0' : 'w-96'}`}>
+        <div className={`fixed right-0 top-0 h-full z-40 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-0' : 'w-96'}`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
@@ -98,7 +98,7 @@ const RightSidebar = ({ settings = {} }) => {
             </button>
 
             {/* 内容区域 */}
-            <div className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl overflow-hidden ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 {/* 头部 */}
                 <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800">
                     <div className="flex items-center space-x-3">
@@ -228,4 +228,4 @@ const RightSidebar = ({ settings = {} }) => {
     );
 };
 
-export default RightSidebar; 
+export default RightSidebar;

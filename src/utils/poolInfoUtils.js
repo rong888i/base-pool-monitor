@@ -38,16 +38,18 @@ const ERC20_ABI = [
     'function decimals() external view returns (uint8)'
 ];
 
-// BSC RPC节点 (用于合约调用)
-const BSC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
+// 创建provider的函数
+const createProvider = (rpcUrl) => {
+    try {
+        return new ethers.JsonRpcProvider(rpcUrl);
+    } catch (error) {
+        console.error('创建provider失败:', error);
+        return null;
+    }
+};
 
-// 创建provider
-let provider = null;
-try {
-    provider = new ethers.JsonRpcProvider(BSC_RPC_URL);
-} catch (error) {
-    console.error('创建BSC provider失败:', error);
-}
+// 默认RPC URL (作为后备)
+const DEFAULT_RPC_URL = 'https://bsc-dataseed1.binance.org/';
 
 /**
  * 检查池子是否包含常用代币
@@ -88,9 +90,10 @@ export const checkCommonTokenPool = (token0, token1) => {
 /**
  * 获取代币信息（通过合约调用）
  * @param {string} tokenAddress - 代币地址
+ * @param {string} rpcUrl - RPC节点地址
  * @returns {Promise<Object>} 代币信息
  */
-export const getTokenInfo = async (tokenAddress) => {
+export const getTokenInfo = async (tokenAddress, rpcUrl = DEFAULT_RPC_URL) => {
     const tokenKey = tokenAddress.toLowerCase();
 
     // 检查缓存
@@ -102,8 +105,10 @@ export const getTokenInfo = async (tokenAddress) => {
     }
 
     try {
+        // 创建provider
+        const provider = createProvider(rpcUrl);
         if (!provider) {
-            throw new Error('BSC provider未初始化');
+            throw new Error('无法创建provider');
         }
 
         // 创建代币合约实例
@@ -219,9 +224,10 @@ const formatFee = (fee) => {
 /**
  * 获取池子基本信息（通过合约调用）
  * @param {string} poolAddress - 池子地址
+ * @param {string} rpcUrl - RPC节点地址
  * @returns {Promise<Object>} 池子信息
  */
-export const getPoolBasicInfo = async (poolAddress) => {
+export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) => {
     const poolKey = poolAddress.toLowerCase();
 
     // 检查缓存
@@ -233,8 +239,10 @@ export const getPoolBasicInfo = async (poolAddress) => {
     }
 
     try {
+        // 创建provider
+        const provider = createProvider(rpcUrl);
         if (!provider) {
-            throw new Error('BSC provider未初始化');
+            throw new Error('无法创建provider');
         }
 
         console.log(`正在获取池子信息: ${poolAddress}`);
@@ -300,9 +308,10 @@ export const getPoolBasicInfo = async (poolAddress) => {
  * @param {string} token1 - token1地址
  * @param {number} decimals0 - token0小数位数
  * @param {number} decimals1 - token1小数位数
+ * @param {string} rpcUrl - RPC节点地址
  * @returns {number} USD交易量
  */
-export const calculateUSDVolume = (amount0, amount1, token0, token1, decimals0 = 18, decimals1 = 18) => {
+export const calculateUSDVolume = (amount0, amount1, token0, token1, decimals0 = 18, decimals1 = 18, rpcUrl = DEFAULT_RPC_URL) => {
     try {
         const token0Lower = token0.toLowerCase();
         const token1Lower = token1.toLowerCase();
@@ -356,12 +365,13 @@ export const calculateUSDVolume = (amount0, amount1, token0, token1, decimals0 =
 /**
  * 获取完整的池子信息（包括代币详情）
  * @param {string} poolAddress - 池子地址
+ * @param {string} rpcUrl - RPC节点地址
  * @returns {Promise<Object>} 完整池子信息
  */
-export const getFullPoolInfo = async (poolAddress) => {
+export const getFullPoolInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) => {
     try {
         // 获取池子基本信息
-        const poolInfo = await getPoolBasicInfo(poolAddress);
+        const poolInfo = await getPoolBasicInfo(poolAddress, rpcUrl);
 
         // 如果不包含常用代币，直接返回
         if (!poolInfo || !poolInfo.isCommonPool) {
@@ -370,8 +380,8 @@ export const getFullPoolInfo = async (poolAddress) => {
 
         // 获取代币信息
         const [token0Info, token1Info] = await Promise.all([
-            getTokenInfo(poolInfo.token0),
-            getTokenInfo(poolInfo.token1)
+            getTokenInfo(poolInfo.token0, rpcUrl),
+            getTokenInfo(poolInfo.token1, rpcUrl)
         ]);
 
         return {
@@ -432,10 +442,12 @@ export const clearAllCache = () => {
 
 /**
  * 检查BSC网络连接状态
+ * @param {string} rpcUrl - RPC节点地址
  * @returns {Promise<boolean>} 连接状态
  */
-export const checkBSCConnection = async () => {
+export const checkBSCConnection = async (rpcUrl = DEFAULT_RPC_URL) => {
     try {
+        const provider = createProvider(rpcUrl);
         if (!provider) {
             return false;
         }

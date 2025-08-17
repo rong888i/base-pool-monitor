@@ -16,6 +16,7 @@ import {
 } from '../../utils/lpUtils';
 import useIsMobile from '../../hooks/useIsMobile';
 import { getDefaultSlippage } from '../../utils/settingsUtils';
+import { logger } from '../../utils/logger';
 
 // 代币输入框组件
 const TokenInput = ({ symbol, value, onChange, balance, isLoading, placeholder }) => (
@@ -140,7 +141,7 @@ const QuickLiquidityEnhancer = ({
 
         amountUpdateTimer.current = setTimeout(() => {
             if (!poolInfo || !nftInfo || !lastEdited) {
-                console.log('自动计算跳过：缺少必要信息', { poolInfo: !!poolInfo, nftInfo: !!nftInfo, lastEdited });
+                logger.log('自动计算跳过：缺少必要信息', { poolInfo: !!poolInfo, nftInfo: !!nftInfo, lastEdited });
                 return;
             }
 
@@ -149,7 +150,7 @@ const QuickLiquidityEnhancer = ({
             const input0 = parseFloat(amount0) || 0;
             const input1 = parseFloat(amount1) || 0;
 
-            console.log('自动计算参数:', {
+            logger.log('自动计算参数:', {
                 lastEdited,
                 amount0,
                 amount1,
@@ -166,21 +167,21 @@ const QuickLiquidityEnhancer = ({
             const isInRange = currentTick >= tickLower && currentTick < tickUpper;
 
             if (lastEdited === 'amount0' && amount0 && input0 > 0) {
-                console.log('正在计算token1数量，基于token0:', amount0);
+                logger.log('正在计算token1数量，基于token0:', amount0);
 
                 try {
                     const liquidity = getLiquidityForAmount0(poolInfo, tickLower, tickUpper, amount0);
-                    console.log('计算得到流动性:', liquidity.toString());
+                    logger.log('计算得到流动性:', liquidity.toString());
 
                     if (liquidity > 0n) {
                         const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                        console.log('计算得到的代币数量:', formatted);
+                        logger.log('计算得到的代币数量:', formatted);
 
                         const calculatedAmount1 = parseFloat(formatted.token1);
-                        console.log('设置token1数量:', formatted.token1);
+                        logger.log('设置token1数量:', formatted.token1);
                         setAmount1(formatted.token1);
                     } else {
-                        console.log('流动性为0，设置token1为0');
+                        logger.log('流动性为0，设置token1为0');
                         setAmount1('0');
                     }
                 } catch (error) {
@@ -188,24 +189,24 @@ const QuickLiquidityEnhancer = ({
                     setAmount1('0');
                 }
             } else if (lastEdited === 'amount0' && (!amount0 || input0 === 0)) {
-                console.log('清空token0，清空token1');
+                logger.log('清空token0，清空token1');
                 setAmount1('');
             } else if (lastEdited === 'amount1' && amount1 && input1 > 0) {
-                console.log('正在计算token0数量，基于token1:', amount1);
+                logger.log('正在计算token0数量，基于token1:', amount1);
 
                 try {
                     const liquidity = getLiquidityForAmount1(poolInfo, tickLower, tickUpper, amount1);
-                    console.log('计算得到流动性:', liquidity.toString());
+                    logger.log('计算得到流动性:', liquidity.toString());
 
                     if (liquidity > 0n) {
                         const { formatted } = getAmountsForLiquidity(liquidity.toString(), sqrtPriceX96, tick, tickLower, tickUpper, token0.decimals, token1.decimals);
-                        console.log('计算得到的代币数量:', formatted);
+                        logger.log('计算得到的代币数量:', formatted);
 
                         const calculatedAmount0 = parseFloat(formatted.token0);
-                        console.log('设置token0数量:', formatted.token0);
+                        logger.log('设置token0数量:', formatted.token0);
                         setAmount0(formatted.token0);
                     } else {
-                        console.log('流动性为0，设置token0为0');
+                        logger.log('流动性为0，设置token0为0');
                         setAmount0('0');
                     }
                 } catch (error) {
@@ -213,7 +214,7 @@ const QuickLiquidityEnhancer = ({
                     setAmount0('0');
                 }
             } else if (lastEdited === 'amount1' && (!amount1 || input1 === 0)) {
-                console.log('清空token1，清空token0');
+                logger.log('清空token1，清空token0');
                 setAmount0('');
             }
         }, 500);
@@ -287,7 +288,7 @@ const QuickLiquidityEnhancer = ({
 
             await checkApprovalStatus();
 
-            console.log(`${tokenSymbol} 授权成功`);
+            logger.log(`${tokenSymbol} 授权成功`);
         } catch (error) {
             console.error(`${tokenSymbol} 授权失败:`, error);
             setError(`${tokenSymbol} 授权失败: ${error.message}`);
@@ -354,7 +355,7 @@ const QuickLiquidityEnhancer = ({
                 deadline: BigInt(deadline)
             };
 
-            console.log('增加流动性参数:', increaseLiquidityParams);
+            logger.log('增加流动性参数:', increaseLiquidityParams);
 
             // 调用increaseLiquidity
             const tx = await increaseLiquidity(
@@ -368,7 +369,7 @@ const QuickLiquidityEnhancer = ({
 
             // 等待交易确认
             await tx.wait();
-            console.log('增加流动性交易确认:', tx.hash);
+            logger.log('增加流动性交易确认:', tx.hash);
 
             setResult({
                 success: true,

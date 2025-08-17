@@ -93,20 +93,19 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
     };
 
     return (
-        <div className="space-y-3">
-
+        <div className="space-y-1.5">
             {pools.map((pool, index) => (
                 <motion.div
                     key={pool.address}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-2 hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
                 >
                     {/* 排名和基本信息 */}
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-white' :
+                    <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center space-x-2">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-white' :
                                 index === 1 ? 'bg-gray-400 text-white' :
                                     index === 2 ? 'bg-orange-500 text-white' :
                                         'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
@@ -118,31 +117,31 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                                     {pool.displayName || formatAddress(pool.address)}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    最后更新: {new Date(pool.lastUpdate).toLocaleTimeString()}
+                                    更新: {new Date(pool.lastUpdate).toLocaleTimeString()}
                                 </div>
                             </div>
                         </div>
 
                         <div className="text-right">
-                            <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                            <div className="text-base font-bold text-gray-800 dark:text-gray-200">
                                 {formatUSDVolume(selectedTimeWindow === '5m' ? pool.volume5m : pool.volume15m)}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {selectedTimeWindow === '5m' ? pool.swapCount5m : pool.swapCount15m} 笔交易
+                                {selectedTimeWindow === '5m' ? pool.swapCount5m : pool.swapCount15m} 笔
                             </div>
                         </div>
                     </div>
 
                     {/* 协议、费用和常用代币信息 */}
-                    <div className="flex items-center space-x-2 flex-wrap gap-2 mb-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getProtocolColor(pool.protocol)}`}>
+                    <div className="flex items-center space-x-1.5 flex-wrap gap-1 mb-1.5">
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getProtocolColor(pool.protocol)}`}>
                             {pool.protocol}
                         </span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getFeeColor(pool.fee)}`}>
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getFeeColor(pool.fee)}`}>
                             {pool.fee}
                         </span>
                         {pool.commonTokenType && (
-                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getCommonTokenColor(pool.commonTokenType)}`}>
+                            <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getCommonTokenColor(pool.commonTokenType)}`}>
                                 {pool.commonTokenType}
                             </span>
                         )}
@@ -151,9 +150,9 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                     {/* 代币地址信息 */}
                     <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                         {/* 池子地址 */}
-                        <div className="flex items-center justify-between group">
-                            <span>池子:</span>
-                            <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium">池:</span>
+                            <div className="flex items-center space-x-1">
                                 <span className="font-mono cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                     onClick={() => window.open(`https://bscscan.com/address/${pool.address}`, '_blank')}
                                     title="点击查看区块链信息">
@@ -161,18 +160,18 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                                 </span>
                                 <button
                                     onClick={() => copyToClipboard(pool.address, pool.address, 'poolAddress')}
-                                    className={`p-1 rounded transition-colors ${copiedStates[`${pool.address}_poolAddress`]
+                                    className={`p-0.5 rounded transition-colors ${copiedStates[`${pool.address}_poolAddress`]
                                         ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                         }`}
                                     title={copiedStates[`${pool.address}_poolAddress`] ? '已复制!' : '复制地址'}
                                 >
                                     {copiedStates[`${pool.address}_poolAddress`] ? (
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                     ) : (
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                         </svg>
                                     )}
@@ -184,9 +183,9 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                         {pool.token0Info && pool.token1Info && (
                             <div className="space-y-1">
                                 {/* Token0 */}
-                                <div className="flex items-center justify-between group">
-                                    <span>{pool.token0Info.symbol}:</span>
-                                    <div className="flex items-center space-x-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium">{pool.token0Info.symbol}:</span>
+                                    <div className="flex items-center space-x-1">
                                         <span className="font-mono cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                             onClick={() => window.open(`https://bscscan.com/address/${pool.token0}`, '_blank')}
                                             title="点击查看区块链信息">
@@ -194,18 +193,18 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                                         </span>
                                         <button
                                             onClick={() => copyToClipboard(pool.token0, pool.address, 'token0Address')}
-                                            className={`p-1 rounded transition-colors ${copiedStates[`${pool.address}_token0Address`]
+                                            className={`p-0.5 rounded transition-colors ${copiedStates[`${pool.address}_token0Address`]
                                                 ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                                 }`}
                                             title={copiedStates[`${pool.address}_token0Address`] ? '已复制!' : '复制地址'}
                                         >
                                             {copiedStates[`${pool.address}_token0Address`] ? (
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                                 </svg>
                                             ) : (
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                 </svg>
                                             )}
@@ -214,9 +213,9 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                                 </div>
 
                                 {/* Token1 */}
-                                <div className="flex items-center justify-between group">
-                                    <span>{pool.token1Info.symbol}:</span>
-                                    <div className="flex items-center space-x-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium">{pool.token1Info.symbol}:</span>
+                                    <div className="flex items-center space-x-1">
                                         <span className="font-mono cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                             onClick={() => window.open(`https://bscscan.com/address/${pool.token1}`, '_blank')}
                                             title="点击查看区块链信息">
@@ -224,18 +223,18 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                                         </span>
                                         <button
                                             onClick={() => copyToClipboard(pool.token1, pool.address, 'token1Address')}
-                                            className={`p-1 rounded transition-colors ${copiedStates[`${pool.address}_token1Address`]
+                                            className={`p-0.5 rounded transition-colors ${copiedStates[`${pool.address}_token1Address`]
                                                 ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                                 }`}
                                             title={copiedStates[`${pool.address}_token1Address`] ? '已复制!' : '复制地址'}
                                         >
                                             {copiedStates[`${pool.address}_token1Address`] ? (
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                                 </svg>
                                             ) : (
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                 </svg>
                                             )}
