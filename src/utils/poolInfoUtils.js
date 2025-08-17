@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import { logger } from '../utils/logger';
+
 
 // 常用代币地址 (BSC网络)
 export const COMMON_TOKENS = {
@@ -135,7 +137,6 @@ export const getTokenInfo = async (tokenAddress, rpcUrl = DEFAULT_RPC_URL) => {
             timestamp: Date.now()
         });
 
-        console.log(`获取代币信息成功: ${symbol} (${name})`);
         return tokenInfo;
     } catch (error) {
         console.error(`获取代币信息失败 ${tokenAddress}:`, error);
@@ -191,9 +192,7 @@ export const getTokenInfo = async (tokenAddress, rpcUrl = DEFAULT_RPC_URL) => {
  * @returns {string} 格式化后的费用
  */
 const formatFee = (fee) => {
-    console.log(`格式化费用: 原始值=${fee}, 类型=${typeof fee}`);
     const feeNum = parseInt(fee);
-    console.log(`格式化费用: 转换后=${feeNum}`);
 
     let result;
     switch (feeNum) {
@@ -217,7 +216,6 @@ const formatFee = (fee) => {
             break;
     }
 
-    console.log(`格式化费用: 结果=${result}`);
     return result;
 };
 
@@ -245,8 +243,6 @@ export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) =>
             throw new Error('无法创建provider');
         }
 
-        console.log(`正在获取池子信息: ${poolAddress}`);
-
         // 创建池子合约实例
         const poolContract = new ethers.Contract(poolAddress, POOL_ABI, provider);
 
@@ -257,18 +253,18 @@ export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) =>
             poolContract.fee()
         ]);
 
-        console.log(`池子合约调用结果: token0=${token0}, token1=${token1}, fee=${fee} (类型: ${typeof fee})`);
+        logger.log(`池子合约调用结果: token0=${token0}, token1=${token1}, fee=${fee} (类型: ${typeof fee})`);
 
         // 检查是否包含常用代币
         const poolCheck = checkCommonTokenPool(token0, token1);
 
         if (!poolCheck.isCommonPool) {
-            console.log(`跳过非常用代币池子: ${poolAddress} (${token0.slice(0, 6)}.../${token1.slice(0, 6)}...)`);
+
             return null;
         }
 
         const formattedFee = formatFee(fee);
-        console.log(`费用格式化: 原始=${fee}, 格式化后=${formattedFee}`);
+
 
         const poolInfo = {
             address: poolAddress,
@@ -290,7 +286,6 @@ export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) =>
             timestamp: Date.now()
         });
 
-        console.log(`获取池子信息成功: ${poolAddress} - ${poolCheck.commonTokenType}/${poolCheck.otherToken.slice(0, 6)}... (${poolInfo.fee})`);
         return poolInfo;
     } catch (error) {
         console.error(`获取池子信息失败 ${poolAddress}:`, error);
@@ -437,7 +432,6 @@ export const getCacheStats = () => {
 export const clearAllCache = () => {
     POOL_INFO_CACHE.clear();
     TOKEN_INFO_CACHE.clear();
-    console.log('所有缓存已清理');
 };
 
 /**

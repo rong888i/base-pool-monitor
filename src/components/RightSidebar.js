@@ -75,7 +75,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle }) => {
     });
 
     return (
-        <div className={`${isOpen ? 'w-96' : 'w-0'} bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
+        <div className={`hidden lg:block ${isOpen ? 'w-96' : 'w-0'} bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
