@@ -1,11 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // 环境变量配置
-    env: {
-        NODE_ENV: process.env.NODE_ENV || 'development',
-        VERCEL: process.env.VERCEL || '0'
-    },
-
     // 构建优化
     swcMinify: true,
 
