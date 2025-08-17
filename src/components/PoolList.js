@@ -100,7 +100,7 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-2 hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
                 >
                     {/* 排名和基本信息 */}
                     <div className="flex items-center justify-between mb-1.5">

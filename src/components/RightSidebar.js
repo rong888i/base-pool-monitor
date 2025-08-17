@@ -142,14 +142,14 @@ const RightSidebar = ({ settings = {} }) => {
                         </div>
 
                         {/* 快速统计 */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-3">
-                                <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">监控池子</div>
-                                <div className="text-lg font-bold text-blue-800 dark:text-blue-200">{stats?.commonTokenPools || 0}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 p-2">
+                                <div className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">监控池子</div>
+                                <div className="text-base font-bold text-blue-800 dark:text-blue-200">{stats?.commonTokenPools || 0}</div>
                             </div>
-                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 p-3">
-                                <div className="text-xs text-green-600 dark:text-green-400 mb-1">总交易量</div>
-                                <div className="text-lg font-bold text-green-800 dark:text-green-200">
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 p-2">
+                                <div className="text-xs text-green-600 dark:text-green-400 mb-0.5">总交易量</div>
+                                <div className="text-base font-bold text-green-800 dark:text-green-200">
                                     {stats?.totalVolume ? `$${(stats.totalVolume / 1000).toFixed(1)}K` : '--'}
                                 </div>
                             </div>
