@@ -135,9 +135,9 @@ export const formatAddress = (address) => {
 export const getProtocolDisplayName = (protocol) => {
     switch (protocol) {
         case 'PancakeSwap V3':
-            return 'PancakeSwap V3';
+            return 'Pancake V3';
         case 'Uniswap V3':
-            return 'Uniswap V3';
+            return 'Uni V3';
         default:
             return protocol;
     }

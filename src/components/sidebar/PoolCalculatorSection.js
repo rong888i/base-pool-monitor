@@ -154,15 +154,15 @@ const PoolCalculatorSection = ({ onAddPool }) => {
             const factoryContract = new Contract(factoryAddress, V3_FACTORY_ABI, signer);
 
             console.log('Creating pool with tokens:', tokenA, tokenB, 'fee:', fee);
-            
+
             const tx = await factoryContract.createPool(tokenA, tokenB, fee);
             console.log('Transaction sent:', tx.hash);
-            
+
             setError(`交易已发送: ${tx.hash}`);
-            
+
             const receipt = await tx.wait();
             console.log('Transaction confirmed:', receipt);
-            
+
             if (receipt.status === 1) {
                 // 池子创建成功，重新查询池地址
                 await calculatePoolAddress();
@@ -216,7 +216,7 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                                 onChange={() => handleDexChange('uniswap')}
                                 className="sr-only"
                             />
-                            <span>Uniswap V3</span>
+                            <span>Uni V3</span>
                         </label>
                         <label className={`flex items-center justify-center p-3 rounded-lg cursor-pointer text-sm font-semibold transition-all duration-200 ${dex === 'pancakeswap' ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700'}`}>
                             <input
@@ -227,7 +227,7 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                                 onChange={() => handleDexChange('pancakeswap')}
                                 className="sr-only"
                             />
-                            <span>PancakeSwap V3</span>
+                            <span>Pancake V3</span>
                         </label>
                     </div>
                 </div>

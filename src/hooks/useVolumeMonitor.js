@@ -343,7 +343,7 @@ export const useVolumeMonitor = (settings = {}) => {
                                 if (decoded) {
                                     console.info('PancakeSwap事件解析成功:', decoded);
                                     // 异步初始化池子（只在第一次遇到时），不传递硬编码的fee
-                                    initializePool(poolAddress, 'PancakeSwap V3');
+                                    initializePool(poolAddress, 'Pancake');
                                     // 立即添加交易记录
                                     addTransaction(poolAddress, decoded.amount0, decoded.amount1, Date.now());
                                 }
@@ -353,7 +353,7 @@ export const useVolumeMonitor = (settings = {}) => {
                                 if (decoded) {
                                     console.info('Uniswap事件解析成功:', decoded);
                                     // 异步初始化池子（只在第一次遇到时），不传递硬编码的fee
-                                    initializePool(poolAddress, 'Uniswap V3');
+                                    initializePool(poolAddress, 'Uni');
                                     // 立即添加交易记录
                                     addTransaction(poolAddress, decoded.amount0, decoded.amount1, Date.now());
                                 }

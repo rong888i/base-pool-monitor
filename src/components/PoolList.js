@@ -50,11 +50,28 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
         }
     };
 
+    // 计算手续费奖励
+    const calculateFeeReward = (pool, timeWindow) => {
+        const volume = timeWindow === '5m' ? pool.volume5m : pool.volume15m;
+        const feePercentage = parseFloat(pool.fee.replace('%', '')) / 100;
+        const feeReward = volume * feePercentage;
+
+        if (feeReward === 0) return '$0';
+
+        if (feeReward >= 1e6) {
+            return `$${(feeReward / 1e6).toFixed(2)}M`;
+        } else if (feeReward >= 1e3) {
+            return `$${(feeReward / 1e3).toFixed(2)}K`;
+        } else {
+            return `$${feeReward.toFixed(2)}`;
+        }
+    };
+
     const getProtocolColor = (protocol) => {
         switch (protocol) {
-            case 'PancakeSwap V3':
+            case 'Pancake V3':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
-            case 'Uniswap V3':
+            case 'Uni V3':
                 return 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300 border-pink-200 dark:border-pink-700';
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300 border-gray-200 dark:border-gray-700';
@@ -128,6 +145,10 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                                 {selectedTimeWindow === '5m' ? pool.swapCount5m : pool.swapCount15m} 笔
                             </div>
+                            {/* 手续费奖励显示
+                            <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                                💰 {calculateFeeReward(pool, selectedTimeWindow)}
+                            </div> */}
                         </div>
                     </div>
 
@@ -136,14 +157,18 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
                         <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getProtocolColor(pool.protocol)}`}>
                             {pool.protocol}
                         </span>
-                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getFeeColor(pool.fee)}`}>
-                            {pool.fee}
-                        </span>
                         {pool.commonTokenType && (
                             <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getCommonTokenColor(pool.commonTokenType)}`}>
                                 {pool.commonTokenType}
                             </span>
                         )}
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded border ${getFeeColor(pool.fee)}`}>
+                            {pool.fee}
+                        </span>
+                        {/* 手续费奖励显示 */}
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded border bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700`}>
+                            {calculateFeeReward(pool, selectedTimeWindow)}
+                        </span>
                     </div>
 
                     {/* 代币地址信息 */}
