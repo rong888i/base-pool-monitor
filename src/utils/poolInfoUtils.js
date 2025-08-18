@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-import { logger } from '../utils/logger';
 
 
 // 常用代币地址 (BSC网络)
@@ -253,7 +252,7 @@ export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) =>
             poolContract.fee()
         ]);
 
-        logger.log(`池子合约调用结果: token0=${token0}, token1=${token1}, fee=${fee} (类型: ${typeof fee})`);
+        console.log(`池子合约调用结果: token0=${token0}, token1=${token1}, fee=${fee} (类型: ${typeof fee})`);
 
         // 检查是否包含常用代币
         const poolCheck = checkCommonTokenPool(token0, token1);

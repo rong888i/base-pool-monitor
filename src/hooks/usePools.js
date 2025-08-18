@@ -3,7 +3,6 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { getLPInfo, getPoolAddressFromNftId } from '../utils/lpUtils';
 import { sendBarkNotification, isNFTInRange, getNotificationSettings } from '../utils/notificationUtils';
 import { executeMonitorChecks } from '../utils/monitorUtils';
-import { logger } from '../utils/logger';
 
 // 预设的池子地址
 const DEFAULT_POOLS = [
@@ -54,7 +53,7 @@ export function usePools(settings) {
                     try {
                         const parsedData = JSON.parse(savedData);
                         if (Array.isArray(parsedData) && parsedData.length > 0 && typeof parsedData[0] === 'string') {
-                            logger.warn('Migrating old pool data format...');
+                            console.warn('Migrating old pool data format...');
                             const newData = parsedData.map(address => ({
                                 address,
                                 nftId: '',
@@ -73,14 +72,14 @@ export function usePools(settings) {
                             }));
 
                             if (validPools.length < parsedData.length || poolsWithUniqueId.some(p => !validPools.find(vp => vp.uniqueId === p.uniqueId))) {
-                                logger.warn('Updated pool entries with unique IDs.');
+                                console.warn('Updated pool entries with unique IDs.');
                                 // 如果数据被清理过或添加了uniqueId，则更新 localStorage
                                 localStorage.setItem('monitoredPools', JSON.stringify(poolsWithUniqueId));
                             }
                             return poolsWithUniqueId;
                         }
                     } catch (e) {
-                        logger.error('Failed to parse saved pools:', e);
+                        console.error('Failed to parse saved pools:', e);
                     }
                 }
             }
@@ -210,7 +209,7 @@ export function usePools(settings) {
         try {
             if (isNftId(input)) {
                 // 输入是NFT ID，需要获取对应的池子地址
-                logger.info('检测到NFT ID输入:', input);
+                console.info('检测到NFT ID输入:', input);
 
                 const result = await getPoolAddressFromNftId(input);
                 if (!result.success) {
@@ -220,7 +219,7 @@ export function usePools(settings) {
 
                 poolAddress = result.poolAddress;
                 nftId = input;
-                logger.info(`NFT ${input} 对应的池子地址: ${poolAddress}`);
+                console.info(`NFT ${input} 对应的池子地址: ${poolAddress}`);
 
             } else if (isAddress(input)) {
                 // 输入是池子地址
@@ -286,7 +285,7 @@ export function usePools(settings) {
             setCustomAddress('');
 
         } catch (error) {
-            logger.error('添加池子时出错:', error);
+            console.error('添加池子时出错:', error);
             alert(`添加失败: ${error.message}`);
         }
     }, [customAddress, pools, fetchPoolInfo, savePoolsToStorage]);

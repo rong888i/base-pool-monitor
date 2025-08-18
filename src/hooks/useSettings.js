@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { logger } from '../utils/logger';
 
 export function useSettings() {
     const [settings, setSettings] = useState({
@@ -28,7 +27,7 @@ export function useSettings() {
             setSettings(currentSettings => {
                 const updatedSettings = { ...currentSettings, ...newSettings };
                 localStorage.setItem('poolMonitorSettings', JSON.stringify(updatedSettings));
-                logger.info('Settings updated:', updatedSettings);
+                console.info('Settings updated:', updatedSettings);
                 return updatedSettings;
             });
         }

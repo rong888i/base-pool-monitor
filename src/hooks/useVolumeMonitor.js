@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { decodePancakeSwapSwap, decodeUniswapSwap } from '../utils/volumeMonitorUtils';
 import { getWebSocketUrl, RECONNECT_CONFIG } from '../config/websocket';
-import { logger } from '../utils/logger';
 import {
     getPoolBasicInfo,
     getTokenInfo,
@@ -52,19 +51,19 @@ export const useVolumeMonitor = (settings = {}) => {
 
         // 如果已经初始化过，直接返回
         if (poolsDataRef.current.has(poolKey)) {
-            logger.info(`池子已存在: ${poolAddress}`);
+            console.info(`池子已存在: ${poolAddress}`);
             return;
         }
 
         try {
-            logger.info(`正在初始化池子: ${poolAddress} (${protocol})`);
+            console.info(`正在初始化池子: ${poolAddress} (${protocol})`);
 
             // 获取池子基本信息（通过合约调用）
             const poolInfo = await getPoolBasicInfo(poolAddress, settings.rpcUrl);
 
             // 如果获取失败或不是常用代币池子，跳过
             if (!poolInfo) {
-                logger.warn(`跳过池子: ${poolAddress} - 获取信息失败或不是常用代币池子`);
+                console.warn(`跳过池子: ${poolAddress} - 获取信息失败或不是常用代币池子`);
                 return;
             }
 
@@ -72,7 +71,7 @@ export const useVolumeMonitor = (settings = {}) => {
             poolInfo.protocol = protocol;
 
             // fee已经在getPoolBasicInfo中获取，不需要额外处理
-            logger.info(`池子信息获取完成: ${poolAddress}, fee=${poolInfo.fee}, protocol=${protocol}`);
+            console.info(`池子信息获取完成: ${poolAddress}, fee=${poolInfo.fee}, protocol=${protocol}`);
 
             // 获取代币信息
             const [token0Info, token1Info] = await Promise.all([
@@ -98,12 +97,12 @@ export const useVolumeMonitor = (settings = {}) => {
                 firstSeen: Date.now()
             });
 
-            logger.info(`池子初始化成功: ${poolAddress} - ${poolInfo.displayName} (${poolInfo.protocol}) - Fee: ${poolInfo.fee}`);
+            console.info(`池子初始化成功: ${poolAddress} - ${poolInfo.displayName} (${poolInfo.protocol}) - Fee: ${poolInfo.fee}`);
 
             // 更新统计信息
             updateStats();
         } catch (error) {
-            logger.error(`初始化池子失败 ${poolAddress}:`, error);
+            console.error(`初始化池子失败 ${poolAddress}:`, error);
         }
     }, [settings.rpcUrl]);
 
@@ -113,7 +112,7 @@ export const useVolumeMonitor = (settings = {}) => {
         const poolData = poolsDataRef.current.get(poolKey);
 
         if (poolData) {
-            logger.info(`添加交易记录: ${poolAddress}, amount0: ${amount0}, amount1: ${amount1}`);
+            console.info(`添加交易记录: ${poolAddress}, amount0: ${amount0}, amount1: ${amount1}`);
 
             // 计算USD交易量
             const usdVolume = calculateUSDVolume(
@@ -128,7 +127,7 @@ export const useVolumeMonitor = (settings = {}) => {
 
             // 如果USD交易量为0，跳过（不包含常用代币的交易）
             if (usdVolume === 0) {
-                logger.warn(`跳过非常用代币交易: ${poolAddress}`);
+                console.warn(`跳过非常用代币交易: ${poolAddress}`);
                 return;
             }
 
@@ -168,9 +167,9 @@ export const useVolumeMonitor = (settings = {}) => {
             poolData.totalSwaps += 1;
             poolData.lastUpdate = now;
 
-            logger.info(`交易量更新: 5m=$${poolData.volume5m.toFixed(2)}, 15m=$${poolData.volume15m.toFixed(2)}`);
+            console.info(`交易量更新: 5m=$${poolData.volume5m.toFixed(2)}, 15m=$${poolData.volume15m.toFixed(2)}`);
         } else {
-            logger.warn(`池子数据不存在: ${poolAddress}`);
+            console.warn(`池子数据不存在: ${poolAddress}`);
         }
     }, [settings.rpcUrl]);
 
@@ -207,7 +206,7 @@ export const useVolumeMonitor = (settings = {}) => {
         };
 
         setStats(newStats);
-        logger.info('统计信息更新 (已排除0.01%池子):', newStats);
+        console.info('统计信息更新 (已排除0.01%池子):', newStats);
     }, [selectedTimeWindow]);
 
     // 更新排名前10的池子
@@ -233,7 +232,7 @@ export const useVolumeMonitor = (settings = {}) => {
             })
             .slice(0, 20);
 
-        logger.info(`更新排名: ${sortedPools.length} 个池子 (已排除0.01%池子)`);
+        console.info(`更新排名: ${sortedPools.length} 个池子 (已排除0.01%池子)`);
         setTopPools(sortedPools);
 
         // 更新统计信息
@@ -243,7 +242,7 @@ export const useVolumeMonitor = (settings = {}) => {
     // 连接WebSocket
     const connectWebSocket = useCallback(async () => {
         try {
-            logger.info('开始连接WebSocket...');
+            console.info('开始连接WebSocket...');
 
             // 重置用户断开标志
             userDisconnectedRef.current = false;
@@ -252,7 +251,7 @@ export const useVolumeMonitor = (settings = {}) => {
             const bscConnected = await checkBSCConnection(settings.rpcUrl);
             if (!bscConnected) {
                 setConnectionStatus('BSC网络连接失败');
-                logger.error('无法连接到BSC网络，请检查网络连接');
+                console.error('无法连接到BSC网络，请检查网络连接');
                 return;
             }
 
@@ -260,10 +259,10 @@ export const useVolumeMonitor = (settings = {}) => {
             let wsUrl;
             if (settings?.wssUrl && settings.wssUrl.trim()) {
                 wsUrl = settings.wssUrl.trim();
-                logger.info('使用设置中的WSS URL:', wsUrl);
+                console.info('使用设置中的WSS URL:', wsUrl);
             } else {
                 wsUrl = getWebSocketUrl('BSC', 'DEFAULT');
-                logger.info('使用默认WebSocket URL:', wsUrl);
+                console.info('使用默认WebSocket URL:', wsUrl);
             }
 
             wsRef.current = new WebSocket(wsUrl);
@@ -271,7 +270,7 @@ export const useVolumeMonitor = (settings = {}) => {
             // 添加连接超时处理
             const connectionTimeout = setTimeout(() => {
                 if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
-                    logger.error('WebSocket连接超时');
+                    console.error('WebSocket连接超时');
                     wsRef.current.close();
                     setConnectionStatus('连接超时');
                     setIsConnected(false);
@@ -280,7 +279,7 @@ export const useVolumeMonitor = (settings = {}) => {
 
             wsRef.current.onopen = () => {
                 clearTimeout(connectionTimeout);
-                logger.info('WebSocket连接已建立');
+                console.info('WebSocket连接已建立');
                 setIsConnected(true);
                 setConnectionStatus('已连接');
 
@@ -313,13 +312,13 @@ export const useVolumeMonitor = (settings = {}) => {
                             ]
                         };
 
-                        logger.info('发送订阅请求...');
+                        console.info('发送订阅请求...');
                         wsRef.current.send(JSON.stringify(pancakeswapSub));
                         wsRef.current.send(JSON.stringify(uniswapSub));
 
-                        logger.info('等待真实的Swap事件...');
+                        console.info('等待真实的Swap事件...');
                     } catch (error) {
-                        logger.error('发送订阅请求失败:', error);
+                        console.error('发送订阅请求失败:', error);
                         setConnectionStatus('订阅失败');
                     }
                 }, 1000); // 延迟1秒确保连接稳定
@@ -328,11 +327,11 @@ export const useVolumeMonitor = (settings = {}) => {
             wsRef.current.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    logger.info('收到WebSocket消息:', data);
+                    console.info('收到WebSocket消息:', data);
 
                     if (data.method === 'eth_subscription' && data.params && data.params.result) {
                         const log = data.params.result;
-                        logger.info('解析到事件日志:', log);
+                        console.info('解析到事件日志:', log);
 
                         if (log.topics && log.topics.length > 0) {
                             const topic = log.topics[0];
@@ -342,7 +341,7 @@ export const useVolumeMonitor = (settings = {}) => {
                                 // 解析PancakeSwap V3 Swap事件
                                 const decoded = decodePancakeSwapSwap(log.data, log.topics);
                                 if (decoded) {
-                                    logger.info('PancakeSwap事件解析成功:', decoded);
+                                    console.info('PancakeSwap事件解析成功:', decoded);
                                     // 异步初始化池子（只在第一次遇到时），不传递硬编码的fee
                                     initializePool(poolAddress, 'PancakeSwap V3');
                                     // 立即添加交易记录
@@ -352,7 +351,7 @@ export const useVolumeMonitor = (settings = {}) => {
                                 // 解析Uniswap V3 Swap事件
                                 const decoded = decodeUniswapSwap(log.data, log.topics);
                                 if (decoded) {
-                                    logger.info('Uniswap事件解析成功:', decoded);
+                                    console.info('Uniswap事件解析成功:', decoded);
                                     // 异步初始化池子（只在第一次遇到时），不传递硬编码的fee
                                     initializePool(poolAddress, 'Uniswap V3');
                                     // 立即添加交易记录
@@ -362,13 +361,13 @@ export const useVolumeMonitor = (settings = {}) => {
                         }
                     }
                 } catch (error) {
-                    logger.error('解析WebSocket消息失败:', error);
+                    console.error('解析WebSocket消息失败:', error);
                 }
             };
 
             wsRef.current.onerror = (error) => {
                 clearTimeout(connectionTimeout);
-                logger.error('WebSocket错误:', error);
+                console.error('WebSocket错误:', error);
                 setConnectionStatus('连接错误');
                 setIsConnected(false);
 
@@ -380,7 +379,7 @@ export const useVolumeMonitor = (settings = {}) => {
 
             wsRef.current.onclose = (event) => {
                 clearTimeout(connectionTimeout);
-                logger.info('WebSocket连接已关闭', {
+                console.info('WebSocket连接已关闭', {
                     code: event.code,
                     reason: event.reason,
                     wasClean: event.wasClean
@@ -423,7 +422,7 @@ export const useVolumeMonitor = (settings = {}) => {
             };
 
         } catch (error) {
-            logger.error('建立WebSocket连接失败:', error);
+            console.error('建立WebSocket连接失败:', error);
             setConnectionStatus('连接失败');
             setIsConnected(false);
         }
@@ -464,7 +463,7 @@ export const useVolumeMonitor = (settings = {}) => {
             totalVolume: 0,
             totalSwaps: 0
         });
-        logger.info('缓存已清理');
+        console.info('缓存已清理');
     }, []);
 
     // 获取缓存统计信息

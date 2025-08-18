@@ -8,7 +8,6 @@ import Settings from '../components/Settings';
 import ControlPanel from '../components/home/ControlPanel';
 import PoolList from '../components/home/PoolList';
 import Footer from '../components/home/Footer';
-import EnvironmentInfo from '../components/EnvironmentInfo';
 
 import { useSettings } from '../hooks/useSettings';
 import { usePools } from '../hooks/usePools';
@@ -88,8 +87,6 @@ export default function Home() {
         onSettingsUpdate={onSettingsUpdate}
       />
 
-      {/* 环境信息组件（仅在开发环境中显示） */}
-      <EnvironmentInfo />
     </div>
   );
 }
