@@ -69,9 +69,9 @@ const PoolList = ({ pools, selectedTimeWindow, onTimeWindowChange, stats, isComp
 
     const getProtocolColor = (protocol) => {
         switch (protocol) {
-            case 'Pancake V3':
+            case 'Pancake':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
-            case 'Uni V3':
+            case 'Uni':
                 return 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300 border-pink-200 dark:border-pink-700';
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300 border-gray-200 dark:border-gray-700';
