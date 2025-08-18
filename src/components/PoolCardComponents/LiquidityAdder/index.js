@@ -117,14 +117,7 @@ const LiquidityAdder = ({
                         exit="exit"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <style jsx>{`
-                            .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-                            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                            .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-                            .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; }
-                            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-                            .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-                        `}</style>
+
 
                         <motion.div
                             className="flex justify-between items-center p-5 pb-4 flex-shrink-0"

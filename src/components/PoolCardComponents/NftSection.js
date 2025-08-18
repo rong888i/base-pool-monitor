@@ -369,7 +369,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                     {showHistory && nftHistory.length > 0 && (
                         <div
                             ref={historyRef}
-                            className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto"
+                            className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto mini-scrollbar"
                         >
                             <div className="p-1">
                                 {/* <div className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 border-b border-neutral-100 dark:border-neutral-700">

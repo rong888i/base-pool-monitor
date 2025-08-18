@@ -46,7 +46,7 @@ export default function Home() {
         onToggle={setIsSidebarOpen}
       />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="container mx-auto px-3 py-4 min-h-full flex flex-col">
           <ControlPanel
             isSidebarOpen={isSidebarOpen}
