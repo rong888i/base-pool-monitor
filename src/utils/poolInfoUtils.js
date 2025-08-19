@@ -6,15 +6,13 @@ export const COMMON_TOKENS = {
     WBNB: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     USDT: '0x55d398326f99059ff775485246999027b3197955',
     USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',
-    BUSD: '0xe9e7cea3dedca5984780bafc599bd69add087d56'
 };
 
 // 代币价格缓存 (实际项目中应该从价格API获取)
 const TOKEN_PRICES = {
-    [COMMON_TOKENS.WBNB]: 300, // USD价格，实际应该动态获取
+    [COMMON_TOKENS.WBNB]: 800, // USD价格，实际应该动态获取
     [COMMON_TOKENS.USDT]: 1,   // USDT价格
     [COMMON_TOKENS.USDC]: 1,   // USDC价格
-    [COMMON_TOKENS.BUSD]: 1    // BUSD价格
 };
 
 // 池子信息缓存

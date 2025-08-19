@@ -71,14 +71,6 @@ const CONTRACTS = {
         USDC: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
         BUSD: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
     },
-    // Ethereum Mainnet
-    1: {
-        UNISWAP_V3_POSITION_MANAGER: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
-        // 常用代币地址
-        WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-        USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-        USDC: "0xA0b86a33E6417aFD556E3e9bf2dd3D10bE6Fa95D"
-    }
 };
 
 // 使用传入的provider和signer而不是从window.ethereum获取

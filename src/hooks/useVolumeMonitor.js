@@ -176,14 +176,27 @@ export const useVolumeMonitor = (settings = {}) => {
     // 更新统计信息
     const updateStats = useCallback(() => {
         const poolsArray = Array.from(poolsDataRef.current.values());
+        const now = Date.now();
+        const timeWindow = selectedTimeWindow === '5m' ? TIME_WINDOWS.FIVE_MIN : TIME_WINDOWS.FIFTEEN_MIN;
 
-        // 过滤池子：只包含常用代币且排除0.01%的池子
+        // 过滤池子：只包含常用代币且排除0.01%的池子，同时过滤掉非活跃池子
         const filteredPools = poolsArray.filter(pool => {
             // 必须是常用代币池子
             if (!pool.isCommonPool) return false;
 
             // 排除0.01%的池子（这些池子通常交易量较小，不应该参与统计）
             if (pool.fee === '0.01%') return false;
+
+            // 过滤掉最后交易时间超过当前时间窗口的池子
+            if (now - pool.lastUpdate > timeWindow) {
+                return false;
+            }
+
+            // 过滤掉当前时间窗口内交易量为0的池子
+            const currentVolume = selectedTimeWindow === '5m' ? pool.volume5m : pool.volume15m;
+            if (currentVolume === 0) {
+                return false;
+            }
 
             return true;
         });
@@ -206,20 +219,34 @@ export const useVolumeMonitor = (settings = {}) => {
         };
 
         setStats(newStats);
-        console.info('统计信息更新 (已排除0.01%池子):', newStats);
+        console.info('统计信息更新 (已排除0.01%池子和非活跃池子):', newStats);
     }, [selectedTimeWindow]);
 
-    // 更新排名前10的池子
+    // 更新排名前20的池子
     const updateTopPools = useCallback(() => {
         const poolsArray = Array.from(poolsDataRef.current.values());
+        const now = Date.now();
+        const timeWindow = selectedTimeWindow === '5m' ? TIME_WINDOWS.FIVE_MIN : TIME_WINDOWS.FIFTEEN_MIN;
 
-        // 只显示包含常用代币的池子，并排除0.01%的池子
+        // 只显示包含常用代币的池子，并排除0.01%的池子，同时过滤掉最后交易时间超过时间窗口的池子
         const commonTokenPools = poolsArray.filter(pool => {
             // 必须是常用代币池子
             if (!pool.isCommonPool) return false;
 
             // 排除0.01%的池子（这些池子通常交易量较小，不应该参与排名）
             if (pool.fee === '0.01%') return false;
+
+            // 过滤掉最后交易时间超过当前时间窗口的池子
+            if (now - pool.lastUpdate > timeWindow) {
+                console.info(`过滤掉非活跃池子: ${pool.displayName} (最后更新: ${new Date(pool.lastUpdate).toLocaleTimeString()})`);
+                return false;
+            }
+
+            // 过滤掉当前时间窗口内交易量为0的池子
+            const currentVolume = selectedTimeWindow === '5m' ? pool.volume5m : pool.volume15m;
+            if (currentVolume === 0) {
+                return false;
+            }
 
             return true;
         });
@@ -232,7 +259,7 @@ export const useVolumeMonitor = (settings = {}) => {
             })
             .slice(0, 20);
 
-        console.info(`更新排名: ${sortedPools.length} 个池子 (已排除0.01%池子)`);
+        console.info(`更新排名: ${sortedPools.length} 个活跃池子 (已排除0.01%池子和非活跃池子)`);
         setTopPools(sortedPools);
 
         // 更新统计信息

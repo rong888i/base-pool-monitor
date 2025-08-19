@@ -17,12 +17,6 @@ export const formatAddress = (address) => {
 export const getRpcUrl = (chainId) => {
     const rpcUrls = {
         'bsc': 'https://bsc-dataseed.binance.org/',
-        'ethereum': 'https://eth.llamarpc.com',
-        'arbitrum': 'https://arbitrum.llamarpc.com',
-        'polygon': 'https://polygon.llamarpc.com',
-        'avalanche': 'https://api.avax.network/ext/bc/C/rpc',
-        'optimism': 'https://mainnet.optimism.io',
-        'base': 'https://mainnet.base.org',
     };
     return rpcUrls[chainId.toLowerCase()];
 };
