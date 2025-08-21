@@ -151,19 +151,6 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
         return `${hours}小时前`;
     };
 
-    // 格式化数字
-    const formatNumber = (num, decimals = 2) => {
-        if (num === null || num === undefined || isNaN(num)) return '--';
-        if (num >= 1000000) return `${(num / 1000000).toFixed(decimals)}M`;
-        if (num >= 1000) return `${(num / 1000).toFixed(decimals)}K`;
-        return num.toFixed(decimals);
-    };
-
-    // 格式化USD金额
-    const formatUSD = (amount) => {
-        if (amount === null || amount === undefined || isNaN(amount)) return '--';
-        return `$${formatNumber(amount)}`;
-    };
 
     return (
         <div className={`hidden lg:block ${isOpen ? 'w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
@@ -232,7 +219,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                 onClick={refreshData}
                                 disabled={isLoading}
                                 className="p-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                                title="刷新数据"
+                                data-tooltip-id="my-tooltip"
+                                data-tooltip-content="刷新数据"
                             >
                                 <IoRefresh className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${isLoading ? 'animate-spin' : ''}`} />
                             </button>
@@ -381,10 +369,10 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                             <span className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">
                                 {(() => {
                                     switch (selectedTimeWindow) {
-                                        case 300: return '5分钟';
-                                        case 900: return '15分钟';
-                                        case 3600: return '1小时';
-                                        case 86400: return '24小时';
+                                        case 5: return '5分钟';
+                                        case 15: return '15分钟';
+                                        case 60: return '1小时';
+                                        case 1440: return '24小时';
                                         default: return '5分钟';
                                     }
                                 })()}
@@ -401,17 +389,19 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                         )}
 
                         {/* 池子列表 */}
-                        <RightSidebarPoolList
-                            pools={getSortedPools()}
-                            isLoading={isLoading}
-                            selectedTimeWindow={selectedTimeWindow}
-                            currentTimeWindowLabel={currentTimeWindowLabel}
-                            sortBy={sortBy}
-                            onAddPool={onAddPool}
-                            excludedPools={excludedPools}
-                            onExcludePool={handleExcludePool}
-                            onRestorePool={handleRestorePool}
-                        />
+                        <div className="space-y-3">
+                            <RightSidebarPoolList
+                                pools={getSortedPools()}
+                                isLoading={isLoading}
+                                selectedTimeWindow={selectedTimeWindow}
+                                currentTimeWindowLabel={currentTimeWindowLabel}
+                                sortBy={sortBy}
+                                onAddPool={onAddPool}
+                                excludedPools={excludedPools}
+                                onExcludePool={handleExcludePool}
+                                onRestorePool={handleRestorePool}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

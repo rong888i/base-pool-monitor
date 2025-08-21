@@ -7,7 +7,7 @@ export const usePoolMonitorAPI = () => {
     const [pools, setPools] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [selectedTimeWindow, setSelectedTimeWindow] = useState(300); // 默认5分钟（300秒）
+    const [selectedTimeWindow, setSelectedTimeWindow] = useState(5); // 默认5分钟
     const [lastUpdate, setLastUpdate] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('未连接');
 
@@ -166,10 +166,10 @@ export const usePoolMonitorAPI = () => {
 
     // 时间窗口选项
     const timeWindowOptions = [
-        { value: 300, label: '5分钟', shortLabel: '5m' },
-        { value: 900, label: '15分钟', shortLabel: '15m' },
-        { value: 3600, label: '1小时', shortLabel: '1h' },
-        { value: 86400, label: '24小时', shortLabel: '24h' },
+        { value: 5, label: '5分钟', shortLabel: '5m' },
+        { value: 15, label: '15分钟', shortLabel: '15m' },
+        { value: 60, label: '1小时', shortLabel: '1h' },
+        { value: 1440, label: '24小时', shortLabel: '24h' },
     ];
 
     // 获取当前时间窗口标签
@@ -178,13 +178,12 @@ export const usePoolMonitorAPI = () => {
         if (option) {
             return option.label;
         }
-        // 如果没有找到匹配的选项，将秒转换为分钟
-        const minutes = Math.floor(selectedTimeWindow / 60);
-        if (minutes >= 60) {
-            const hours = Math.floor(minutes / 60);
+        // 如果没有找到匹配的选项，直接显示分钟数
+        if (selectedTimeWindow >= 60) {
+            const hours = Math.floor(selectedTimeWindow / 60);
             return `${hours}小时`;
         }
-        return `${minutes}分钟`;
+        return `${selectedTimeWindow}分钟`;
     }, [selectedTimeWindow, timeWindowOptions]);
 
     // 清理函数
