@@ -55,6 +55,8 @@ function ConnectWalletButton() {
 
 export default function ControlPanel({
     isSidebarOpen,
+    isRightSidebarOpen,
+    onToggleRightSidebar,
     customAddress,
     onCustomAddressChange,
     addPool,
@@ -149,6 +151,22 @@ export default function ControlPanel({
                         >
                             <svg className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => onToggleRightSidebar(!isRightSidebarOpen)}
+                            className={`hidden lg:flex items-center justify-center w-10 h-10 rounded-full 
+                                ${isRightSidebarOpen
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
+                                    : 'bg-white/70 hover:bg-white/100 dark:bg-gray-800/80 dark:hover:bg-gray-700/80 text-gray-600 dark:text-gray-300'
+                                }
+                                border border-gray-200/80 dark:border-gray-700
+                                shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300 group`}
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content={isRightSidebarOpen ? "收起池子监控" : "显示池子监控"}
+                        >
+                            <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         </button>
                         <button

@@ -292,67 +292,7 @@ export const getPoolBasicInfo = async (poolAddress, rpcUrl = DEFAULT_RPC_URL) =>
     }
 };
 
-/**
- * 计算以USD为单位的交易量
- * @param {string} amount0 - token0数量
- * @param {string} amount1 - token1数量
- * @param {string} token0 - token0地址
- * @param {string} token1 - token1地址
- * @param {number} decimals0 - token0小数位数
- * @param {number} decimals1 - token1小数位数
- * @param {string} rpcUrl - RPC节点地址
- * @returns {number} USD交易量
- */
-export const calculateUSDVolume = (amount0, amount1, token0, token1, decimals0 = 18, decimals1 = 18, rpcUrl = DEFAULT_RPC_URL) => {
-    try {
-        const token0Lower = token0.toLowerCase();
-        const token1Lower = token1.toLowerCase();
 
-        // 检查哪个是常用代币
-        const poolCheck = checkCommonTokenPool(token0, token1);
-
-        if (!poolCheck.isCommonPool) {
-            return 0; // 不包含常用代币的池子，返回0
-        }
-
-        const { commonToken, commonTokenIndex, otherToken } = poolCheck;
-
-        // 获取常用代币的价格
-        const commonTokenPrice = TOKEN_PRICES[commonToken.toLowerCase()] || 0;
-
-        if (commonTokenPrice === 0) {
-            return 0;
-        }
-
-        // 计算常用代币的USD价值
-        let commonTokenAmount, otherTokenAmount;
-        let commonTokenDecimals, otherTokenDecimals;
-
-        if (commonTokenIndex === 0) {
-            commonTokenAmount = Math.abs(parseFloat(amount0));
-            otherTokenAmount = Math.abs(parseFloat(amount1));
-            commonTokenDecimals = decimals0;
-            otherTokenDecimals = decimals1;
-        } else {
-            commonTokenAmount = Math.abs(parseFloat(amount1));
-            otherTokenAmount = Math.abs(parseFloat(amount0));
-            commonTokenDecimals = decimals1;
-            otherTokenDecimals = decimals0;
-        }
-
-        // 转换为实际数量（考虑小数位数）
-        const actualCommonTokenAmount = commonTokenAmount / Math.pow(10, commonTokenDecimals);
-        const actualOtherTokenAmount = otherTokenAmount / Math.pow(10, otherTokenDecimals);
-
-        // 计算USD交易量（以常用代币为准）
-        const usdVolume = actualCommonTokenAmount * commonTokenPrice;
-
-        return usdVolume;
-    } catch (error) {
-        console.error('计算USD交易量失败:', error);
-        return 0;
-    }
-};
 
 /**
  * 获取完整的池子信息（包括代币详情）
@@ -431,23 +371,3 @@ export const clearAllCache = () => {
     TOKEN_INFO_CACHE.clear();
 };
 
-/**
- * 检查BSC网络连接状态
- * @param {string} rpcUrl - RPC节点地址
- * @returns {Promise<boolean>} 连接状态
- */
-export const checkBSCConnection = async (rpcUrl = DEFAULT_RPC_URL) => {
-    try {
-        const provider = createProvider(rpcUrl);
-        if (!provider) {
-            return false;
-        }
-
-        const blockNumber = await provider.getBlockNumber();
-        console.log(`BSC网络连接正常，当前区块: ${blockNumber}`);
-        return true;
-    } catch (error) {
-        console.error('BSC网络连接失败:', error);
-        return false;
-    }
-}; 

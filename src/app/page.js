@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import Sidebar from '../components/Sidebar';
-import RightSidebar from '../components/RightSidebar';
+import RightSidebar from '../components/right-sidebar/RightSidebar';
 import Settings from '../components/Settings';
 import ControlPanel from '../components/home/ControlPanel';
 import PoolList from '../components/home/PoolList';
@@ -50,6 +50,8 @@ export default function Home() {
         <div className="container mx-auto px-3 py-4 min-h-full flex flex-col">
           <ControlPanel
             isSidebarOpen={isSidebarOpen}
+            isRightSidebarOpen={isRightSidebarOpen}
+            onToggleRightSidebar={setIsRightSidebarOpen}
             customAddress={customAddress}
             onCustomAddressChange={setCustomAddress}
             addPool={addPool}
@@ -79,6 +81,7 @@ export default function Home() {
         settings={settings}
         isOpen={isRightSidebarOpen}
         onToggle={setIsRightSidebarOpen}
+        onAddPool={handleAddPoolFromSidebar}
       />
 
       <Settings
