@@ -7,7 +7,7 @@ export const usePoolMonitorAPI = () => {
     const [pools, setPools] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [selectedTimeWindow, setSelectedTimeWindow] = useState(5); // 默认5分钟
+    const [selectedTimeWindow, setSelectedTimeWindow] = useState(300); // 默认5分钟（300秒）
     const [lastUpdate, setLastUpdate] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('未连接');
 
@@ -94,18 +94,18 @@ export const usePoolMonitorAPI = () => {
         isActiveRef.current = true;
         setConnectionStatus('启动中...');
 
-        // 立即获取一次数据
-        fetchPools();
+        // 立即获取一次数据，使用当前选择的时间窗口
+        fetchPools(selectedTimeWindow);
 
-        // 设置定时器，每10秒刷新一次
+        // 设置定时器，每10秒刷新一次，使用当前选择的时间窗口
         intervalRef.current = setInterval(() => {
             if (isActiveRef.current) {
-                fetchPools();
+                fetchPools(selectedTimeWindow);
             }
         }, 10000);
 
         console.info('池子监控已启动，每10秒刷新一次');
-    }, [fetchPools]);
+    }, [fetchPools, selectedTimeWindow]);
 
     // 停止自动刷新
     const stopMonitoring = useCallback(() => {
@@ -122,8 +122,8 @@ export const usePoolMonitorAPI = () => {
 
     // 手动刷新
     const refreshData = useCallback(() => {
-        fetchPools();
-    }, [fetchPools]);
+        fetchPools(selectedTimeWindow);
+    }, [fetchPools, selectedTimeWindow]);
 
     // 切换时间窗口
     const changeTimeWindow = useCallback((minutes) => {
@@ -131,6 +131,15 @@ export const usePoolMonitorAPI = () => {
         // 如果正在监控中，立即用新的时间窗口获取数据
         if (isActiveRef.current) {
             fetchPools(minutes);
+            // 重新设置定时器，确保后续的自动刷新使用新的时间窗口
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = setInterval(() => {
+                    if (isActiveRef.current) {
+                        fetchPools(minutes);
+                    }
+                }, 10000);
+            }
         }
     }, [fetchPools]);
 
@@ -157,19 +166,26 @@ export const usePoolMonitorAPI = () => {
 
     // 时间窗口选项
     const timeWindowOptions = [
-        { value: 5, label: '5分钟', shortLabel: '5m' },
-        { value: 15, label: '15分钟', shortLabel: '15m' },
-        { value: 30, label: '30分钟', shortLabel: '30m' },
-        { value: 60, label: '1小时', shortLabel: '1h' },
-        { value: 240, label: '4小时', shortLabel: '4h' },
-        { value: 1440, label: '24小时', shortLabel: '24h' },
+        { value: 300, label: '5分钟', shortLabel: '5m' },
+        { value: 900, label: '15分钟', shortLabel: '15m' },
+        { value: 3600, label: '1小时', shortLabel: '1h' },
+        { value: 86400, label: '24小时', shortLabel: '24h' },
     ];
 
     // 获取当前时间窗口标签
     const getCurrentTimeWindowLabel = useCallback(() => {
         const option = timeWindowOptions.find(opt => opt.value === selectedTimeWindow);
-        return option ? option.label : `${selectedTimeWindow}分钟`;
-    }, [selectedTimeWindow]);
+        if (option) {
+            return option.label;
+        }
+        // 如果没有找到匹配的选项，将秒转换为分钟
+        const minutes = Math.floor(selectedTimeWindow / 60);
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            return `${hours}小时`;
+        }
+        return `${minutes}分钟`;
+    }, [selectedTimeWindow, timeWindowOptions]);
 
     // 清理函数
     useEffect(() => {

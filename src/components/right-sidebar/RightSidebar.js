@@ -9,7 +9,6 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
     const [openSection, setOpenSection] = useState('monitor');
     const [sortBy, setSortBy] = useState('fees'); // 'fees' 或 'volume'
     const [excludedPools, setExcludedPools] = useState(new Set()); // 被排除的池子地址集合
-    const [selectedTimeWindow, setSelectedTimeWindow] = useState(300); // 默认5分钟
 
     // 使用API监控hook
     const {
@@ -22,6 +21,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
         stats,
         timeWindowOptions,
         currentTimeWindowLabel,
+        selectedTimeWindow,
         startMonitoring,
         stopMonitoring,
         refreshData,
@@ -262,8 +262,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => setSelectedTimeWindow(300)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 300
+                                onClick={() => changeTimeWindow(5)}
+                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 5
                                     ? 'bg-blue-600 text-white'
                                     : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                                     }`}
@@ -271,8 +271,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                 5m
                             </button>
                             <button
-                                onClick={() => setSelectedTimeWindow(900)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 900
+                                onClick={() => changeTimeWindow(15)}
+                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 15
                                     ? 'bg-blue-600 text-white'
                                     : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                                     }`}
@@ -280,8 +280,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                 15m
                             </button>
                             <button
-                                onClick={() => setSelectedTimeWindow(3600)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 3600
+                                onClick={() => changeTimeWindow(60)}
+                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 60
                                     ? 'bg-blue-600 text-white'
                                     : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                                     }`}
@@ -289,10 +289,10 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                 1h
                             </button>
                             <button
-                                onClick={() => setSelectedTimeWindow(86400)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 86400
+                                onClick={() => changeTimeWindow(1440)}
+                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 1440
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-200 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
+                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                                     }`}
                             >
                                 24h
