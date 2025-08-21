@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IoStatsChart, IoClose, IoRefresh, IoPlay, IoStop, IoTrendingUp, IoTime } from 'react-icons/io5';
 import { usePoolMonitorAPI } from '../../hooks/usePoolMonitorAPI';
 import RightSidebarPoolList from './RightSidebarPoolList';
@@ -8,6 +8,7 @@ import RightSidebarPoolList from './RightSidebarPoolList';
 const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
     const [openSection, setOpenSection] = useState('monitor');
     const [sortBy, setSortBy] = useState('fees'); // 'fees' 或 'volume'
+    const [excludedPools, setExcludedPools] = useState(new Set()); // 被排除的池子地址集合
 
     // 使用API监控hook
     const {
@@ -26,6 +27,33 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
         refreshData,
         changeTimeWindow,
     } = usePoolMonitorAPI();
+
+    // 从本地存储加载排除的池子
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedExcludedPools = localStorage.getItem('rightSidebarExcludedPools');
+            if (savedExcludedPools) {
+                try {
+                    const excludedArray = JSON.parse(savedExcludedPools);
+                    setExcludedPools(new Set(excludedArray));
+                } catch (error) {
+                    console.error('加载排除池子数据失败:', error);
+                }
+            }
+        }
+    }, []);
+
+    // 保存排除的池子到本地存储
+    const saveExcludedPoolsToStorage = (excludedPoolsSet) => {
+        if (typeof window !== 'undefined') {
+            try {
+                const excludedArray = Array.from(excludedPoolsSet);
+                localStorage.setItem('rightSidebarExcludedPools', JSON.stringify(excludedArray));
+            } catch (error) {
+                console.error('保存排除池子数据失败:', error);
+            }
+        }
+    };
 
     // 处理侧边栏切换
     const handleToggle = () => {
@@ -48,11 +76,42 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
         setSortBy(newSortBy);
     };
 
-    // 根据排序方式对池子数据进行排序
+    // 排除池子
+    const handleExcludePool = (poolAddress) => {
+        setExcludedPools(prev => {
+            const newSet = new Set(prev);
+            newSet.add(poolAddress);
+            saveExcludedPoolsToStorage(newSet);
+            return newSet;
+        });
+    };
+
+    // 恢复池子
+    const handleRestorePool = (poolAddress) => {
+        setExcludedPools(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(poolAddress);
+            saveExcludedPoolsToStorage(newSet);
+            return newSet;
+        });
+    };
+
+    // 清空所有排除的池子
+    const handleClearAllExcluded = () => {
+        setExcludedPools(new Set());
+        saveExcludedPoolsToStorage(new Set());
+    };
+
+    // 根据排序方式对池子数据进行排序（排除被排除的池子）
     const getSortedPools = () => {
         if (!pools || pools.length === 0) return [];
 
-        const sortedPools = [...pools];
+        // 过滤掉被排除的池子
+        const filteredPools = pools.filter(pool => !excludedPools.has(pool.address));
+
+        if (filteredPools.length === 0) return [];
+
+        const sortedPools = [...filteredPools];
 
         if (sortBy === 'volume') {
             // 按交易量降序排序
@@ -117,7 +176,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                 shadow-md hover:shadow-lg
                 hover:bg-white/90 dark:hover:bg-neutral-800
                 transition-all duration-300
-                ${isOpen ? 'right-[20rem]' : 'right-2'}`}
+                ${isOpen ? 'right-[23rem]' : 'right-2'}`}
                 aria-label={isOpen ? "收起右侧栏" : "展开右侧栏"}
             >
                 <svg
@@ -271,6 +330,47 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                         </div>
                     </div>
 
+                    {/* 排除池子管理 */}
+                    {excludedPools.size > 0 && (
+                        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    已排除池子 ({excludedPools.size})
+                                </label>
+                                <button
+                                    onClick={handleClearAllExcluded}
+                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                                >
+                                    清空全部
+                                </button>
+                            </div>
+                            <div className="space-y-2 max-h-24 overflow-y-auto">
+                                {Array.from(excludedPools).map((address) => {
+                                    const pool = pools.find(p => p.address === address);
+                                    return (
+                                        <div key={address} className="flex items-center justify-between p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-xs">
+                                            <span className="text-neutral-600 dark:text-neutral-400 truncate">
+                                                {pool ? pool.displayName : `${address.slice(0, 6)}...${address.slice(-4)}`}
+                                            </span>
+                                            <button
+                                                onClick={() => handleRestorePool(address)}
+                                                className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                                                title="恢复此池子"
+                                            >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* 池子列表 */}
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -308,6 +408,9 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                             currentTimeWindowLabel={currentTimeWindowLabel}
                             sortBy={sortBy}
                             onAddPool={onAddPool}
+                            excludedPools={excludedPools}
+                            onExcludePool={handleExcludePool}
+                            onRestorePool={handleRestorePool}
                         />
                     </div>
                 </div>

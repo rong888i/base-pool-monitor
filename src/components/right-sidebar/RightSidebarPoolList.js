@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaExternalLinkAlt, FaTrophy } from 'react-icons/fa';
 
-const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTimeWindowLabel, sortBy = 'fees', onAddPool }) => {
+const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTimeWindowLabel, sortBy = 'fees', onAddPool, excludedPools = new Set(), onExcludePool, onRestorePool }) => {
     // 格式化数字
     const formatNumber = (num, decimals = 2) => {
         if (num === null || num === undefined || isNaN(num)) return '--';
@@ -27,12 +27,10 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
 
     // 获取工厂徽章颜色
     const getFactoryBadgeColor = (factory) => {
-        switch (factory?.toLowerCase()) {
-            case 'pancakeswap':
-            case 'pancake':
+        switch (factory) {
+            case 'PancakeswapV3':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-            case 'uniswapv3':
-            case 'uniswap':
+            case 'UniswapV3':
                 return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300';
             default:
                 return 'bg-neutral-100 text-neutral-800 dark:bg-neutral-900/30 dark:text-neutral-300';
@@ -122,8 +120,13 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${getRankBadgeColor(pool.rank)}`}>
                                     {pool.rank <= 3 ? <FaTrophy className="w-2.5 h-2.5" /> : pool.rank}
                                 </div>
-                                <div className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                                    {pool.displayName}
+                                <div className="flex items-center gap-2">
+                                    <div className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                                        {pool.displayName}
+                                    </div>
+                                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                        {pool.fee}
+                                    </span>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -154,12 +157,23 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                             <span className={`px-2 py-1 text-xs rounded ${getFactoryBadgeColor(pool.factory)}`}>
                                 {pool.factory}
                             </span>
-                            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                                {pool.fee} 费率
-                            </span>
                             <div className="ml-auto flex items-center gap-1">
                                 <button
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onExcludePool) {
+                                            onExcludePool(pool.address);
+                                        }
+                                    }}
+                                    title="排除此池子"
+                                >
+                                    <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <button
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (onAddPool) {
@@ -171,13 +185,12 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                                     }}
                                     title="添加到主页监控"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                         <path strokeLinecap="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
-                                    <span>添加</span>
                                 </button>
                                 <button
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         window.open(`https://bscscan.com/address/${pool.address}`, '_blank');
@@ -185,7 +198,6 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                                     title="在 BscScan 中查看"
                                 >
                                     <FaExternalLinkAlt className="h-2.5 w-2.5" />
-                                    <span>查看</span>
                                 </button>
                             </div>
                         </div>
