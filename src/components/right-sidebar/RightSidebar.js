@@ -304,7 +304,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                     : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                                     }`}
                             >
-                                手续费收入
+                                手续费
                             </button>
                             <button
                                 onClick={() => handleSortChange('volume')}
@@ -335,7 +335,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                     清空全部
                                 </button>
                             </div>
-                            <div className="space-y-2 max-h-24 overflow-y-auto">
+                            <div className="space-y-2 max-h-24 overflow-y-auto custom-scrollbar">
                                 {Array.from(excludedPools).map((address) => {
                                     const pool = pools.find(p => p.address === address);
                                     return (
@@ -346,7 +346,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                             <button
                                                 onClick={() => handleRestorePool(address)}
                                                 className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                                                title="恢复此池子"
+                                                data-tooltip-id="my-tooltip"
+                                                data-tooltip-content="恢复此池子"
                                             >
                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
