@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const API_BASE_URL = 'http://107.175.36.39:6786';
+// 使用本地API转发，避免跨域和部署问题
+const API_BASE_URL = '/api/pool-monitor';
 
 export const usePoolMonitorAPI = () => {
     const [pools, setPools] = useState([]);
@@ -20,7 +21,7 @@ export const usePoolMonitorAPI = () => {
             setError(null);
             setConnectionStatus('正在获取数据...');
 
-            const response = await fetch(`${API_BASE_URL}/api/pools/top-fees/${timeWindowMinutes}`, {
+            const response = await fetch(`${API_BASE_URL}?path=/api/pools/top-fees/${timeWindowMinutes}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
