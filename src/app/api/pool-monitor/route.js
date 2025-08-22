@@ -1,6 +1,10 @@
 // 使用环境变量配置后端API地址，如果没有配置则使用默认值
 const API_BASE_URL = process.env.POOL_MONITOR_API_URL || 'http://107.175.36.39:6786';
 
+// 禁用缓存，确保每次请求都获取最新数据
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -11,7 +15,11 @@ export async function GET(request) {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
+            cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -19,7 +27,13 @@ export async function GET(request) {
         }
 
         const data = await response.json();
-        return Response.json(data);
+        return Response.json(data, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            },
+        });
     } catch (error) {
         console.error('API转发错误:', error);
         return Response.json(
@@ -41,8 +55,11 @@ export async function POST(request) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
-            body: JSON.stringify(body),
+            cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -50,7 +67,13 @@ export async function POST(request) {
         }
 
         const data = await response.json();
-        return Response.json(data);
+        return Response.json(data, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            },
+        });
     } catch (error) {
         console.error('API转发错误:', error);
         return Response.json(
