@@ -6,7 +6,7 @@ import NftSearchSection from './sidebar/NftSearchSection';
 import PoolSearchSection from './sidebar/PoolSearchSection';
 import PoolCalculatorSection from './sidebar/PoolCalculatorSection';
 
-const Sidebar = ({ onAddPool, pools, onToggle }) => {
+const Sidebar = ({ onAddPool, pools, onToggle, isRightSidebarOpen = false }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [openSection, setOpenSection] = useState(null); // 'find', 'search', or 'calculate'
 
@@ -33,7 +33,8 @@ const Sidebar = ({ onAddPool, pools, onToggle }) => {
                 ${isCollapsed
                         ? 'left-2'
                         : 'sm:left-[23rem] left-[calc(100%-3.25rem)]'
-                    }`}
+                    }
+                ${isRightSidebarOpen ? 'lg:block hidden' : ''}`}
                 aria-label={isCollapsed ? "展开侧边栏" : "收起侧边栏"}
             >
                 <svg

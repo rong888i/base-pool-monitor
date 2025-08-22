@@ -44,6 +44,7 @@ export default function Home() {
         onAddPool={handleAddPoolFromSidebar}
         pools={pools}
         onToggle={setIsSidebarOpen}
+        isRightSidebarOpen={isRightSidebarOpen}
       />
 
       <main className="flex-1 overflow-y-auto custom-scrollbar">
@@ -82,6 +83,7 @@ export default function Home() {
         isOpen={isRightSidebarOpen}
         onToggle={setIsRightSidebarOpen}
         onAddPool={handleAddPoolFromSidebar}
+        isLeftSidebarOpen={isSidebarOpen}
       />
 
       <Settings

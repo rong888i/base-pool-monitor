@@ -5,7 +5,7 @@ import { IoStatsChart, IoClose, IoRefresh, IoPlay, IoStop, IoTrendingUp, IoTime 
 import { usePoolMonitorAPI } from '../../hooks/usePoolMonitorAPI';
 import RightSidebarPoolList from './RightSidebarPoolList';
 
-const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
+const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSidebarOpen = false }) => {
     const [openSection, setOpenSection] = useState('monitor');
     const [sortBy, setSortBy] = useState('fees'); // 'fees' 或 'volume'
     const [excludedPools, setExcludedPools] = useState(new Set()); // 被排除的池子地址集合
@@ -153,7 +153,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
 
 
     return (
-        <div className={`hidden lg:block ${isOpen ? 'w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
+        <div className={`${isOpen ? 'w-full lg:w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
@@ -163,7 +163,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                 shadow-md hover:shadow-lg
                 hover:bg-white/90 dark:hover:bg-neutral-800
                 transition-all duration-300
-                ${isOpen ? 'right-[23rem]' : 'right-2'}`}
+                ${isOpen ? 'right-[calc(100%-3.25rem)] lg:right-[23rem]' : 'right-2'}
+                ${isLeftSidebarOpen ? 'lg:block hidden' : ''}`}
                 aria-label={isOpen ? "收起右侧栏" : "展开右侧栏"}
             >
                 <svg
@@ -192,13 +193,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool }) => {
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleToggle}
-                            className="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                            title="收起"
-                        >
-                            <IoClose className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                        </button>
+
                     </div>
 
                     {/* 状态控制栏 */}
