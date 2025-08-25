@@ -24,7 +24,7 @@ const Sidebar = ({ onAddPool, pools, onToggle, isRightSidebarOpen = false }) => 
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
-                className={`fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-1.5
+                className={`fixed top-1/2 -translate-y-1/2 z-10 rounded-full p-1.5
                 bg-white/60 dark:bg-neutral-800/60 backdrop-blur-sm
                 border border-neutral-200/50 dark:border-neutral-700
                 shadow-md hover:shadow-lg
