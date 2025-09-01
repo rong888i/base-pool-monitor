@@ -59,34 +59,41 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
     return (
         <div>
             {/* 筛选器标题行 */}
-            <div className="flex items-center justify-between py-2">
+            <div className="flex items-center justify-between py-2 pr-1">
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+                    className="w-full flex items-center justify-between text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        <span>筛选条件</span>
+                        {hasActiveFilters() && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    resetFilters();
+                                }}
+                                className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                            >
+                                重置
+                            </button>
+                        )}
+                    </div>
+                    <svg
+                        className={`w-4 h-4 text-neutral-400 dark:text-neutral-500 transform transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>
-                    筛选条件
-                    <span className={`text-xs text-neutral-400 inline-block transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`}>
-                        ▼
-                    </span>
                 </button>
-                {hasActiveFilters() && (
-                    <button
-                        onClick={resetFilters}
-                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                    >
-                        清除
-                    </button>
-                )}
             </div>
 
             {/* 筛选内容容器 - 带动画 */}
-            <div 
+            <div
                 className="overflow-hidden transition-all duration-300 ease-in-out"
-                style={{ 
+                style={{
                     maxHeight: showFilters ? `${contentHeight}px` : '0px',
                     opacity: showFilters ? 1 : 0
                 }}
@@ -106,7 +113,7 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                                     清空
                                 </button>
                             </div>
-                            <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                            <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto scrollbar-hide">
                                 {Array.from(excludedPools).map((address) => {
                                     const pool = pools?.find(p => p.address === address);
                                     return (

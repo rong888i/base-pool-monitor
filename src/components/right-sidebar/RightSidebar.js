@@ -308,7 +308,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                 </div>
 
                 {/* 内容区域 */}
-                <div className="h-[calc(100%-7rem)] overflow-y-auto custom-scrollbar">
+                <div className="h-[calc(100%-7rem)] overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
 
                     {/* 时间窗口选择器 */}
                     <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
@@ -374,7 +374,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
 
                     {/* 池子列表 */}
                     <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-3 pr-1">
                             <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
                                 <IoTrendingUp className="w-4 h-4" />
                                 {sortBy === 'fees' ? '费用排行' : '交易量排行'}

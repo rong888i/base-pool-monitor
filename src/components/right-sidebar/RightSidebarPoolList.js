@@ -101,7 +101,7 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
     }
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-4">
             {pools.slice(0, 20).map((pool, index) => {
                 const mainMetric = getMainMetric(pool);
                 const secondaryMetric = getSecondaryMetric(pool);
@@ -111,9 +111,8 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/60 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer p-3 ${
-                            pool.totalFees > 50 ? 'high-fee-breathing' : ''
-                        }`}
+                        className={`bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/60 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer p-3 ${pool.totalFees > 50 ? 'high-fee-breathing' : ''
+                            }`}
                         onClick={() => window.open(`https://bscscan.com/address/${pool.address}`, '_blank')}
                     >
                         {/* 排名和基本信息 */}
