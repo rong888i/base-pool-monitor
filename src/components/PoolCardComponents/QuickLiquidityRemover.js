@@ -223,10 +223,30 @@ const QuickLiquidityRemover = ({
             const expectedAmount0 = BigInt(nftInfo.positionLiquidity.raw.token0);
             const expectedAmount1 = BigInt(nftInfo.positionLiquidity.raw.token1);
 
-            // 确保滑点值有效
-            const effectiveSlippage = (typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1;
-            const amount0Min = (expectedAmount0 * BigInt(removePercentage) * (10000n - BigInt(effectiveSlippage * 100))) / (100n * 10000n);
-            const amount1Min = (expectedAmount1 * BigInt(removePercentage) * (10000n - BigInt(effectiveSlippage * 100))) / (100n * 10000n);
+            // 确保滑点值有效（允许最高99.99%，100%表示无滑点保护）
+            const slippageNum = typeof slippage === 'string' ? parseFloat(slippage) : slippage;
+            const effectiveSlippage = (!isNaN(slippageNum) && slippageNum > 0 && slippageNum <= 100) ? slippageNum : 1;
+            console.log('滑点设置:', { inputSlippage: slippage, slippageNum, effectiveSlippage });
+            
+            // 如果滑点设置为100%，则不设置最小数量限制（接受任何数量）
+            let amount0Min, amount1Min;
+            if (effectiveSlippage >= 100) {
+                amount0Min = 0n;
+                amount1Min = 0n;
+                console.log('滑点设置为100%，接受任何数量的输出');
+            } else {
+                amount0Min = (expectedAmount0 * BigInt(removePercentage) * (10000n - BigInt(Math.floor(effectiveSlippage * 100)))) / (100n * 10000n);
+                amount1Min = (expectedAmount1 * BigInt(removePercentage) * (10000n - BigInt(Math.floor(effectiveSlippage * 100)))) / (100n * 10000n);
+            }
+            
+            console.log('最小数量计算:', {
+                expectedAmount0: expectedAmount0.toString(),
+                expectedAmount1: expectedAmount1.toString(),
+                removePercentage,
+                effectiveSlippage,
+                amount0Min: amount0Min.toString(),
+                amount1Min: amount1Min.toString()
+            });
 
             // 设置交易截止时间（15分钟后）
             const deadline = Math.floor(Date.now() / 1000) + 900;
@@ -566,7 +586,7 @@ const QuickLiquidityRemover = ({
                                                     type="number"
                                                     step="0.1"
                                                     min="0"
-                                                    max="50"
+                                                    max="100"
                                                     value={slippage}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
@@ -576,13 +596,15 @@ const QuickLiquidityRemover = ({
                                                         }
                                                         const numValue = parseFloat(value);
                                                         if (!isNaN(numValue) && numValue >= 0) {
-                                                            setSlippage(numValue => 100 ? 99 : numValue);
+                                                            setSlippage(numValue >= 100 ? 99 : numValue);
                                                         }
                                                     }}
                                                     onBlur={(e) => {
                                                         const value = parseFloat(e.target.value);
                                                         if (isNaN(value) || value <= 0) {
                                                             setSlippage(1);
+                                                        } else if (value > 100) {
+                                                            setSlippage(100);
                                                         }
                                                     }}
                                                     placeholder="1.0"

@@ -335,11 +335,29 @@ const QuickLiquidityEnhancer = ({
             const amount0Desired = parseTokenAmount(amount0, poolInfo.token0?.decimals || 18);
             const amount1Desired = parseTokenAmount(amount1, poolInfo.token1?.decimals || 18);
 
-            // 确保滑点值有效
-            const effectiveSlippage = (typeof slippage === 'number' && slippage > 0 && slippage <= 50) ? slippage : 1;
+            // 确保滑点值有效（允许最高99.99%，100%表示无滑点保护）
+            const slippageNum = typeof slippage === 'string' ? parseFloat(slippage) : slippage;
+            const effectiveSlippage = (!isNaN(slippageNum) && slippageNum > 0 && slippageNum <= 100) ? slippageNum : 1;
+            console.log('滑点设置:', { inputSlippage: slippage, slippageNum, effectiveSlippage });
+            
             // 计算最小数量（考虑滑点）
-            const amount0Min = (BigInt(amount0Desired) * (10000n - BigInt(effectiveSlippage * 100))) / 10000n;
-            const amount1Min = (BigInt(amount1Desired) * (10000n - BigInt(effectiveSlippage * 100))) / 10000n;
+            let amount0Min, amount1Min;
+            if (effectiveSlippage >= 100) {
+                amount0Min = 0n;
+                amount1Min = 0n;
+                console.log('滑点设置为100%，接受任何数量的输出');
+            } else {
+                amount0Min = (BigInt(amount0Desired) * (10000n - BigInt(Math.floor(effectiveSlippage * 100)))) / 10000n;
+                amount1Min = (BigInt(amount1Desired) * (10000n - BigInt(Math.floor(effectiveSlippage * 100)))) / 10000n;
+            }
+            
+            console.log('最小数量计算:', {
+                amount0Desired: amount0Desired.toString(),
+                amount1Desired: amount1Desired.toString(),
+                effectiveSlippage,
+                amount0Min: amount0Min.toString(),
+                amount1Min: amount1Min.toString()
+            });
 
             // 设置交易截止时间（15分钟后）
             const deadline = Math.floor(Date.now() / 1000) + 900;
@@ -642,7 +660,7 @@ const QuickLiquidityEnhancer = ({
                                                     type="number"
                                                     step="0.1"
                                                     min="0"
-                                                    max="50"
+                                                    max="100"
                                                     value={slippage}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
@@ -652,13 +670,15 @@ const QuickLiquidityEnhancer = ({
                                                         }
                                                         const numValue = parseFloat(value);
                                                         if (!isNaN(numValue) && numValue >= 0) {
-                                                            setSlippage(numValue => 100 ? 99 : numValue);
+                                                            setSlippage(numValue >= 100 ? 99 : numValue);
                                                         }
                                                     }}
                                                     onBlur={(e) => {
                                                         const value = parseFloat(e.target.value);
                                                         if (isNaN(value) || value <= 0) {
                                                             setSlippage(1);
+                                                        } else if (value > 100) {
+                                                            setSlippage(100);
                                                         }
                                                     }}
                                                     placeholder="1.0"
