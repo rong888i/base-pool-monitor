@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
+const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExcludePool, onRestorePool, onClearAllExcluded, pools }) => {
     const [localFilters, setLocalFilters] = useState(filters);
     const [showFilters, setShowFilters] = useState(false);
+    const contentRef = useRef(null);
+    const [contentHeight, setContentHeight] = useState(0);
 
     useEffect(() => {
         setLocalFilters(filters);
     }, [filters]);
+
+    // 计算内容高度用于动画
+    useEffect(() => {
+        if (contentRef.current) {
+            setContentHeight(contentRef.current.scrollHeight);
+        }
+    }, [showFilters, localFilters, excludedPools]);
 
     const updateFilter = (key, value) => {
         const newFilters = { ...localFilters, [key]: value };
@@ -48,29 +57,75 @@ const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
     };
 
     return (
-        <div className="space-y-2">
-            {/* 简单的展开/收起按钮 */}
-            <div className="flex items-center justify-between">
+        <div>
+            {/* 筛选器标题行 */}
+            <div className="flex items-center justify-between py-2">
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="text-xs text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
                 >
-                    {showFilters ? '收起筛选 ▲' : '展开筛选 ▼'}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    筛选条件
+                    <span className={`text-xs text-neutral-400 inline-block transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`}>
+                        ▼
+                    </span>
                 </button>
                 {hasActiveFilters() && (
                     <button
                         onClick={resetFilters}
-                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                     >
                         清除
                     </button>
                 )}
             </div>
 
-            {/* 筛选内容 */}
-            {showFilters && (
-                <div className="space-y-3 pb-3">
-
+            {/* 筛选内容容器 - 带动画 */}
+            <div 
+                className="overflow-hidden transition-all duration-300 ease-in-out"
+                style={{ 
+                    maxHeight: showFilters ? `${contentHeight}px` : '0px',
+                    opacity: showFilters ? 1 : 0
+                }}
+            >
+                <div ref={contentRef} className="space-y-3 pt-2 pb-3">
+                    {/* 已排除池子 */}
+                    {excludedPools && excludedPools.size > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs text-neutral-500 dark:text-neutral-400">
+                                    已排除 ({excludedPools.size})
+                                </label>
+                                <button
+                                    onClick={onClearAllExcluded}
+                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                                >
+                                    清空
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                                {Array.from(excludedPools).map((address) => {
+                                    const pool = pools?.find(p => p.address === address);
+                                    return (
+                                        <div key={address} className="flex items-center gap-1 px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-xs">
+                                            <span className="text-neutral-600 dark:text-neutral-400">
+                                                {pool ? pool.displayName : `${address.slice(0, 4)}...`}
+                                            </span>
+                                            <button
+                                                onClick={() => onRestorePool(address)}
+                                                className="text-green-600 dark:text-green-400 hover:text-green-700"
+                                            >
+                                                ✓
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* 费用范围 */}
                     <div>
@@ -120,13 +175,13 @@ const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
                     <div>
                         <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">费率</label>
                         <div className="flex flex-wrap gap-1">
-                            {['0.01%', '0.05%', '0.25%', '0.30%', '1.00%'].map(rate => (
+                            {['0.05%', '0.25%', '0.30%', '1.00%'].map(rate => (
                                 <button
                                     key={rate}
                                     onClick={() => toggleArrayFilter('feeRates', rate)}
                                     className={`px-2 py-0.5 text-xs rounded ${localFilters.feeRates.includes(rate)
-                                            ? 'bg-neutral-700 text-white'
-                                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                        ? 'bg-neutral-700 text-white'
+                                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
                                     {rate}
@@ -142,8 +197,8 @@ const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
                             <button
                                 onClick={() => toggleArrayFilter('protocols', 'PancakeswapV3')}
                                 className={`px-2 py-0.5 text-xs rounded ${localFilters.protocols.includes('PancakeswapV3')
-                                        ? 'bg-neutral-700 text-white'
-                                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                    ? 'bg-neutral-700 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                     }`}
                             >
                                 PCS
@@ -151,8 +206,8 @@ const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
                             <button
                                 onClick={() => toggleArrayFilter('protocols', 'UniswapV3')}
                                 className={`px-2 py-0.5 text-xs rounded ${localFilters.protocols.includes('UniswapV3')
-                                        ? 'bg-neutral-700 text-white'
-                                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                    ? 'bg-neutral-700 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                     }`}
                             >
                                 UNI
@@ -160,7 +215,7 @@ const PoolFilter = ({ filters, onFilterChange, poolStats }) => {
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

@@ -48,7 +48,7 @@ export const usePoolMonitorAPI = () => {
                     token0Symbol: pool.token0_symbol,
                     token1Symbol: pool.token1_symbol,
                     stableCoinSymbol: pool.stable_coin_symbol,
-                    fee: `${pool.fee_percentage}%`,
+                    fee: `${parseFloat(pool.fee_percentage).toFixed(2)}%`,
                     feeRate: pool.fee_rate,
                     transactionCount: pool.transaction_count,
                     totalFees: pool.total_fees,

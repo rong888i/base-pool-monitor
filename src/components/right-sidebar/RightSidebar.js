@@ -358,86 +358,19 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                         </div>
                     </div>
 
-                    {/* 筛选器组件 */}
+                    {/* 筛选器组件 - 包含排除池子功能 */}
                     <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
                         <PoolFilter
                             filters={filters}
                             onFilterChange={handleFilterChange}
                             poolStats={stats}
+                            excludedPools={excludedPools}
+                            onExcludePool={handleExcludePool}
+                            onRestorePool={handleRestorePool}
+                            onClearAllExcluded={handleClearAllExcluded}
+                            pools={pools}
                         />
                     </div>
-                    
-                    {/* 排序筛选器 */}
-                    <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
-                        <div className="flex items-center justify-between mb-3">
-                            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                                <IoTrendingUp className="w-4 h-4" />
-                                排序方式
-                            </label>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => handleSortChange('fees')}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${sortBy === 'fees'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                手续费
-                            </button>
-                            <button
-                                onClick={() => handleSortChange('volume')}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${sortBy === 'volume'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                交易量
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 排除池子管理 */}
-                    {excludedPools.size > 0 && (
-                        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
-                            <div className="flex items-center justify-between mb-3">
-                                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    已排除池子 ({excludedPools.size})
-                                </label>
-                                <button
-                                    onClick={handleClearAllExcluded}
-                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                                >
-                                    清空全部
-                                </button>
-                            </div>
-                            <div className="space-y-2 max-h-24 overflow-y-auto custom-scrollbar">
-                                {Array.from(excludedPools).map((address) => {
-                                    const pool = pools.find(p => p.address === address);
-                                    return (
-                                        <div key={address} className="flex items-center justify-between p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-xs">
-                                            <span className="text-neutral-600 dark:text-neutral-400 truncate">
-                                                {pool ? pool.displayName : `${address.slice(0, 6)}...${address.slice(-4)}`}
-                                            </span>
-                                            <button
-                                                onClick={() => handleRestorePool(address)}
-                                                className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                                                data-tooltip-id="my-tooltip"
-                                                data-tooltip-content="恢复此池子"
-                                            >
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
 
                     {/* 池子列表 */}
                     <div className="p-4">
@@ -446,17 +379,43 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                                 <IoTrendingUp className="w-4 h-4" />
                                 {sortBy === 'fees' ? '费用排行' : '交易量排行'}
                             </h3>
-                            <span className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">
-                                {(() => {
-                                    switch (selectedTimeWindow) {
-                                        case 5: return '5分钟';
-                                        case 15: return '15分钟';
-                                        case 60: return '1小时';
-                                        case 1440: return '24小时';
-                                        default: return '5分钟';
-                                    }
-                                })()}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                {/* 排序按钮 */}
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => handleSortChange('fees')}
+                                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                            sortBy === 'fees'
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                            }`}
+                                    >
+                                        费用
+                                    </button>
+                                    <button
+                                        onClick={() => handleSortChange('volume')}
+                                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                            sortBy === 'volume'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                            }`}
+                                    >
+                                        交易量
+                                    </button>
+                                </div>
+                                {/* 时间窗口标签 */}
+                                <span className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">
+                                    {(() => {
+                                        switch (selectedTimeWindow) {
+                                            case 5: return '5分钟';
+                                            case 15: return '15分钟';
+                                            case 60: return '1小时';
+                                            case 1440: return '24小时';
+                                            default: return '5分钟';
+                                        }
+                                    })()}
+                                </span>
+                            </div>
                         </div>
 
                         {/* 错误显示 */}
