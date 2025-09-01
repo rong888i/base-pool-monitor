@@ -414,3 +414,31 @@ body {
     box-shadow: 0 0 2px var(--tw-shadow-color), 0 0 5px var(--tw-shadow-color);
   }
 }
+
+/* Breathing effect for high fee pools - subtle border only */
+.high-fee-breathing {
+  animation: breathing-border 3s ease-in-out infinite;
+}
+
+@keyframes breathing-border {
+  0%, 100% {
+    border-color: rgba(236, 72, 153, 0.2);
+  }
+  50% {
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+}
+
+/* Dark mode adjustments */
+.dark .high-fee-breathing {
+  animation: breathing-border-dark 3s ease-in-out infinite;
+}
+
+@keyframes breathing-border-dark {
+  0%, 100% {
+    border-color: rgba(236, 72, 153, 0.3);
+  }
+  50% {
+    border-color: rgba(236, 72, 153, 0.6);
+  }
+}
