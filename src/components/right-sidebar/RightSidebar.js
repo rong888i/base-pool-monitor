@@ -4,11 +4,25 @@ import { useState, useEffect } from 'react';
 import { IoStatsChart, IoClose, IoRefresh, IoPlay, IoStop, IoTrendingUp, IoTime } from 'react-icons/io5';
 import { usePoolMonitorAPI } from '../../hooks/usePoolMonitorAPI';
 import RightSidebarPoolList from './RightSidebarPoolList';
+import PoolFilter from './PoolFilter';
 
 const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSidebarOpen = false }) => {
     const [openSection, setOpenSection] = useState('monitor');
     const [sortBy, setSortBy] = useState('fees'); // 'fees' 或 'volume'
     const [excludedPools, setExcludedPools] = useState(new Set()); // 被排除的池子地址集合
+    const [filters, setFilters] = useState({
+        minFees: '',
+        maxFees: '',
+        minVolume: '',
+        maxVolume: '',
+        minPoolValue: '',
+        maxPoolValue: '',
+        feeRates: [],
+        protocols: [],
+        tokens: [],
+        hideZeroVolume: false,
+        hideZeroFees: false
+    });
 
     // 使用API监控hook
     const {
@@ -28,9 +42,10 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
         changeTimeWindow,
     } = usePoolMonitorAPI();
 
-    // 从本地存储加载排除的池子
+    // 从本地存储加载排除的池子和筛选器设置
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            // 加载排除的池子
             const savedExcludedPools = localStorage.getItem('rightSidebarExcludedPools');
             if (savedExcludedPools) {
                 try {
@@ -38,6 +53,17 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                     setExcludedPools(new Set(excludedArray));
                 } catch (error) {
                     console.error('加载排除池子数据失败:', error);
+                }
+            }
+            
+            // 加载筛选器设置
+            const savedFilters = localStorage.getItem('rightSidebarFilters');
+            if (savedFilters) {
+                try {
+                    const parsedFilters = JSON.parse(savedFilters);
+                    setFilters(parsedFilters);
+                } catch (error) {
+                    console.error('加载筛选器设置失败:', error);
                 }
             }
         }
@@ -101,13 +127,62 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
         setExcludedPools(new Set());
         saveExcludedPoolsToStorage(new Set());
     };
+    
+    // 处理筛选器变化
+    const handleFilterChange = (newFilters) => {
+        setFilters(newFilters);
+        // 保存到本地存储
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('rightSidebarFilters', JSON.stringify(newFilters));
+            } catch (error) {
+                console.error('保存筛选器设置失败:', error);
+            }
+        }
+    };
+    
+    // 应用筛选器
+    const applyFilters = (poolList) => {
+        if (!poolList || poolList.length === 0) return [];
+        
+        return poolList.filter(pool => {
+            // 费用范围筛选
+            if (filters.minFees && pool.totalFees < parseFloat(filters.minFees)) return false;
+            if (filters.maxFees && pool.totalFees > parseFloat(filters.maxFees)) return false;
+            
+            // 交易量范围筛选
+            if (filters.minVolume && pool.totalVolume < parseFloat(filters.minVolume)) return false;
+            if (filters.maxVolume && pool.totalVolume > parseFloat(filters.maxVolume)) return false;
+            
+            // 池子价值范围筛选
+            if (filters.minPoolValue && pool.currentPoolValue < parseFloat(filters.minPoolValue)) return false;
+            if (filters.maxPoolValue && pool.currentPoolValue > parseFloat(filters.maxPoolValue)) return false;
+            
+            // 费率筛选
+            if (filters.feeRates.length > 0 && !filters.feeRates.includes(pool.fee)) return false;
+            
+            // 协议筛选
+            if (filters.protocols.length > 0 && !filters.protocols.includes(pool.factory)) return false;
+            
+            // 隐藏零交易量
+            if (filters.hideZeroVolume && (!pool.totalVolume || pool.totalVolume === 0)) return false;
+            
+            // 隐藏零费用
+            if (filters.hideZeroFees && (!pool.totalFees || pool.totalFees === 0)) return false;
+            
+            return true;
+        });
+    };
 
-    // 根据排序方式对池子数据进行排序（排除被排除的池子）
+    // 根据排序方式对池子数据进行排序（排除被排除的池子并应用筛选器）
     const getSortedPools = () => {
         if (!pools || pools.length === 0) return [];
 
         // 过滤掉被排除的池子
-        const filteredPools = pools.filter(pool => !excludedPools.has(pool.address));
+        let filteredPools = pools.filter(pool => !excludedPools.has(pool.address));
+        
+        // 应用筛选器
+        filteredPools = applyFilters(filteredPools);
 
         if (filteredPools.length === 0) return [];
 
@@ -283,6 +358,15 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                         </div>
                     </div>
 
+                    {/* 筛选器组件 */}
+                    <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                        <PoolFilter
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                            poolStats={stats}
+                        />
+                    </div>
+                    
                     {/* 排序筛选器 */}
                     <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
                         <div className="flex items-center justify-between mb-3">
