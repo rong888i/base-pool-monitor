@@ -310,55 +310,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                 {/* 内容区域 */}
                 <div className="h-[calc(100%-7rem)] overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
 
-                    {/* 时间窗口选择器 */}
-                    <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
-                        <div className="flex items-center justify-between mb-3">
-                            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                                <IoTime className="w-4 h-4" />
-                                时间范围
-                            </label>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => changeTimeWindow(5)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 5
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                5m
-                            </button>
-                            <button
-                                onClick={() => changeTimeWindow(15)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 15
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                15m
-                            </button>
-                            <button
-                                onClick={() => changeTimeWindow(60)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 60
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                1h
-                            </button>
-                            <button
-                                onClick={() => changeTimeWindow(1440)}
-                                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${selectedTimeWindow === 1440
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
-                                    }`}
-                            >
-                                24h
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 筛选器组件 - 包含排除池子功能 */}
+                    {/* 筛选器组件 - 包含时间范围和排除池子功能 */}
                     <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
                         <PoolFilter
                             filters={filters}
@@ -369,6 +321,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                             onRestorePool={handleRestorePool}
                             onClearAllExcluded={handleClearAllExcluded}
                             pools={pools}
+                            selectedTimeWindow={selectedTimeWindow}
+                            onTimeWindowChange={changeTimeWindow}
                         />
                     </div>
 
@@ -379,42 +333,28 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                                 <IoTrendingUp className="w-4 h-4" />
                                 {sortBy === 'fees' ? '费用排行' : '交易量排行'}
                             </h3>
-                            <div className="flex items-center gap-2">
-                                {/* 排序按钮 */}
-                                <div className="flex gap-1">
-                                    <button
-                                        onClick={() => handleSortChange('fees')}
-                                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                            sortBy === 'fees'
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
-                                            }`}
-                                    >
-                                        费用
-                                    </button>
-                                    <button
-                                        onClick={() => handleSortChange('volume')}
-                                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                            sortBy === 'volume'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
-                                            }`}
-                                    >
-                                        交易量
-                                    </button>
-                                </div>
-                                {/* 时间窗口标签 */}
-                                <span className="text-xs text-neutral-500 dark:text-neutral-400 px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">
-                                    {(() => {
-                                        switch (selectedTimeWindow) {
-                                            case 5: return '5分钟';
-                                            case 15: return '15分钟';
-                                            case 60: return '1小时';
-                                            case 1440: return '24小时';
-                                            default: return '5分钟';
-                                        }
-                                    })()}
-                                </span>
+                            {/* 排序按钮 */}
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => handleSortChange('fees')}
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                        sortBy === 'fees'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                        }`}
+                                >
+                                    费用
+                                </button>
+                                <button
+                                    onClick={() => handleSortChange('volume')}
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                        sortBy === 'volume'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                        }`}
+                                >
+                                    交易量
+                                </button>
                             </div>
                         </div>
 

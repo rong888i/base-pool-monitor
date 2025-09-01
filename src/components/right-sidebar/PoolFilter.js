@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExcludePool, onRestorePool, onClearAllExcluded, pools }) => {
+const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExcludePool, onRestorePool, onClearAllExcluded, pools, selectedTimeWindow, onTimeWindowChange }) => {
     const [localFilters, setLocalFilters] = useState(filters);
     const [showFilters, setShowFilters] = useState(false);
     const contentRef = useRef(null);
@@ -99,6 +99,49 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                 }}
             >
                 <div ref={contentRef} className="space-y-3 pt-2 pb-3">
+                    {/* 时间范围选择 */}
+                    <div>
+                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">时间范围</label>
+                        <div className="flex gap-1">
+                            <button
+                                onClick={() => onTimeWindowChange(5)}
+                                className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 5
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                                    }`}
+                            >
+                                5M
+                            </button>
+                            <button
+                                onClick={() => onTimeWindowChange(15)}
+                                className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 15
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                                    }`}
+                            >
+                                15M
+                            </button>
+                            <button
+                                onClick={() => onTimeWindowChange(60)}
+                                className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 60
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                                    }`}
+                            >
+                                1H
+                            </button>
+                            <button
+                                onClick={() => onTimeWindowChange(1440)}
+                                className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 1440
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                                    }`}
+                            >
+                                24H
+                            </button>
+                        </div>
+                    </div>
+
                     {/* 已排除池子 */}
                     {excludedPools && excludedPools.size > 0 && (
                         <div>
@@ -136,45 +179,61 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
 
                     {/* 费用范围 */}
                     <div>
-                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">费用 $</label>
-                        <div className="flex gap-1 items-center">
-                            <input
-                                type="number"
-                                placeholder="0"
-                                value={localFilters.minFees}
-                                onChange={(e) => updateFilter('minFees', e.target.value)}
-                                className="w-full min-w-0 px-2 py-1 text-xs bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded"
-                            />
-                            <span className="text-xs text-neutral-400 flex-shrink-0">-</span>
-                            <input
-                                type="number"
-                                placeholder="∞"
-                                value={localFilters.maxFees}
-                                onChange={(e) => updateFilter('maxFees', e.target.value)}
-                                className="w-full min-w-0 px-2 py-1 text-xs bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded"
-                            />
+                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">费用范围 (USD)</label>
+                        <div className="flex gap-1.5 items-center">
+                            <div className="flex-1 relative overflow-hidden rounded">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-400 z-10">$</span>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={localFilters.minFees}
+                                    onChange={(e) => updateFilter('minFees', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 border border-transparent rounded text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500/50 focus:border-transparent focus:bg-neutral-50 dark:focus:bg-neutral-800 transition-colors duration-200"
+                                />
+                            </div>
+                            <div className="flex items-center justify-center w-4">
+                                <span className="text-xs text-neutral-400">-</span>
+                            </div>
+                            <div className="flex-1 relative overflow-hidden rounded">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-400 z-10">$</span>
+                                <input
+                                    type="number"
+                                    placeholder="∞"
+                                    value={localFilters.maxFees}
+                                    onChange={(e) => updateFilter('maxFees', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 border border-transparent rounded text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500/50 focus:border-transparent focus:bg-neutral-50 dark:focus:bg-neutral-800 transition-colors duration-200"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* 交易量范围 */}
                     <div>
-                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">交易量 $</label>
-                        <div className="flex gap-1 items-center">
-                            <input
-                                type="number"
-                                placeholder="0"
-                                value={localFilters.minVolume}
-                                onChange={(e) => updateFilter('minVolume', e.target.value)}
-                                className="w-full min-w-0 px-2 py-1 text-xs bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded"
-                            />
-                            <span className="text-xs text-neutral-400 flex-shrink-0">-</span>
-                            <input
-                                type="number"
-                                placeholder="∞"
-                                value={localFilters.maxVolume}
-                                onChange={(e) => updateFilter('maxVolume', e.target.value)}
-                                className="w-full min-w-0 px-2 py-1 text-xs bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded"
-                            />
+                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">交易量范围 (USD)</label>
+                        <div className="flex gap-1.5 items-center">
+                            <div className="flex-1 relative overflow-hidden rounded">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-400 z-10">$</span>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={localFilters.minVolume}
+                                    onChange={(e) => updateFilter('minVolume', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 border border-transparent rounded text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500/50 focus:border-transparent focus:bg-neutral-50 dark:focus:bg-neutral-800 transition-colors duration-200"
+                                />
+                            </div>
+                            <div className="flex items-center justify-center w-4">
+                                <span className="text-xs text-neutral-400">-</span>
+                            </div>
+                            <div className="flex-1 relative overflow-hidden rounded">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-400 z-10">$</span>
+                                <input
+                                    type="number"
+                                    placeholder="∞"
+                                    value={localFilters.maxVolume}
+                                    onChange={(e) => updateFilter('maxVolume', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 border border-transparent rounded text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500/50 focus:border-transparent focus:bg-neutral-50 dark:focus:bg-neutral-800 transition-colors duration-200"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -187,7 +246,7 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                                     key={rate}
                                     onClick={() => toggleArrayFilter('feeRates', rate)}
                                     className={`px-2 py-0.5 text-xs rounded ${localFilters.feeRates.includes(rate)
-                                        ? 'bg-neutral-700 text-white'
+                                        ? 'bg-blue-600 text-white'
                                         : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
@@ -204,7 +263,7 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                             <button
                                 onClick={() => toggleArrayFilter('protocols', 'PancakeswapV3')}
                                 className={`px-2 py-0.5 text-xs rounded ${localFilters.protocols.includes('PancakeswapV3')
-                                    ? 'bg-neutral-700 text-white'
+                                    ? 'bg-blue-600 text-white'
                                     : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                     }`}
                             >
@@ -213,7 +272,7 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                             <button
                                 onClick={() => toggleArrayFilter('protocols', 'UniswapV3')}
                                 className={`px-2 py-0.5 text-xs rounded ${localFilters.protocols.includes('UniswapV3')
-                                    ? 'bg-neutral-700 text-white'
+                                    ? 'bg-blue-600 text-white'
                                     : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                                     }`}
                             >
