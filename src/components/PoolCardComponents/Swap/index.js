@@ -19,7 +19,8 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
         balances, isLoadingBalances,
         isCheckingApproval, tokenInNeedsApproval, isApproving, handleApprove,
         isSwapping, error, result,
-        handleSwap, handleTokenSwitch
+        handleSwap, handleTokenSwitch,
+        handleClose, isClosing
     } = useSwap(poolInfo, isVisible, onClose);
 
     // 所有 hooks 必须在任何条件返回之前调用
@@ -40,15 +41,17 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
     const contentVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.3, ease: 'easeOut' } }, exit: { opacity: 0, y: -10, transition: { duration: 0.2, ease: 'easeIn' } } };
 
     return (
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
+            {(isVisible && !isClosing) && (
             <motion.div
+                key="swap-modal"
                 className="fixed inset-0 z-50"
                 initial="hidden"
                 animate="visible"
                 exit="exit"
                 variants={backdropVariants}
                 style={{ background: 'rgba(0,0,0,0.08)' }}
-                onClick={onClose}
+                onClick={handleClose}
             >
                 <motion.div
                     className="absolute w-96 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200/80 dark:border-neutral-700/50 overflow-hidden"
@@ -60,17 +63,17 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
                     onClick={(e) => e.stopPropagation()}
                     ref={popoverRef}
                 >
-                    <motion.div className="p-4" variants={contentVariants}>
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <motion.div className="p-5 pb-4" variants={contentVariants}>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h11M9 3l-5 4 5 4M20 17H9m6 4 5-4-5-4" />
                                 </svg>
-                                <span>快捷兑换</span>
+                                快捷兑换
                             </h3>
-                            <button className="text-neutral-400 hover:text-neutral-600" onClick={onClose}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            <button className="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors rounded-full p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={handleClose}>
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
@@ -79,7 +82,7 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
                             <WalletStatus connected={connected} connect={connect} isInitializing={isInitializing} subtitle="准备兑换" />
                         )}
 
-                        <div className="space-y-3 mt-2">
+                        <div className="space-y-3 mt-4">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs text-neutral-500 dark:text-neutral-400">From</span>
                                 <button className="text-xs text-primary-600 dark:text-primary-400 hover:underline" onClick={handleTokenSwitch}>切换</button>
@@ -158,6 +161,7 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
                     </motion.div>
                 </motion.div>
             </motion.div>
+            )}
         </AnimatePresence>
     );
 };

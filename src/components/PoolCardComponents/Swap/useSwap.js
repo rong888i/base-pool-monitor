@@ -21,7 +21,6 @@ export const useSwap = (poolInfo, isVisible, onClose) => {
     const [result, setResult] = useState(null);
     const [toAmount, setToAmount] = useState('');
     const [isClosing, setIsClosing] = useState(false);
-    const amountUpdateTimer = useRef(null);
 
     // 计算输出（简单占位：按1:1近似，真实项目应接入 Quoter）
     useEffect(() => {
@@ -145,9 +144,9 @@ export const useSwap = (poolInfo, isVisible, onClose) => {
     const handleClose = useCallback(() => {
         setIsClosing(true);
         setTimeout(() => {
+            onClose();
             setIsClosing(false);
-            onClose && onClose();
-        }, 200);
+        }, 300);
     }, [onClose]);
 
     return {
@@ -160,6 +159,6 @@ export const useSwap = (poolInfo, isVisible, onClose) => {
         isCheckingApproval, tokenInNeedsApproval, isApproving, handleApprove,
         isSwapping, error, result,
         handleSwap, handleTokenSwitch,
-        handleClose
+        handleClose, isClosing
     };
 }; 
