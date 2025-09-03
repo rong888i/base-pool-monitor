@@ -24,12 +24,15 @@ export default function Home() {
 
   const {
     pools,
+    archivedPools,
     customAddress,
     setCustomAddress,
     outOfRangeCounts,
     addPool,
     removePool,
     clonePool,
+    archivePool,
+    restorePool,
     refreshAllPools,
     handleAddPoolFromSidebar,
     handleDragEnd,
@@ -43,6 +46,8 @@ export default function Home() {
       <Sidebar
         onAddPool={handleAddPoolFromSidebar}
         pools={pools}
+        archivedPools={archivedPools}
+        onRestorePool={restorePool}
         onToggle={setIsSidebarOpen}
         isRightSidebarOpen={isRightSidebarOpen}
       />
@@ -68,6 +73,7 @@ export default function Home() {
             onDragEnd={handleDragEnd}
             onRemove={removePool}
             onClone={clonePool}
+            onArchive={archivePool}
             outOfRangeCounts={outOfRangeCounts}
             onNftInfoUpdate={handleNftInfoUpdate}
             onNftIdChange={handleNftIdChange}

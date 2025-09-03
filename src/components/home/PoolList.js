@@ -34,6 +34,7 @@ export default function PoolList({
     onDragEnd,
     onRemove,
     onClone,
+    onArchive,
     outOfRangeCounts,
     onNftInfoUpdate,
     onNftIdChange,
@@ -67,6 +68,7 @@ export default function PoolList({
                                         pool={pool}
                                         onRemove={() => onRemove(pool.uniqueId)}
                                         onClone={() => onClone(pool.uniqueId)}
+                                        onArchive={() => onArchive(pool.uniqueId)}
                                         outOfRangeCount={outOfRangeCounts[pool.address] || 0}
                                         onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(pool.uniqueId, updatedNftInfo)}
                                         onNftIdChange={(newId) => onNftIdChange(pool.uniqueId, newId)}

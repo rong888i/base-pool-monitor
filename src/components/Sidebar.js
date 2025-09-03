@@ -5,8 +5,9 @@ import AccordionSection from './sidebar/AccordionSection';
 import NftSearchSection from './sidebar/NftSearchSection';
 import PoolSearchSection from './sidebar/PoolSearchSection';
 import PoolCalculatorSection from './sidebar/PoolCalculatorSection';
+import ArchivedPoolsSection from './sidebar/ArchivedPoolsSection';
 
-const Sidebar = ({ onAddPool, pools, onToggle, isRightSidebarOpen = false }) => {
+const Sidebar = ({ onAddPool, pools, archivedPools, onRestorePool, onToggle, isRightSidebarOpen = false }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [openSection, setOpenSection] = useState(null); // 'find', 'search', or 'calculate'
 
@@ -83,6 +84,18 @@ const Sidebar = ({ onAddPool, pools, onToggle, isRightSidebarOpen = false }) => 
                     setOpenSection={setOpenSection}
                 >
                     <PoolSearchSection pools={pools} onAddPool={onAddPool} />
+                </AccordionSection>
+                
+                <AccordionSection
+                    title="归档的池子"
+                    id="archived"
+                    icon={<svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>}
+                    openSection={openSection}
+                    setOpenSection={setOpenSection}
+                >
+                    <ArchivedPoolsSection archivedPools={archivedPools} onRestorePool={onRestorePool} />
                 </AccordionSection>
             </div>
         </div>
