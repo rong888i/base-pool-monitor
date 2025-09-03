@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formatAddress = (address) => {
     if (!address) return '';
@@ -27,6 +28,26 @@ const PoolCardHeader = ({
     const [isCopied, setIsCopied] = useState(false);
     const [copiedSymbol, setCopiedSymbol] = useState(null);
     const [showMoreActions, setShowMoreActions] = useState(false);
+    const moreActionsRef = useRef(null);
+    
+    // 点击外部关闭菜单
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (moreActionsRef.current && !moreActionsRef.current.contains(event.target)) {
+                setShowMoreActions(false);
+            }
+        };
+        
+        if (showMoreActions) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [showMoreActions]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(pool.address);
@@ -209,7 +230,7 @@ const PoolCardHeader = ({
                             </div>
                             
                             {/* 移动端: 更多操作菜单 */}
-                            <div className="sm:hidden relative">
+                            <div className="sm:hidden relative" ref={moreActionsRef}>
                                 <button
                                     onClick={() => setShowMoreActions(!showMoreActions)}
                                     className="text-neutral-400 hover:text-neutral-600 transition-colors p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -222,8 +243,15 @@ const PoolCardHeader = ({
                                 </button>
                                 
                                 {/* 下拉菜单 */}
-                                {showMoreActions && (
-                                    <div className="absolute right-0 top-8 z-10 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 min-w-[140px]">
+                                <AnimatePresence>
+                                    {showMoreActions && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                            transition={{ duration: 0.15, ease: "easeOut" }}
+                                            className="absolute right-0 top-8 z-10 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 min-w-[140px] origin-top-right"
+                                        >
                                         <button
                                             onClick={() => { openCalculator(); setShowMoreActions(false); }}
                                             className="w-full px-3 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center gap-2"
@@ -270,8 +298,9 @@ const PoolCardHeader = ({
                                             </svg>
                                             删除
                                         </button>
-                                    </div>
-                                )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </div>
