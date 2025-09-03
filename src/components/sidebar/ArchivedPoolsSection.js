@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formatAddress = (address) => {
     if (!address) return '';
@@ -11,7 +12,12 @@ const ArchivedPoolCard = ({ pool, onRestore }) => {
     const [isHovered, setIsHovered] = useState(false);
 
     return (
-        <div
+        <motion.div
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="bg-white dark:bg-neutral-800 rounded-lg p-3 shadow-sm border border-neutral-200 dark:border-neutral-700 hover:shadow-md transition-all duration-200"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -54,8 +60,8 @@ const ArchivedPoolCard = ({ pool, onRestore }) => {
                 <button
                     onClick={() => onRestore(pool.uniqueId)}
                     className={`text-xs px-2 py-1 rounded transition-all duration-200 ${isHovered
-                            ? 'bg-primary-100 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
-                            : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400'
+                        ? 'bg-primary-100 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
+                        : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400'
                         } hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-500/20 dark:hover:text-primary-400`}
                 >
                     恢复
@@ -69,35 +75,56 @@ const ArchivedPoolCard = ({ pool, onRestore }) => {
                     </span>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 
 const ArchivedPoolsSection = ({ archivedPools, onRestorePool }) => {
-    if (!archivedPools || archivedPools.length === 0) {
-        return (
-            <div className="px-3 py-4">
-                <div className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-                    暂无归档的池子
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="px-3 py-3 space-y-2">
-            {/* <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                已归档 {archivedPools.length} 个池子
-            </div> */}
-            <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                {archivedPools.map(pool => (
-                    <ArchivedPoolCard
-                        key={pool.uniqueId}
-                        pool={pool}
-                        onRestore={onRestorePool}
-                    />
-                ))}
-            </div>
+            <AnimatePresence mode="wait">
+                {(!archivedPools || archivedPools.length === 0) ? (
+                    <motion.div
+                        key="empty-archived"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="py-6 px-3"
+                    >
+                        <div className="text-center space-y-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-neutral-300 dark:text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                暂无归档的池子
+                            </div>
+                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                                点击池子卡片的归档按钮可将其收纳至此
+                            </div>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="archived-list"
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-2"
+                    >
+                        <AnimatePresence mode="sync">
+                            {archivedPools.map(pool => (
+                                <ArchivedPoolCard
+                                    key={pool.uniqueId}
+                                    pool={pool}
+                                    onRestore={onRestorePool}
+                                />
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -8,8 +8,6 @@ const AccordionSection = ({ title, id, icon, children, openSection, setOpenSecti
             <button
                 onClick={() => setOpenSection(isOpen ? null : id)}
                 className="w-full p-4 text-left transition-colors duration-200 group"
-                data-tooltip-id="my-tooltip"
-                data-tooltip-content={title}
             >
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
