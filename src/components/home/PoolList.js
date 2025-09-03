@@ -12,7 +12,7 @@ import {
     sortableKeyboardCoordinates,
     rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { SortablePoolCard } from '../PoolCard';
 
 function EmptyState() {
@@ -49,40 +49,57 @@ export default function PoolList({
 
     return (
         <div className={`${isSidebarOpen ? 'hidden lg:block' : 'block'}`}>
-            {pools.length > 0 ? (
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={onDragEnd}
-                >
-                    <SortableContext
-                        items={pools.map(pool => pool.uniqueId)}
-                        strategy={rectSortingStrategy}
+            <AnimatePresence mode="wait">
+                {pools.length > 0 ? (
+                    <motion.div
+                        key="pool-list"
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
                     >
-                        <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
-                            <AnimatePresence>
-                                {pools.map((pool) => (
-                                    <SortablePoolCard
-                                        key={pool.uniqueId}
-                                        id={pool.uniqueId}
-                                        pool={pool}
-                                        onRemove={() => onRemove(pool.uniqueId)}
-                                        onClone={() => onClone(pool.uniqueId)}
-                                        onArchive={() => onArchive(pool.uniqueId)}
-                                        outOfRangeCount={outOfRangeCounts[pool.address] || 0}
-                                        onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(pool.uniqueId, updatedNftInfo)}
-                                        onNftIdChange={(newId) => onNftIdChange(pool.uniqueId, newId)}
-                                        isFlashing={flashingMonitors[pool.uniqueId]}
-                                        className="break-inside-avoid mb-4"
-                                    />
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    </SortableContext>
-                </DndContext>
-            ) : (
-                <EmptyState />
-            )}
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={onDragEnd}
+                        >
+                            <SortableContext
+                                items={pools.map(pool => pool.uniqueId)}
+                                strategy={rectSortingStrategy}
+                            >
+                                <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+                                    <AnimatePresence>
+                                        {pools.map((pool) => (
+                                            <SortablePoolCard
+                                                key={pool.uniqueId}
+                                                id={pool.uniqueId}
+                                                pool={pool}
+                                                onRemove={() => onRemove(pool.uniqueId)}
+                                                onClone={() => onClone(pool.uniqueId)}
+                                                onArchive={() => onArchive(pool.uniqueId)}
+                                                outOfRangeCount={outOfRangeCounts[pool.address] || 0}
+                                                onNftInfoUpdate={(updatedNftInfo) => onNftInfoUpdate(pool.uniqueId, updatedNftInfo)}
+                                                onNftIdChange={(newId) => onNftIdChange(pool.uniqueId, newId)}
+                                                isFlashing={flashingMonitors[pool.uniqueId]}
+                                                className="break-inside-avoid mb-4"
+                                            />
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="empty-state"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3, duration: 0.3 }}
+                    >
+                        <EmptyState />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 } 
