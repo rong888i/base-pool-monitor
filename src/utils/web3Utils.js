@@ -63,8 +63,11 @@ const POSITION_MANAGER_ABI = [
 const CONTRACTS = {
     // BSC (Binance Smart Chain)
     56: {
-        PANCAKESWAP_V3_POSITION_MANAGER: "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364",
+        PANCAKESWAP_V3_POSITION_MANAGER: "0x46A15B0b27311cedF172AB29E4f4766fbE7f4364",
         UNISWAP_V3_POSITION_MANAGER: "0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613", // Uniswap V3 Position Manager on BSC
+        // v3 SwapRouter（如未配置，将在调用时抛错提示）
+        PANCAKESWAP_V3_SWAP_ROUTER: "0x1b81D678ffb9C0263b24A97847620C99d213eB14",
+        UNISWAP_V3_SWAP_ROUTER: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
         // 常用代币地址
         WBNB: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
         USDT: "0x55d398326f99059ff775485246999027b3197955",
@@ -244,6 +247,132 @@ export const formatTokenAmount = (amount, decimals) => {
 // 解析代币数量
 export const parseTokenAmount = (amount, decimals) => {
     return ethers.parseUnits(amount.toString(), decimals);
+};
+
+// v3 SwapRouter ABI（Uniswap 版本：无 deadline）
+const V3_SWAP_ROUTER_ABI_UNI = [
+    {
+        "inputs": [
+            {
+                "components": [
+                    { "internalType": "address", "name": "tokenIn", "type": "address" },
+                    { "internalType": "address", "name": "tokenOut", "type": "address" },
+                    { "internalType": "uint24", "name": "fee", "type": "uint24" },
+                    { "internalType": "address", "name": "recipient", "type": "address" },
+                    { "internalType": "uint256", "name": "amountIn", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amountOutMinimum", "type": "uint256" },
+                    { "internalType": "uint160", "name": "sqrtPriceLimitX96", "type": "uint160" }
+                ],
+                "internalType": "struct ISwapRouter.ExactInputSingleParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "exactInputSingle",
+        "outputs": [
+            { "internalType": "uint256", "name": "amountOut", "type": "uint256" }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+];
+
+// v3 SwapRouter ABI（Pancake 版本：包含 deadline）
+const V3_SWAP_ROUTER_ABI_PANCAKE = [
+    {
+        "inputs": [
+            {
+                "components": [
+                    { "internalType": "address", "name": "tokenIn", "type": "address" },
+                    { "internalType": "address", "name": "tokenOut", "type": "address" },
+                    { "internalType": "uint24", "name": "fee", "type": "uint24" },
+                    { "internalType": "address", "name": "recipient", "type": "address" },
+                    { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amountIn", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amountOutMinimum", "type": "uint256" },
+                    { "internalType": "uint160", "name": "sqrtPriceLimitX96", "type": "uint160" }
+                ],
+                "internalType": "struct ISwapRouter.ExactInputSingleParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "exactInputSingle",
+        "outputs": [
+            { "internalType": "uint256", "name": "amountOut", "type": "uint256" }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+];
+
+// 获取 v3 SwapRouter 地址
+const getSwapRouterAddress = (protocolName = '', chainId = 56) => {
+    const contracts = CONTRACTS[chainId];
+    if (!contracts) throw new Error(`不支持的网络: ${chainId}`);
+    const isPancake = protocolName.toLowerCase().includes('pancake');
+    const isUni = protocolName.toLowerCase().includes('uniswap') || !protocolName;
+    if (isPancake) {
+        if (!contracts.PANCAKESWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置 PancakeSwap V3 SwapRouter 地址');
+        return contracts.PANCAKESWAP_V3_SWAP_ROUTER;
+    }
+    if (isUni) {
+        if (!contracts.UNISWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置 Uniswap V3 SwapRouter 地址');
+        return contracts.UNISWAP_V3_SWAP_ROUTER;
+    }
+    // 默认回退到 Uniswap
+    if (!contracts.UNISWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置默认 SwapRouter 地址');
+    return contracts.UNISWAP_V3_SWAP_ROUTER;
+};
+
+export { getSwapRouterAddress };
+
+// 执行 v3 单池直达兑换（Exact Input Single）
+export const swapExactInputSingle = async ({
+    tokenIn,
+    tokenOut,
+    fee,
+    amountIn,
+    amountOutMin,
+    recipient,
+    chainId,
+    protocolName,
+    signer
+}) => {
+    try {
+        if (!signer) throw new Error('无效的钱包签名器');
+        const routerAddress = getSwapRouterAddress(protocolName, chainId);
+        const isPancake = (protocolName || '').toLowerCase().includes('pancake');
+        const router = new ethers.Contract(routerAddress, isPancake ? V3_SWAP_ROUTER_ABI_PANCAKE : V3_SWAP_ROUTER_ABI_UNI, signer);
+
+        const params = isPancake
+            ? {
+                tokenIn,
+                tokenOut,
+                fee,
+                recipient,
+                deadline: Math.floor(Date.now() / 1000) + 1200,
+                amountIn,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            }
+            : {
+                tokenIn,
+                tokenOut,
+                fee,
+                recipient,
+                amountIn,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            };
+
+        // 计算是否需要携带原生币价值（如果 tokenIn 是 WETH/WBNB 则无需，只有原生 ETH/BNB 时需要。但这里仅支持 ERC20 路径）
+        const tx = await router.exactInputSingle(params);
+        return tx;
+    } catch (error) {
+        console.error('Swap 执行失败:', error);
+        throw error;
+    }
 };
 
 // 获取网络名称

@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-const WalletStatus = ({ isInitializing, connected, connect }) => {
+const WalletStatus = ({ isInitializing, connected, connect, subtitle }) => {
     if (isInitializing) {
         return (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 border border-blue-200/50 dark:border-blue-700/50">
@@ -56,7 +56,7 @@ const WalletStatus = ({ isInitializing, connected, connect }) => {
                 </div>
                 <div>
                     <p className="font-semibold text-green-700 dark:text-green-300">钱包已连接</p>
-                    <p className="text-sm text-green-600 dark:text-green-400">准备添加流动性</p>
+                    <p className="text-sm text-green-600 dark:text-green-400">{subtitle || '准备添加流动性'}</p>
                 </div>
             </div>
         </div>

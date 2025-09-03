@@ -10,6 +10,7 @@ import NftSection from './PoolCardComponents/NftSection';
 import TechnicalInfo from './PoolCardComponents/TechnicalInfo';
 import LiquidityCalculator from './PoolCardComponents/LiquidityCalculator';
 import LiquidityAdder from './PoolCardComponents/LiquidityAdder/index.js';
+import Swap from './PoolCardComponents/Swap/index.js';
 import MonitorSettings from './PoolCardComponents/MonitorSettings';
 
 const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdate, onNftIdChange: onParentNftIdChange, isFlashing, className }) => {
@@ -23,14 +24,19 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
     const [monitorSettingsPopoverPosition, setMonitorSettingsPopoverPosition] = useState({ top: 0, left: 0 });
     const [isCalculatorPopoverVisible, setIsCalculatorPopoverVisible] = useState(false);
     const [isLiquidityAdderPopoverVisible, setIsLiquidityAdderPopoverVisible] = useState(false);
+    const [showSwap, setShowSwap] = useState(false);
+    const [swapPopoverPosition, setSwapPopoverPosition] = useState({ top: 0, left: 0 });
+    const [isSwapPopoverVisible, setIsSwapPopoverVisible] = useState(false);
     const [isMonitorSettingsPopoverVisible, setIsMonitorSettingsPopoverVisible] = useState(false);
     const [monitorSettings, setMonitorSettings] = useState({});
 
     const calculatorIconRef = useRef(null);
     const liquidityAdderIconRef = useRef(null);
+    const swapIconRef = useRef(null);
     const monitorSettingsIconRef = useRef(null);
     const calculatorPopoverRef = useRef(null);
     const liquidityAdderPopoverRef = useRef(null);
+    const swapPopoverRef = useRef(null);
     const monitorSettingsPopoverRef = useRef(null);
 
     const {
@@ -117,6 +123,33 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
             return () => clearTimeout(timer);
         }
     }, [showLiquidityAdder]);
+
+    // 处理 Swap 弹窗外点击关闭
+    useEffect(() => {
+        if (!showSwap) return;
+        function handleClickOutside(event) {
+            const popover = swapPopoverRef.current;
+            if (popover && !popover.contains(event.target) && swapIconRef.current && !swapIconRef.current.contains(event.target)) {
+                const isClickOnScrollbar = event.clientX >= popover.clientWidth;
+                if (!isClickOnScrollbar) {
+                    closeSwap();
+                }
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showSwap]);
+
+    useEffect(() => {
+        if (showSwap) {
+            const timer = setTimeout(() => {
+                setIsSwapPopoverVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        }
+    }, [showSwap]);
 
     // 处理监控设置相关
     useEffect(() => {
@@ -288,14 +321,67 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
             });
             setShowLiquidityAdder(true);
         }
-    }
-
+    };
     const closeLiquidityAdder = () => {
         setIsLiquidityAdderPopoverVisible(false);
         setTimeout(() => {
             setShowLiquidityAdder(false);
         }, 300); // 匹配CSS动画时长
-    }
+    };
+
+    const openSwap = () => {
+        if (swapIconRef.current) {
+            const rect = swapIconRef.current.getBoundingClientRect();
+            const popoverWidth = 384; // w-96
+            const popoverHeight = 520; // 预估Swap弹窗高度
+            const margin = 12;
+            const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
+
+            // 水平位置计算（与 LiquidityAdder 一致）
+            let left = rect.right + margin;
+            if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
+                left = rect.left - popoverWidth - margin;
+            }
+
+            // 垂直位置计算（与 LiquidityAdder 一致）
+            let top = rect.top;
+            const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
+            const availableSpaceAbove = rect.top - 20; // 顶部预留20px
+
+            // 如果下方空间不足，则尝试放在上方
+            if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
+                top = rect.top - popoverHeight - margin;
+                // 确保不超出顶部
+                if (top < 20) {
+                    top = 20;
+                }
+            } else {
+                // 确保不超出底部
+                const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
+                if (top > maxTop) {
+                    top = maxTop;
+                }
+            }
+
+            // 计算实际可用高度
+            const finalTop = Math.max(20, top);
+            const availableHeight = window.innerHeight - finalTop - bottomSafeZone;
+
+            setSwapPopoverPosition({
+                top: finalTop,
+                left: left,
+                maxHeight: Math.max(300, availableHeight)
+            });
+            setShowSwap(true);
+        }
+    };
+
+    const closeSwap = () => {
+        setIsSwapPopoverVisible(false);
+        setTimeout(() => {
+            setShowSwap(false);
+        }, 300);
+    };
 
     const openMonitorSettings = () => {
         if (monitorSettingsIconRef.current) {
@@ -383,6 +469,8 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                     calculatorIconRef={calculatorIconRef}
                     openLiquidityAdder={openLiquidityAdder}
                     liquidityAdderIconRef={liquidityAdderIconRef}
+                    openSwap={openSwap}
+                    swapIconRef={swapIconRef}
                     openMonitorSettings={openMonitorSettings}
                     monitorSettingsIconRef={monitorSettingsIconRef}
                 />
@@ -448,6 +536,17 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
                     isVisible={isLiquidityAdderPopoverVisible}
                     onClose={closeLiquidityAdder}
                     popoverRef={liquidityAdderPopoverRef}
+                />
+            )}
+
+            {/* 快捷兑换 */}
+            {showSwap && pool.lpInfo && (
+                <Swap
+                    poolInfo={pool.lpInfo}
+                    position={swapPopoverPosition}
+                    isVisible={isSwapPopoverVisible}
+                    onClose={closeSwap}
+                    popoverRef={swapPopoverRef}
                 />
             )}
 
