@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@/providers/WalletProvider';
 import { checkTokenAllowance, approveToken, getTokenBalance, parseTokenAmount, formatTokenAmount, swapExactInputSingle, getSwapRouterAddress } from '@/utils/web3Utils';
 // 移除全局滑点依赖
+import { calculatePriceFromTick } from '@/utils/lpUtils';
 
 export const useSwap = (poolInfo, isVisible, onClose) => {
     const { provider, signer, account, connected, connect, chainId, isInitializing } = useWallet();
@@ -22,10 +23,19 @@ export const useSwap = (poolInfo, isVisible, onClose) => {
     const [toAmount, setToAmount] = useState('');
     const [isClosing, setIsClosing] = useState(false);
 
-    // 计算输出（简单占位：按1:1近似，真实项目应接入 Quoter）
+    // 计算输出（近似：按池子当前 mid price & 手续费扣除）
     useEffect(() => {
-        if (!fromAmount) { setToAmount(''); return; }
-        setToAmount(fromAmount);
+        if (!fromAmount || !poolInfo) { setToAmount(''); return; }
+        const { token0, token1, fee, tick } = poolInfo;
+        if (tick === undefined || tick === null) { setToAmount(''); return; }
+        const price0per1 = calculatePriceFromTick(tick, token0.decimals || 18, token1.decimals || 18); // token1/token0
+        const isFromToken0 = fromToken.address === token0.address;
+        const midPrice = isFromToken0 ? price0per1 : (price0per1 === 0 ? 0 : 1 / price0per1);
+        const feeRatio = Math.max(0, 1 - (Number(fee) || 0) / 1_000_000); // fee 为 10000/500/3000/100 等，换算成比例
+        const amountNum = parseFloat(fromAmount);
+        if (isNaN(amountNum) || !isFinite(amountNum)) { setToAmount(''); return; }
+        const out = amountNum * midPrice * feeRatio;
+        setToAmount(out.toString());
     }, [fromAmount, fromToken, toToken, poolInfo]);
 
     const loadBalances = useCallback(async () => {
