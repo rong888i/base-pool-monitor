@@ -21,7 +21,7 @@ const Sidebar = ({ onAddPool, pools, archivedPools, onRestorePool, onToggle, isR
     };
 
     return (
-        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-neutral-50 dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800/50 transition-[width] duration-300 relative overflow-y-auto custom-scrollbar`}>
+        <div className={`${isCollapsed ? 'w-0' : 'w-full sm:w-96'} bg-neutral-50 dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800/50 transition-[width] duration-300 relative overflow-y-auto scrollbar-hide`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}

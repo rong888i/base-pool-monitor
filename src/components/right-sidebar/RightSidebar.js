@@ -308,7 +308,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                 </div>
 
                 {/* 内容区域 */}
-                <div className="h-[calc(100%-7rem)] overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
+                <div className="h-[calc(100%-7rem)] overflow-y-auto overflow-x-hidden scrollbar-hide">
 
                     {/* 筛选器组件 - 包含时间范围和排除池子功能 */}
                     <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
