@@ -54,12 +54,17 @@ const Swap = ({ poolInfo, position, isVisible, onClose, popoverRef }) => {
                 onClick={handleClose}
             >
                 <motion.div
-                    className="absolute w-96 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200/80 dark:border-neutral-700/50 overflow-hidden"
+                    className={`absolute ${isMobile ? 'w-[calc(100vw-2rem)] max-w-sm' : 'w-96'} bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200/80 dark:border-neutral-700/50 overflow-hidden`}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
                     variants={modalVariants}
-                    style={{ top: position.top, left: position.left, maxHeight: position.maxHeight || (isMobile ? '80vh' : '85vh') }}
+                    style={{ 
+                        top: isMobile ? Math.min(position.top, window.innerHeight - 520) : position.top, 
+                        left: isMobile ? '1rem' : position.left, 
+                        right: isMobile ? '1rem' : 'auto',
+                        maxHeight: position.maxHeight || (isMobile ? '80vh' : '85vh') 
+                    }}
                     onClick={(e) => e.stopPropagation()}
                     ref={popoverRef}
                 >

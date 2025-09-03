@@ -332,34 +332,39 @@ const PoolCard = ({ id, pool, onRemove, onClone, outOfRangeCount, onNftInfoUpdat
     const openSwap = () => {
         if (swapIconRef.current) {
             const rect = swapIconRef.current.getBoundingClientRect();
-            const popoverWidth = 384; // w-96
+            const isMobile = window.innerWidth < 768;
+            const popoverWidth = isMobile ? Math.min(window.innerWidth - 32, 384) : 384; // 手机端适配宽度
             const popoverHeight = 520; // 预估Swap弹窗高度
             const margin = 12;
             const bottomSafeZone = 60; // 预留底部安全区域，避免与导航栏重叠
 
-            // 水平位置计算（与 LiquidityAdder 一致）
-            let left = rect.right + margin;
-            if (left + popoverWidth > window.innerWidth - 20) { // 20px margin from edge
-                left = rect.left - popoverWidth - margin;
-            }
-
-            // 垂直位置计算（与 LiquidityAdder 一致）
-            let top = rect.top;
-            const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
-            const availableSpaceAbove = rect.top - 20; // 顶部预留20px
-
-            // 如果下方空间不足，则尝试放在上方
-            if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
-                top = rect.top - popoverHeight - margin;
-                // 确保不超出顶部
-                if (top < 20) {
-                    top = 20;
-                }
+            let left, top;
+            
+            if (isMobile) {
+                // 手机端：居中显示
+                left = 16; // 对应 Swap 组件中的 1rem
+                top = Math.max(20, rect.top - 100); // 稍微往上偏移，避免被键盘遮挡
             } else {
-                // 确保不超出底部
-                const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
-                if (top > maxTop) {
-                    top = maxTop;
+                // 桌面端：原有逻辑
+                left = rect.right + margin;
+                if (left + popoverWidth > window.innerWidth - 20) {
+                    left = rect.left - popoverWidth - margin;
+                }
+                
+                top = rect.top;
+                const availableSpaceBelow = window.innerHeight - rect.bottom - bottomSafeZone;
+                const availableSpaceAbove = rect.top - 20;
+                
+                if (availableSpaceBelow < popoverHeight && availableSpaceAbove > availableSpaceBelow) {
+                    top = rect.top - popoverHeight - margin;
+                    if (top < 20) {
+                        top = 20;
+                    }
+                } else {
+                    const maxTop = window.innerHeight - popoverHeight - bottomSafeZone;
+                    if (top > maxTop) {
+                        top = maxTop;
+                    }
                 }
             }
 
