@@ -12,11 +12,11 @@ const WalletContext = createContext();
 createAppKit({
     adapters: [new EthersAdapter()],
     networks: [base],
-    projectId: 'd6dc275fa05414798284f743d97b2639',
+    projectId: '56acf32e2f11b3e6a28234c096cd5f35',
     metadata: {
         name: 'Pool Monitor',
         description: 'Monitor your liquidity pools',
-        url: 'https://www.poolm.xyz/',  // typeof window !== 'undefined' ? window.location.origin : 
+        url: 'https://base.poolm.xyz/',  // typeof window !== 'undefined' ? window.location.origin : 
         icons: ['https://avatars.githubusercontent.com/u/37784886']
     },
     features: {
