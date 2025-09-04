@@ -131,6 +131,15 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                                 1H
                             </button>
                             <button
+                                onClick={() => onTimeWindowChange(360)}
+                                className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 360
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                                    }`}
+                            >
+                                6H
+                            </button>
+                            <button
                                 onClick={() => onTimeWindowChange(1440)}
                                 className={`px-3 py-1 text-xs rounded transition-colors ${selectedTimeWindow === 1440
                                     ? 'bg-blue-600 text-white'
