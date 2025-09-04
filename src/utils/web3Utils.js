@@ -24,6 +24,42 @@ const ERC721_ABI = [
     "function ownerOf(uint256 tokenId) view returns (address)"
 ];
 
+// Aerodrome NonfungiblePositionManager ABI (部分)
+const AERODROME_POSITION_MANAGER_ABI = [
+    {
+        "inputs": [
+            {
+                "components": [
+                    { "internalType": "address", "name": "token0", "type": "address" },
+                    { "internalType": "address", "name": "token1", "type": "address" },
+                    { "internalType": "int24", "name": "tickSpacing", "type": "int24" }, // Aerodrome 使用 tickSpacing 而不是 fee
+                    { "internalType": "int24", "name": "tickLower", "type": "int24" },
+                    { "internalType": "int24", "name": "tickUpper", "type": "int24" },
+                    { "internalType": "uint256", "name": "amount0Desired", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1Desired", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                    { "internalType": "address", "name": "recipient", "type": "address" },
+                    { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                    { "internalType": "uint160", "name": "sqrtPriceX96", "type": "uint160" } // 如果池子不存在，使用此价格初始化
+                ],
+                "internalType": "struct INonfungiblePositionManager.MintParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "mint",
+        "outputs": [
+            { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+            { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+            { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+            { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+];
+
 // Uniswap V3 NonfungiblePositionManager ABI (部分)
 const POSITION_MANAGER_ABI = [
     {
@@ -73,6 +109,18 @@ const CONTRACTS = {
         USDT: "0x55d398326f99059ff775485246999027b3197955",
         USDC: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
         BUSD: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
+    },
+    // BASE Chain
+    8453: {
+        AERODROME_POSITION_MANAGER: "0x827922686190790b37229fd06084350E74485b72",
+        UNISWAP_V3_POSITION_MANAGER: "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+        // v3 SwapRouter
+        AERODROME_SWAP_ROUTER: "0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5",
+        UNISWAP_V3_SWAP_ROUTER: "0x2626664c2603336E57B271c5C0b26F421741e481",
+        // 常用代币地址
+        WETH: "0x4200000000000000000000000000000000000006",
+        USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        USDE: "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34"
     },
 };
 
@@ -164,12 +212,33 @@ export const getTokenInfo = async (tokenAddress, provider) => {
 
 export const getTokenBalance = async (tokenAddress, userAddress, provider) => {
     try {
+        if (!tokenAddress || !userAddress || !provider) {
+            console.error('getTokenBalance 缺少参数:', { 
+                tokenAddress, 
+                userAddress, 
+                provider: !!provider 
+            });
+            return BigInt(0);
+        }
+        
+        // 创建合约实例
         const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+        
+        // 调用 balanceOf 函数
         const balance = await tokenContract.balanceOf(userAddress);
+        
+        // 打印成功信息
+        console.log(`✅ 获取余额成功: ${tokenAddress.slice(0,6)}...${tokenAddress.slice(-4)} = ${balance.toString()}`);
+        
         return balance;
     } catch (error) {
-        console.error('获取代币余额失败:', error);
-        throw error;
+        console.error('❌ 获取代币余额失败:', {
+            message: error.message,
+            tokenAddress: tokenAddress?.slice(0,10) + '...',
+            userAddress: userAddress?.slice(0,10) + '...',
+            code: error.code
+        });
+        return BigInt(0); // 出错时返回 0 而不是抛出异常
     }
 };
 
@@ -180,20 +249,33 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
             throw new Error(`不支持的网络: ${chainId}`);
         }
 
-        // 根据协议名称选择正确的Position Manager地址
+        // 根据协议名称选择正确的Position Manager地址和ABI
         let positionManagerAddress;
+        let positionManagerABI;
+        const isAerodrome = protocolName.toLowerCase().includes('aerodrome') || protocolName.toLowerCase().includes('aero');
+        
         if (protocolName.toLowerCase().includes('pancake')) {
             positionManagerAddress = contracts.PANCAKESWAP_V3_POSITION_MANAGER;
-        } else if (protocolName.toLowerCase().includes('uniswap') || !protocolName) {
-            // 默认使用Uniswap地址
+            positionManagerABI = POSITION_MANAGER_ABI;
+        } else if (isAerodrome) {
+            positionManagerAddress = contracts.AERODROME_POSITION_MANAGER;
+            positionManagerABI = AERODROME_POSITION_MANAGER_ABI;
+        } else if (protocolName.toLowerCase().includes('uniswap') || protocolName.toLowerCase().includes('uni')) {
             positionManagerAddress = contracts.UNISWAP_V3_POSITION_MANAGER;
+            positionManagerABI = POSITION_MANAGER_ABI;
         } else {
             // 如果无法识别协议，根据链ID选择默认值
             if (chainId === 56) {
                 // BSC上默认使用Uniswap
                 positionManagerAddress = contracts.UNISWAP_V3_POSITION_MANAGER;
+                positionManagerABI = POSITION_MANAGER_ABI;
             } else if (chainId === 1) {
                 positionManagerAddress = contracts.UNISWAP_V3_POSITION_MANAGER;
+                positionManagerABI = POSITION_MANAGER_ABI;
+            } else if (chainId === 8453) {
+                // BASE上默认使用Uniswap
+                positionManagerAddress = contracts.UNISWAP_V3_POSITION_MANAGER;
+                positionManagerABI = POSITION_MANAGER_ABI;
             } else {
                 throw new Error(`不支持的网络: ${chainId}`);
             }
@@ -201,7 +283,7 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
 
         const positionManager = new ethers.Contract(
             positionManagerAddress,
-            POSITION_MANAGER_ABI,
+            positionManagerABI,
             signer
         );
 
@@ -212,15 +294,75 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
         const slippageAmount0 = (BigInt(params.amount0Desired) * slippageMultiplier) / BigInt(10000);
         const slippageAmount1 = (BigInt(params.amount1Desired) * slippageMultiplier) / BigInt(10000);
 
-        const mintParams = {
-            ...params,
-            amount0Min: slippageAmount0.toString(),
-            amount1Min: slippageAmount1.toString(),
-            deadline: Math.floor(Date.now() / 1000) + 1200 // 20分钟后过期
-        };
+        let mintParams;
+        
+        if (isAerodrome) {
+            // Aerodrome 需要特殊的参数结构
+            // 对于已存在的池子，sqrtPriceX96 应该传 0
+            // 只有创建新池子时才需要非零的 sqrtPriceX96
+            const sqrtPriceX96Value = '0';
+            
+            // 确保 tickSpacing 是一个数字
+            const tickSpacingValue = params.tickSpacing ? Number(params.tickSpacing) : 10;
+            
+            mintParams = {
+                token0: params.token0,
+                token1: params.token1,
+                tickSpacing: tickSpacingValue, // 使用传入的实际 tickSpacing
+                tickLower: params.tickLower,
+                tickUpper: params.tickUpper,
+                amount0Desired: params.amount0Desired,
+                amount1Desired: params.amount1Desired,
+                amount0Min: slippageAmount0.toString(),
+                amount1Min: slippageAmount1.toString(),
+                recipient: params.recipient,
+                deadline: Math.floor(Date.now() / 1000) + 1200, // 20分钟后过期
+                sqrtPriceX96: sqrtPriceX96Value // Aerodrome 需要这个额外参数
+            };
+            
+            console.log('=== Aerodrome Mint 参数详情 ===');
+            console.log('协议:', protocolName);
+            console.log('Position Manager 地址:', positionManagerAddress);
+            console.log('重要参数:');
+            console.log('  - tickSpacing (实际值):', tickSpacingValue);
+            console.log('  - tickSpacing 类型:', typeof tickSpacingValue);
+            console.log('  - 原始 params.tickSpacing:', params.tickSpacing);
+            console.log('  - 原始 params.fee:', params.fee);
+            console.log('Mint 参数:', {
+                token0: mintParams.token0,
+                token1: mintParams.token1,
+                tickSpacing: mintParams.tickSpacing,
+                tickLower: mintParams.tickLower,
+                tickUpper: mintParams.tickUpper,
+                amount0Desired: mintParams.amount0Desired.toString(),
+                amount1Desired: mintParams.amount1Desired.toString(),
+                amount0Min: mintParams.amount0Min,
+                amount1Min: mintParams.amount1Min,
+                recipient: mintParams.recipient,
+                deadline: mintParams.deadline,
+                sqrtPriceX96: mintParams.sqrtPriceX96
+            });
+            console.log('=========================');
+        } else {
+            // Uniswap V3 / PancakeSwap 参数结构
+            mintParams = {
+                ...params,
+                amount0Min: slippageAmount0.toString(),
+                amount1Min: slippageAmount1.toString(),
+                deadline: Math.floor(Date.now() / 1000) + 1200 // 20分钟后过期
+            };
+            
+            console.log('=== Uniswap/PancakeSwap Mint 参数 ===');
+            console.log('协议:', protocolName);
+            console.log('Position Manager 地址:', positionManagerAddress);
+            console.log('参数详情:', mintParams);
+            console.log('=====================================');
+        }
 
         // 检查是否需要发送ETH/BNB
-        const nativeTokenAddress = chainId === 56 ? CONTRACTS[chainId]?.WBNB?.toLowerCase() : CONTRACTS[chainId]?.WETH?.toLowerCase();
+        const nativeTokenAddress = chainId === 56 ? CONTRACTS[chainId]?.WBNB?.toLowerCase() : 
+                                   chainId === 8453 ? CONTRACTS[chainId]?.WETH?.toLowerCase() : 
+                                   CONTRACTS[chainId]?.WETH?.toLowerCase();
         const isToken0Native = params.token0.toLowerCase() === nativeTokenAddress;
         const isToken1Native = params.token1.toLowerCase() === nativeTokenAddress;
 
@@ -231,7 +373,22 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
             value = params.amount1Desired;
         }
 
-        const tx = await positionManager.mint(mintParams, { value });
+        console.log('准备调用 mint，参数:', mintParams);
+        console.log('value (ETH):', value);
+        
+        try {
+            const tx = await positionManager.mint(mintParams, { value });
+            console.log('交易发送成功:', tx.hash);
+            return tx;
+        } catch (error) {
+            console.error('mint 调用失败:', error);
+            console.error('详细错误信息:', {
+                message: error.message,
+                data: error.data,
+                transaction: error.transaction
+            });
+            throw error;
+        }
         return tx;
     } catch (error) {
         console.error('添加流动性失败:', error);
@@ -246,10 +403,70 @@ export const formatTokenAmount = (amount, decimals) => {
 
 // 解析代币数量
 export const parseTokenAmount = (amount, decimals) => {
-    return ethers.parseUnits(amount.toString(), decimals);
+    try {
+        const amountStr = amount.toString();
+        
+        // 处理科学计数法
+        if (amountStr.includes('e') || amountStr.includes('E')) {
+            const num = Number(amountStr);
+            if (isNaN(num)) throw new Error('Invalid number');
+            return ethers.parseUnits(num.toFixed(decimals), decimals);
+        }
+        
+        // 限制小数位数，避免超过 decimals
+        const parts = amountStr.split('.');
+        if (parts.length > 1 && parts[1].length > decimals) {
+            // 截断多余的小数位
+            const truncated = parts[0] + '.' + parts[1].substring(0, decimals);
+            return ethers.parseUnits(truncated, decimals);
+        }
+        
+        return ethers.parseUnits(amountStr, decimals);
+    } catch (error) {
+        console.error('parseTokenAmount error:', error, { amount, decimals });
+        // 如果还是失败，尝试使用 BigInt 直接计算
+        try {
+            const multiplier = BigInt(10) ** BigInt(decimals);
+            const num = Number(amount);
+            if (isNaN(num)) throw new Error('Invalid number');
+            return BigInt(Math.floor(num * Number(multiplier)));
+        } catch (fallbackError) {
+            console.error('parseTokenAmount fallback also failed:', fallbackError);
+            return BigInt(0);
+        }
+    }
 };
 
-// v3 SwapRouter ABI（Uniswap 版本：无 deadline）
+// v3 SwapRouter ABI（Aerodrome 版本：使用 tickSpacing）
+const V3_SWAP_ROUTER_ABI_AERO = [
+    {
+        "inputs": [
+            {
+                "components": [
+                    {"internalType": "address", "name": "tokenIn", "type": "address"},
+                    {"internalType": "address", "name": "tokenOut", "type": "address"},
+                    {"internalType": "int24", "name": "tickSpacing", "type": "int24"},
+                    {"internalType": "address", "name": "recipient", "type": "address"},
+                    {"internalType": "uint256", "name": "deadline", "type": "uint256"},
+                    {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+                    {"internalType": "uint256", "name": "amountOutMinimum", "type": "uint256"},
+                    {"internalType": "uint160", "name": "sqrtPriceLimitX96", "type": "uint160"}
+                ],
+                "internalType": "struct ISwapRouter.ExactInputSingleParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "exactInputSingle",
+        "outputs": [
+            {"internalType": "uint256", "name": "amountOut", "type": "uint256"}
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+];
+
+// v3 SwapRouter ABI（Uniswap 版本：使用 fee）
 const V3_SWAP_ROUTER_ABI_UNI = [
     {
         "inputs": [
@@ -307,14 +524,20 @@ const V3_SWAP_ROUTER_ABI_PANCAKE = [
 ];
 
 // 获取 v3 SwapRouter 地址
-const getSwapRouterAddress = (protocolName = '', chainId = 56) => {
+const getSwapRouterAddress = (protocolName = '', chainId = 8453) => {
     const contracts = CONTRACTS[chainId];
     if (!contracts) throw new Error(`不支持的网络: ${chainId}`);
     const isPancake = protocolName.toLowerCase().includes('pancake');
-    const isUni = protocolName.toLowerCase().includes('uniswap') || !protocolName;
+    const isAero = protocolName.toLowerCase().includes('aerodrome') || protocolName.toLowerCase().includes('aero');
+    const isUni = protocolName.toLowerCase().includes('uniswap') || protocolName.toLowerCase().includes('uni');
+    
     if (isPancake) {
         if (!contracts.PANCAKESWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置 PancakeSwap V3 SwapRouter 地址');
         return contracts.PANCAKESWAP_V3_SWAP_ROUTER;
+    }
+    if (isAero) {
+        if (!contracts.AERODROME_SWAP_ROUTER) throw new Error('当前网络未配置 Aerodrome SwapRouter 地址');
+        return contracts.AERODROME_SWAP_ROUTER;
     }
     if (isUni) {
         if (!contracts.UNISWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置 Uniswap V3 SwapRouter 地址');
@@ -332,6 +555,7 @@ export const swapExactInputSingle = async ({
     tokenIn,
     tokenOut,
     fee,
+    tickSpacing, // 为 Aerodrome 添加 tickSpacing 参数
     amountIn,
     amountOutMin,
     recipient,
@@ -343,10 +567,35 @@ export const swapExactInputSingle = async ({
         if (!signer) throw new Error('无效的钱包签名器');
         const routerAddress = getSwapRouterAddress(protocolName, chainId);
         const isPancake = (protocolName || '').toLowerCase().includes('pancake');
-        const router = new ethers.Contract(routerAddress, isPancake ? V3_SWAP_ROUTER_ABI_PANCAKE : V3_SWAP_ROUTER_ABI_UNI, signer);
+        const isAero = (protocolName || '').toLowerCase().includes('aerodrome') || (protocolName || '').toLowerCase().includes('aero');
+        
+        // 选择正确的 ABI
+        let routerABI;
+        if (isAero) {
+            routerABI = V3_SWAP_ROUTER_ABI_AERO;
+        } else if (isPancake) {
+            routerABI = V3_SWAP_ROUTER_ABI_PANCAKE;
+        } else {
+            routerABI = V3_SWAP_ROUTER_ABI_UNI;
+        }
+        
+        const router = new ethers.Contract(routerAddress, routerABI, signer);
 
-        const params = isPancake
-            ? {
+        let params;
+        if (isAero) {
+            // Aerodrome 使用 tickSpacing 而不是 fee
+            params = {
+                tokenIn,
+                tokenOut,
+                tickSpacing: tickSpacing || 1, // 默认 tickSpacing
+                recipient,
+                deadline: Math.floor(Date.now() / 1000) + 1200,
+                amountIn,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            };
+        } else if (isPancake) {
+            params = {
                 tokenIn,
                 tokenOut,
                 fee,
@@ -355,8 +604,10 @@ export const swapExactInputSingle = async ({
                 amountIn,
                 amountOutMinimum: amountOutMin,
                 sqrtPriceLimitX96: 0
-            }
-            : {
+            };
+        } else {
+            // Uniswap V3 on BASE
+            params = {
                 tokenIn,
                 tokenOut,
                 fee,
@@ -365,6 +616,7 @@ export const swapExactInputSingle = async ({
                 amountOutMinimum: amountOutMin,
                 sqrtPriceLimitX96: 0
             };
+        }
 
         // 计算是否需要携带原生币价值（如果 tokenIn 是 WETH/WBNB 则无需，只有原生 ETH/BNB 时需要。但这里仅支持 ERC20 路径）
         const tx = await router.exactInputSingle(params);
@@ -382,6 +634,7 @@ export const getNetworkName = (chainId) => {
         case 56: return 'BSC';
         case 137: return 'Polygon';
         case 42161: return 'Arbitrum';
+        case 8453: return 'BASE';
         default: return `Chain ${chainId}`;
     }
 };
@@ -450,7 +703,8 @@ export const getNetworkInfo = async () => {
         return {
             chainId: parseInt(chainId, 16),
             isMainnet: chainId === '0x1',
-            isBSC: chainId === '0x38'
+            isBSC: chainId === '0x38',
+            isBASE: chainId === '0x2105'
         };
     } catch (error) {
         console.error('Error getting network info:', error);
@@ -475,7 +729,7 @@ export const switchNetwork = async (chainId) => {
 };
 
 // 获取Position Manager地址（根据协议类型）
-const getPositionManagerAddress = (protocolName, chainId = 56) => {
+const getPositionManagerAddress = (protocolName, chainId = 8453) => {
     const contracts = CONTRACTS[chainId];
     if (!contracts) {
         throw new Error(`Unsupported chain ID: ${chainId}`);
@@ -483,11 +737,13 @@ const getPositionManagerAddress = (protocolName, chainId = 56) => {
 
     if (protocolName.toLowerCase().includes('pancake')) {
         return contracts.PANCAKESWAP_V3_POSITION_MANAGER;
-    } else if (protocolName.toLowerCase().includes('uniswap')) {
+    } else if (protocolName.toLowerCase().includes('aerodrome') || protocolName.toLowerCase().includes('aero')) {
+        return contracts.AERODROME_POSITION_MANAGER;
+    } else if (protocolName.toLowerCase().includes('uniswap') || protocolName.toLowerCase().includes('uni')) {
         return contracts.UNISWAP_V3_POSITION_MANAGER;
     } else {
         // 默认使用Uniswap
-        return contracts.UNISWAP_V3_POSITION_MANAGER;
+        return contracts.UNISWAP_V3_POSITION_MANAGER || contracts.AERODROME_POSITION_MANAGER;
     }
 };
 

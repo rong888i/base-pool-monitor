@@ -48,7 +48,7 @@ const ArchivedPoolCard = ({ pool, onRestore }) => {
 
             <div className="flex items-center justify-between">
                 <a
-                    href={`https://bscscan.com/address/${pool.address}`}
+                    href={`https://basescan.org/address/${pool.address}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-xs text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"

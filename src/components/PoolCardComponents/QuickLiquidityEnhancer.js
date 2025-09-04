@@ -232,15 +232,22 @@ const QuickLiquidityEnhancer = ({
         try {
             setIsCheckingApproval(true);
 
-            // 根据协议类型使用正确的Position Manager地址
+            // 根据协议选择正确的 Position Manager 地址（BASE 网络）
             let positionManagerAddress;
-            if (poolInfo.protocol.name.toLowerCase().includes('pancake')) {
-                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364';
-            } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+            const protocolName = poolInfo.protocol.name.toLowerCase();
+            
+            if (protocolName.includes('aerodrome') || protocolName.includes('aero')) {
+                // Aerodrome Position Manager on BASE
+                positionManagerAddress = '0x827922686190790b37229fd06084350E74485b72';
+            } else if (protocolName.includes('uniswap') || protocolName.includes('uni')) {
+                // Uniswap V3 Position Manager on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             } else {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+                // 默认使用 Uniswap V3 on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             }
+            
+            console.log('检查授权 - Position Manager:', positionManagerAddress, '协议:', poolInfo.protocol.name);
 
             const [allowance0, allowance1] = await Promise.all([
                 checkTokenAllowance(poolInfo.token0?.address, account, positionManagerAddress, provider),
@@ -270,14 +277,22 @@ const QuickLiquidityEnhancer = ({
         try {
             setIsApproving(prev => ({ ...prev, [tokenAddress]: true }));
 
+            // 根据协议选择正确的 Position Manager 地址（BASE 网络）
             let positionManagerAddress;
-            if (poolInfo.protocol.name.toLowerCase().includes('pancake')) {
-                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364';
-            } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+            const protocolName = poolInfo.protocol.name.toLowerCase();
+            
+            if (protocolName.includes('aerodrome') || protocolName.includes('aero')) {
+                // Aerodrome Position Manager on BASE
+                positionManagerAddress = '0x827922686190790b37229fd06084350E74485b72';
+            } else if (protocolName.includes('uniswap') || protocolName.includes('uni')) {
+                // Uniswap V3 Position Manager on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             } else {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+                // 默认使用 Uniswap V3 on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             }
+            
+            console.log(`授权 ${tokenSymbol} 给 Position Manager:`, positionManagerAddress, '协议:', poolInfo.protocol.name);
 
             const maxAmount = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
             const tx = await approveToken(tokenAddress, positionManagerAddress, maxAmount, signer);

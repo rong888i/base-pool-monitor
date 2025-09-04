@@ -77,7 +77,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             const lowerPrice = currentPrice - range;
             const upperPrice = currentPrice + range;
             const { token0, token1, fee } = poolInfo;
-            const tickSpacing = getTickSpacing(fee);
+            // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
+            const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
             const lowerTick = calculateTickFromPrice(lowerPrice, token0.decimals, token1.decimals);
             const upperTick = calculateTickFromPrice(upperPrice, token0.decimals, token1.decimals);
             setTickLower(Math.round(lowerTick / tickSpacing) * tickSpacing);
@@ -209,14 +210,24 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         if (!provider || !account || !signer || !amount0 || !amount1) return;
         try {
             setIsCheckingApproval(true);
+            
+            // 根据协议选择正确的 Position Manager 地址（BASE 网络）
             let positionManagerAddress;
-            if (poolInfo.protocol.name.toLowerCase().includes('pancake')) {
-                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364';
-            } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+            const protocolName = poolInfo.protocol.name.toLowerCase();
+            
+            if (protocolName.includes('aerodrome') || protocolName.includes('aero')) {
+                // Aerodrome Position Manager on BASE
+                positionManagerAddress = '0x827922686190790b37229fd06084350E74485b72';
+            } else if (protocolName.includes('uniswap') || protocolName.includes('uni')) {
+                // Uniswap V3 Position Manager on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             } else {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+                // 默认使用 Uniswap V3 on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             }
+            
+            console.log('检查授权 - Position Manager:', positionManagerAddress, '协议:', poolInfo.protocol.name);
+            
             const [allowance0, allowance1] = await Promise.all([
                 checkTokenAllowance(poolInfo.token0?.address, account, positionManagerAddress, provider),
                 checkTokenAllowance(poolInfo.token1?.address, account, positionManagerAddress, provider)
@@ -237,14 +248,24 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         if (!signer) { setError('请先连接钱包'); return; }
         try {
             setIsApproving(prev => ({ ...prev, [tokenAddress]: true }));
+            
+            // 根据协议选择正确的 Position Manager 地址（BASE 网络）
             let positionManagerAddress;
-            if (poolInfo.protocol.name.toLowerCase().includes('pancake')) {
-                positionManagerAddress = '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364';
-            } else if (poolInfo.protocol.name.toLowerCase().includes('uniswap')) {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+            const protocolName = poolInfo.protocol.name.toLowerCase();
+            
+            if (protocolName.includes('aerodrome') || protocolName.includes('aero')) {
+                // Aerodrome Position Manager on BASE
+                positionManagerAddress = '0x827922686190790b37229fd06084350E74485b72';
+            } else if (protocolName.includes('uniswap') || protocolName.includes('uni')) {
+                // Uniswap V3 Position Manager on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             } else {
-                positionManagerAddress = '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613';
+                // 默认使用 Uniswap V3 on BASE
+                positionManagerAddress = '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1';
             }
+            
+            console.log(`授权 ${tokenSymbol} 给 Position Manager:`, positionManagerAddress, '协议:', poolInfo.protocol.name);
+            
             const maxAmount = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
             const tx = await approveToken(tokenAddress, positionManagerAddress, maxAmount, signer);
             setTransactionHash(tx.hash);
@@ -275,16 +296,67 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             }
             const amount0Wei = parseTokenAmount(amount0, poolInfo.token0?.decimals || 18);
             const amount1Wei = parseTokenAmount(amount1, poolInfo.token1?.decimals || 18);
+            // 检查是否是 Aerodrome 协议
+            const isAerodrome = poolInfo.protocol?.name?.toLowerCase().includes('aero');
+            
+            console.log('=== 准备添加流动性 ===');
+            console.log('池子信息:', poolInfo);
+            console.log('协议名称:', poolInfo.protocol?.name);
+            console.log('是否为 Aerodrome:', isAerodrome);
+            console.log('池子的 fee:', poolInfo.fee);
+            console.log('池子的 tickSpacing:', poolInfo.tickSpacing);
+            console.log('tickLower:', tickLower);
+            console.log('tickUpper:', tickUpper);
+            
+            // 验证 tick 对齐
+            if (poolInfo.tickSpacing) {
+                const lowerAligned = tickLower % poolInfo.tickSpacing === 0;
+                const upperAligned = tickUpper % poolInfo.tickSpacing === 0;
+                console.log('Tick 对齐检查:');
+                console.log(`  tickLower (${tickLower}) % ${poolInfo.tickSpacing} = ${tickLower % poolInfo.tickSpacing}, 对齐: ${lowerAligned}`);
+                console.log(`  tickUpper (${tickUpper}) % ${poolInfo.tickSpacing} = ${tickUpper % poolInfo.tickSpacing}, 对齐: ${upperAligned}`);
+                
+                if (!lowerAligned || !upperAligned) {
+                    console.error('⚠️ Tick 值未正确对齐到 tickSpacing!');
+                }
+            }
+            console.log('amount0:', amount0);
+            console.log('amount1:', amount1);
+            console.log('amount0Wei:', amount0Wei.toString());
+            console.log('amount1Wei:', amount1Wei.toString());
+            
+            // 使用池子实际的 tickSpacing（如果是 Aerodrome）
+            const actualTickSpacing = poolInfo.tickSpacing;
+            
+            if (isAerodrome) {
+                console.log('');
+                console.log('🔍 Aerodrome 池子详细信息:');
+                console.log('  - 池子地址:', poolInfo.address);
+                console.log('  - 原始 tickSpacing (从池子读取):', actualTickSpacing);
+                console.log('  - tickSpacing 类型:', typeof actualTickSpacing);
+                console.log('  - 池子费率 (fee):', poolInfo.fee);
+                console.log('  - 费率百分比:', poolInfo.fee ? (poolInfo.fee / 10000 + '%') : 'N/A');
+                console.log('');
+                console.log('⚠️ 重要: Aerodrome 使用 tickSpacing 标识池子，而不是 fee');
+                console.log('  实际传递的 tickSpacing 值将是:', actualTickSpacing);
+                console.log('');
+            }
+            
             const params = {
                 token0: poolInfo.token0?.address,
                 token1: poolInfo.token1?.address,
                 fee: poolInfo.fee,
+                tickSpacing: isAerodrome ? actualTickSpacing : undefined, // Aerodrome 使用实际的 tickSpacing
                 tickLower,
                 tickUpper,
                 amount0Desired: amount0Wei,
                 amount1Desired: amount1Wei,
-                recipient: account
+                recipient: account,
+                sqrtPriceX96: '0' // 对于已存在的池子，始终传 0
             };
+            
+            console.log('构建的参数:', params);
+            console.log('=====================');
             const tx = await addLiquidity(params, signer, chainId, slippage, poolInfo.protocol?.name || '');
             setTransactionHash(tx.hash);
             const receipt = await tx.wait();
@@ -313,7 +385,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
     const adjustPrice = (boxType, direction) => {
         if (!poolInfo) return;
         const { fee, token0, token1 } = poolInfo;
-        const tickSpacing = getTickSpacing(fee);
+        // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
+        const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
 
         const isMinBox = boxType === 'min';
         // 根据UI上的框和价格方向，确定要修改哪个内部tick
@@ -365,7 +438,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         const newUpperInternalPrice = currentPrice + range;
 
         const { token0, token1, fee } = poolInfo;
-        const tickSpacing = getTickSpacing(fee);
+        // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
+        const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
 
         const newTickLower = Math.round(calculateTickFromPrice(newLowerInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
         const newTickUpper = Math.round(calculateTickFromPrice(newUpperInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
@@ -391,7 +465,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         if (!poolInfo) return;
 
         const { token0, token1, fee } = poolInfo;
-        const tickSpacing = getTickSpacing(fee);
+        // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
+        const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
 
         // 确定当前操作的是哪个价格和tick
         const isLowerBox = type === 'lower';
@@ -458,17 +533,31 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
     }, [handlePriceBlur]);
 
     const fetchBalances = useCallback(async () => {
-        if (!provider || !account || !poolInfo) return;
+        if (!provider || !account || !poolInfo?.token0?.address || !poolInfo?.token1?.address) {
+            console.log('fetchBalances 缺少必要条件:', {
+                provider: !!provider,
+                account,
+                poolInfo: !!poolInfo,
+                token0: poolInfo?.token0?.address,
+                token1: poolInfo?.token1?.address
+            });
+            return;
+        }
         try {
             setIsLoadingBalances(true);
+            
             const [balance0, balance1] = await Promise.all([
-                getTokenBalance(poolInfo.token0?.address, account, provider),
-                getTokenBalance(poolInfo.token1?.address, account, provider)
+                getTokenBalance(poolInfo.token0.address, account, provider),
+                getTokenBalance(poolInfo.token1.address, account, provider)
             ]);
-            setBalances({
-                token0: formatTokenAmount(balance0, poolInfo.token0?.decimals || 18),
-                token1: formatTokenAmount(balance1, poolInfo.token1?.decimals || 18)
-            });
+            
+            const formattedBalances = {
+                token0: formatTokenAmount(balance0, poolInfo.token0.decimals || 18),
+                token1: formatTokenAmount(balance1, poolInfo.token1.decimals || 18)
+            };
+            
+            console.log('余额:', formattedBalances);
+            setBalances(formattedBalances);
         } catch (error) {
             console.error('获取余额失败:', error);
             setBalances({ token0: '0', token1: '0' });
@@ -477,15 +566,18 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         }
     }, [provider, account, poolInfo]);
 
+    // 获取余额和定时刷新
     useEffect(() => {
-        if (isVisible && connected && provider && account && poolInfo) {
-            fetchBalances();
+        if (!isVisible || !connected || !provider || !account || !poolInfo) {
+            console.log('余额获取条件不满足:', {
+                isVisible,
+                connected,
+                provider: !!provider,
+                account: !!account,
+                poolInfo: !!poolInfo
+            });
+            return;
         }
-    }, [isVisible, connected, provider, account, poolInfo, fetchBalances]);
-
-    // 定时刷新余额
-    useEffect(() => {
-        if (!isVisible || !connected || !provider || !account || !poolInfo) return;
 
         // 立即获取一次余额
         fetchBalances();

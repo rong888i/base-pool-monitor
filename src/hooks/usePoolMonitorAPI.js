@@ -45,6 +45,7 @@ export const usePoolMonitorAPI = () => {
                     address: pool.pool_address,
                     factory: pool.factory_name,
                     displayName: pool.trading_pair,
+                    pair: pool.trading_pair, // 添加pair字段用于代币筛选
                     token0Symbol: pool.token0_symbol,
                     token1Symbol: pool.token1_symbol,
                     stableCoinSymbol: pool.stable_coin_symbol,

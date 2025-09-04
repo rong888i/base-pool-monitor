@@ -62,7 +62,7 @@ const Sidebar = ({ onAddPool, pools, archivedPools, onRestorePool, onToggle, isR
                     <NftSearchSection pools={pools} onAddPool={onAddPool} />
                 </AccordionSection>
 
-                <AccordionSection
+                {/* <AccordionSection
                     title="查询V3池地址"
                     id="calculate"
                     icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-600 dark:text-blue-400">
@@ -72,7 +72,7 @@ const Sidebar = ({ onAddPool, pools, archivedPools, onRestorePool, onToggle, isR
                     setOpenSection={setOpenSection}
                 >
                     <PoolCalculatorSection onAddPool={onAddPool} />
-                </AccordionSection>
+                </AccordionSection> */}
 
                 <AccordionSection
                     title="搜索池子"
@@ -85,7 +85,7 @@ const Sidebar = ({ onAddPool, pools, archivedPools, onRestorePool, onToggle, isR
                 >
                     <PoolSearchSection pools={pools} onAddPool={onAddPool} />
                 </AccordionSection>
-                
+
                 <AccordionSection
                     title="归档的池子"
                     id="archived"

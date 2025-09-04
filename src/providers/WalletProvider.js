@@ -4,14 +4,14 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { ethers } from 'ethers';
 import { createAppKit, useAppKitAccount, modal, useAppKitProvider } from '@reown/appkit/react';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { bsc, mainnet, arbitrum } from '@reown/appkit/networks';
+import { bsc, mainnet, arbitrum, base } from '@reown/appkit/networks';
 
 const WalletContext = createContext();
 
 // AppKit 配置
 createAppKit({
     adapters: [new EthersAdapter()],
-    networks: [bsc],
+    networks: [base],
     projectId: 'd6dc275fa05414798284f743d97b2639',
     metadata: {
         name: 'Pool Monitor',
@@ -76,6 +76,8 @@ export function WalletProvider({ children }) {
                 chainId: Number(network.chainId),
                 error: null
             });
+
+            console.log('✅ Wallet connected:', address, 'Chain:', Number(network.chainId));
         } catch (error) {
             console.error('Provider initialization error:', error);
             resetState();

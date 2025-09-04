@@ -92,15 +92,15 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
             const data = await response.json();
 
             if (data.pairs && data.pairs.length > 0) {
-                const bscPairs = data.pairs.filter(pool => pool.chainId === 'bsc');
+                const basePairs = data.pairs.filter(pool => pool.chainId === 'base');
 
-                if (bscPairs.length === 0) {
+                if (basePairs.length === 0) {
                     setSearchResults([]);
-                    setError('未找到相关的BSC池子');
+                    setError('未找到相关的BASE链池子');
                     return;
                 }
 
-                const dexscreenerPools = bscPairs.map(pool => {
+                const dexscreenerPools = basePairs.map(pool => {
                     return {
                         name: `${pool.baseToken?.symbol || 'Unknown'}/${pool.quoteToken?.symbol || 'Unknown'}`,
                         address: pool.pairAddress,
@@ -171,9 +171,16 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                                         fee = feeValue / 10000;
                                     } else {
                                         const { dexName, version } = getDexInfo(pool);
-                                        if (version && version.toLowerCase().includes('v2')) {
+                                        // 根据DEX和版本设置默认费率
+                                        if (dexName === 'Aerodrome') {
+                                            // Aerodrome 常见费率
+                                            fee = 0.3; // 默认0.3%，实际使用tickSpacing
+                                        } else if (version && version.toLowerCase().includes('v2')) {
                                             if (dexName === 'PancakeSwap') fee = 0.25;
                                             else if (dexName === 'Uniswap') fee = 0.3;
+                                        } else if (version && version.toLowerCase().includes('v3')) {
+                                            // V3 池子通常有多种费率
+                                            fee = null; // 需要从合约获取
                                         }
                                     }
                                     return { ...pool, fee };
@@ -416,7 +423,7 @@ const PoolSearchSection = ({ pools, onAddPool }) => {
                                     </button>
                                 </div>
                                 <a
-                                    href={`https://bscscan.com/address/${pool.address}`}
+                                    href={`https://basescan.org/address/${pool.address}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="mt-2 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1.5 font-mono"

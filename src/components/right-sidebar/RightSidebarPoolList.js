@@ -113,7 +113,7 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                         transition={{ delay: index * 0.05 }}
                         className={`bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/60 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer p-3 ${pool.totalFees > 50 ? 'high-fee-breathing' : ''
                             }`}
-                        onClick={() => window.open(`https://bscscan.com/address/${pool.address}`, '_blank')}
+                        onClick={() => window.open(`https://basescan.org/address/${pool.address}`, '_blank')}
                     >
                         {/* 排名和基本信息 */}
                         <div className="flex items-center justify-between mb-2">
@@ -198,7 +198,7 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                                     className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        window.open(`https://bscscan.com/address/${pool.address}`, '_blank');
+                                        window.open(`https://basescan.org/address/${pool.address}`, '_blank');
                                     }}
                                     data-tooltip-id="my-tooltip"
                                     data-tooltip-content="在 BscScan 中查看"

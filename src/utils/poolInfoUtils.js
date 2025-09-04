@@ -1,18 +1,18 @@
 import { ethers } from 'ethers';
 
 
-// 常用代币地址 (BSC网络)
+// 常用代币地址 (BASE网络)
 export const COMMON_TOKENS = {
-    WBNB: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-    USDT: '0x55d398326f99059ff775485246999027b3197955',
-    USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',
+    WETH: '0x4200000000000000000000000000000000000006',
+    USDC: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    USDE: '0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34',
 };
 
 // 代币价格缓存 (实际项目中应该从价格API获取)
 const TOKEN_PRICES = {
-    [COMMON_TOKENS.WBNB]: 800, // USD价格，实际应该动态获取
-    [COMMON_TOKENS.USDT]: 1,   // USDT价格
-    [COMMON_TOKENS.USDC]: 1,   // USDC价格
+    [COMMON_TOKENS.WETH]: 3000, // USD价格，实际应该动态获取
+    [COMMON_TOKENS.USDC]: 1,    // USDC价格
+    [COMMON_TOKENS.USDE]: 1,    // USDE价格
 };
 
 // 池子信息缓存
@@ -48,7 +48,7 @@ const createProvider = (rpcUrl) => {
 };
 
 // 默认RPC URL (作为后备)
-const DEFAULT_RPC_URL = 'https://bsc-dataseed1.binance.org/';
+const DEFAULT_RPC_URL = 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
 
 /**
  * 检查池子是否包含常用代币

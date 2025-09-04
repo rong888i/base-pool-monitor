@@ -328,7 +328,7 @@ const NftSearchSection = ({ pools, onAddPool }) => {
                                             {result.token0.symbol} / {result.token1.symbol}
                                         </div>
                                         <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                            {result.protocol.name} · Fee: {result.fee / 10000}%
+                                            {result.protocol.name} · {result.fee !== undefined ? `Fee: ${result.fee / 10000}%` : `Tick Spacing: ${result.tickSpacing}`}
                                         </div>
                                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5 font-mono text-xs">
                                             <span className="font-sans text-neutral-500 dark:text-neutral-400">IDs:</span>

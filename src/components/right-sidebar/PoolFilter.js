@@ -52,7 +52,9 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
     const hasActiveFilters = () => {
         return localFilters.minFees || localFilters.maxFees ||
             localFilters.minVolume || localFilters.maxVolume ||
+            localFilters.minPoolValue || localFilters.maxPoolValue ||
             localFilters.feeRates.length > 0 || localFilters.protocols.length > 0 ||
+            localFilters.tokens.length > 0 ||
             localFilters.hideZeroVolume || localFilters.hideZeroFees;
     };
 
@@ -287,7 +289,37 @@ const PoolFilter = ({ filters, onFilterChange, poolStats, excludedPools, onExclu
                             >
                                 UNI
                             </button>
+                            <button
+                                onClick={() => toggleArrayFilter('protocols', 'Aerodrome')}
+                                className={`px-2 py-0.5 text-xs rounded ${localFilters.protocols.includes('Aerodrome')
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                    }`}
+                            >
+                                AERO
+                            </button>
                         </div>
+                    </div>
+
+                    {/* 代币搜索 */}
+                    <div>
+                        <label className="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">搜索代币</label>
+                        <input
+                            type="text"
+                            placeholder="输入代币符号 (如 WETH, USDC)"
+                            value={localFilters.tokens.join(', ')}
+                            onChange={(e) => {
+                                const tokens = e.target.value
+                                    .split(',')
+                                    .map(t => t.trim().toUpperCase())
+                                    .filter(t => t.length > 0);
+                                updateFilter('tokens', tokens);
+                            }}
+                            className="w-full px-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 border border-transparent rounded text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500/50 focus:border-transparent focus:bg-neutral-50 dark:focus:bg-neutral-800 transition-colors duration-200"
+                        />
+                        <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                            多个代币用逗号分隔，如: WETH, USDC
+                        </p>
                     </div>
                 </div>
             </div>

@@ -55,7 +55,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                     console.error('加载排除池子数据失败:', error);
                 }
             }
-            
+
             // 加载筛选器设置
             const savedFilters = localStorage.getItem('rightSidebarFilters');
             if (savedFilters) {
@@ -127,7 +127,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
         setExcludedPools(new Set());
         saveExcludedPoolsToStorage(new Set());
     };
-    
+
     // 处理筛选器变化
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
@@ -140,36 +140,46 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
             }
         }
     };
-    
+
     // 应用筛选器
     const applyFilters = (poolList) => {
         if (!poolList || poolList.length === 0) return [];
-        
+
         return poolList.filter(pool => {
             // 费用范围筛选
             if (filters.minFees && pool.totalFees < parseFloat(filters.minFees)) return false;
             if (filters.maxFees && pool.totalFees > parseFloat(filters.maxFees)) return false;
-            
+
             // 交易量范围筛选
             if (filters.minVolume && pool.totalVolume < parseFloat(filters.minVolume)) return false;
             if (filters.maxVolume && pool.totalVolume > parseFloat(filters.maxVolume)) return false;
-            
+
             // 池子价值范围筛选
             if (filters.minPoolValue && pool.currentPoolValue < parseFloat(filters.minPoolValue)) return false;
             if (filters.maxPoolValue && pool.currentPoolValue > parseFloat(filters.maxPoolValue)) return false;
-            
+
             // 费率筛选
             if (filters.feeRates.length > 0 && !filters.feeRates.includes(pool.fee)) return false;
-            
+
             // 协议筛选
             if (filters.protocols.length > 0 && !filters.protocols.includes(pool.factory)) return false;
-            
+
+            // 代币筛选
+            if (filters.tokens.length > 0) {
+                // 检查池子的代币符号是否包含任何筛选的代币
+                const poolTokens = pool.pair ? pool.pair.toUpperCase() : '';
+                const hasMatchingToken = filters.tokens.some(token => 
+                    poolTokens.includes(token.toUpperCase())
+                );
+                if (!hasMatchingToken) return false;
+            }
+
             // 隐藏零交易量
             if (filters.hideZeroVolume && (!pool.totalVolume || pool.totalVolume === 0)) return false;
-            
+
             // 隐藏零费用
             if (filters.hideZeroFees && (!pool.totalFees || pool.totalFees === 0)) return false;
-            
+
             return true;
         });
     };
@@ -180,7 +190,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
 
         // 过滤掉被排除的池子
         let filteredPools = pools.filter(pool => !excludedPools.has(pool.address));
-        
+
         // 应用筛选器
         filteredPools = applyFilters(filteredPools);
 
@@ -230,7 +240,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
     return (
         <div className={`${isOpen ? 'w-full lg:w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
-            <button
+            {/* <button
                 onClick={handleToggle}
                 className={`fixed top-1/2 -translate-y-1/2 z-10 rounded-full p-1.5
                 bg-white/60 dark:bg-neutral-800/60 backdrop-blur-sm
@@ -247,7 +257,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                     fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-            </button>
+            </button> */}
 
             {/* 主容器 */}
             <div className={`h-full bg-neutral-50 dark:bg-neutral-950 border-l border-neutral-200 dark:border-neutral-800/50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -337,20 +347,18 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                             <div className="flex gap-1">
                                 <button
                                     onClick={() => handleSortChange('fees')}
-                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                        sortBy === 'fees'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${sortBy === 'fees'
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
                                     费用
                                 </button>
                                 <button
                                     onClick={() => handleSortChange('volume')}
-                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                        sortBy === 'volume'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${sortBy === 'volume'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
                                     交易量

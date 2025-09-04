@@ -5,7 +5,7 @@ export function useSettings() {
         autoRefresh: true,
         refreshInterval: 3,
         defaultSlippage: 1.0,
-        rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
+        rpcUrl: 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
 
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);

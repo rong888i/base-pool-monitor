@@ -119,7 +119,7 @@ const PoolCardHeader = ({
                     <div className="flex justify-between items-center pl-2 flex-wrap sm:flex-nowrap gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <a
-                                href={`https://bscscan.com/address/${pool.address}`}
+                                href={`https://basescan.org/address/${pool.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-mono text-xs text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors flex items-center gap-1.5"
@@ -312,7 +312,7 @@ const PoolCardHeader = ({
                         <span className="text-sm">{getStatusIcon()}</span>
                         <div className="flex items-center gap-1.5">
                             <a
-                                href={`https://bscscan.com/address/${pool.address}`}
+                                href={`https://basescan.org/address/${pool.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-mono text-sm text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline transition-colors"

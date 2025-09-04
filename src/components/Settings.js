@@ -39,7 +39,7 @@ export default function Settings({ isOpen, onClose, onSettingsUpdate }) {
         notificationLevel: 1, // 1: 普通通知, 2: 单次响铃, 3: 持续响铃
         notificationInterval: 1, // 新增：通用通知间隔，单位分钟
         enableDesktopNotification: false, // 修改：是否启用桌面通知
-        rpcUrl: 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79', // 添加默认RPC URL
+        rpcUrl: 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79', // 添加默认RPC URL
         defaultSlippage: 1.0, // 默认滑点设置
 
     });

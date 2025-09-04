@@ -15,7 +15,11 @@ export const formatAddress = (address) => {
 };
 
 export const getRpcUrl = (chainId) => {
+    // 获取用户配置的RPC URL
+    const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
+
     const rpcUrls = {
+        'base': settings.rpcUrl || 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
         'bsc': 'https://bsc-dataseed.binance.org/',
     };
     return rpcUrls[chainId.toLowerCase()];
@@ -38,8 +42,14 @@ export const getDexInfo = (pool) => {
             case 'squadswap':
                 dexName = 'SquadSwap';
                 break;
+            case 'aerodrome':
+                dexName = 'Aerodrome';
+                break;
+            case 'baseswap':
+                dexName = 'BaseSwap';
+                break;
             default:
-                dexName = 'Unknown DEX';
+                dexName = pool.dexId; // 显示原始DEX ID
         }
     }
 

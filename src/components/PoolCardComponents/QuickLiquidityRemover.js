@@ -72,27 +72,29 @@ const QuickLiquidityRemover = ({
 
     // 获取Position Manager地址的辅助函数
     const getPositionManagerAddress = (protocolName, chainId) => {
-        const contracts = {
-            // BSC (Binance Smart Chain)
-            56: {
-                PANCAKESWAP_V3_POSITION_MANAGER: "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364",
-                UNISWAP_V3_POSITION_MANAGER: "0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613",
-            },
-            // Ethereum Mainnet
-            1: {
-                UNISWAP_V3_POSITION_MANAGER: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
-            }
-        };
-
-        const networkContracts = contracts[chainId];
-        if (!networkContracts) {
-            throw new Error(`不支持的网络: ${chainId}`);
+        // 确保使用数字类型的 chainId
+        const numChainId = chainId ? Number(chainId) : 8453; // 默认 BASE
+        
+        console.log('获取 Position Manager - chainId:', numChainId, 'protocol:', protocolName);
+        
+        // 只支持 BASE 网络
+        if (numChainId !== 8453) {
+            console.warn(`警告: 当前网络 ${numChainId} 不是 BASE (8453)，但仍使用 BASE 配置`);
         }
-
-        if (protocolName?.toLowerCase().includes('pancake')) {
-            return networkContracts.PANCAKESWAP_V3_POSITION_MANAGER;
+        
+        // BASE Chain 的合约地址
+        const BASE_CONTRACTS = {
+            AERODROME_POSITION_MANAGER: "0x827922686190790b37229fd06084350E74485b72",
+            UNISWAP_V3_POSITION_MANAGER: "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+        };
+        
+        // 根据协议名称返回对应的 Position Manager
+        if (protocolName?.toLowerCase().includes('aerodrome') || protocolName?.toLowerCase().includes('aero')) {
+            console.log('使用 Aerodrome Position Manager:', BASE_CONTRACTS.AERODROME_POSITION_MANAGER);
+            return BASE_CONTRACTS.AERODROME_POSITION_MANAGER;
         } else {
-            return networkContracts.UNISWAP_V3_POSITION_MANAGER;
+            console.log('使用 Uniswap V3 Position Manager:', BASE_CONTRACTS.UNISWAP_V3_POSITION_MANAGER);
+            return BASE_CONTRACTS.UNISWAP_V3_POSITION_MANAGER;
         }
     };
 
@@ -106,7 +108,15 @@ const QuickLiquidityRemover = ({
             setIsCheckingApproval(true);
             setError('');
 
+            console.log('授权检查参数:', {
+                protocol: poolInfo.protocol.name,
+                chainId,
+                poolAddress: poolInfo.address
+            });
+            
             const positionManagerAddress = getPositionManagerAddress(poolInfo.protocol.name, chainId);
+            
+            console.log('Position Manager 地址:', positionManagerAddress);
 
             // 检查用户是否已经授权Position Manager操作所有NFT
             const isApprovedForAll = await checkNFTApproval(

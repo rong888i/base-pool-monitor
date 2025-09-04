@@ -1,26 +1,76 @@
 import { createPublicClient, http, encodeFunctionData, decodeAbiParameters } from 'viem';
-import { bsc } from 'viem/chains';
+import { base } from 'viem/chains';
 
 // 获取RPC URL
 const getRpcUrl = () => {
   const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-  return settings.rpcUrl || 'https://rpc.ankr.com/bsc/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
+  return settings.rpcUrl || 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
 };
 
-// BSC主网配置
+// BASE主网配置
 const getClient = () => {
   return createPublicClient({
-    chain: bsc,
+    chain: base,
     transport: http(getRpcUrl())
   });
 };
 
-// 协议识别 - BSC上的已知Factory地址
+// 协议识别 - BASE上的已知Factory地址
 const PROTOCOL_FACTORIES = {
-  PANCAKESWAP_V3: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865',
-  UNISWAP_V3: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7', // Uniswap V3 在BSC上的Factory
+  AERODROME: '0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A', // Aerodrome Factory on BASE
+  UNISWAP_V3: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD', // Uniswap V3 Factory on BASE
   // 可以添加更多协议
 };
+
+// Aerodrome Pool ABI (特定于 Aerodrome)
+const AERODROME_POOL_ABI = [
+  {
+    inputs: [],
+    name: 'factory',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'slot0',
+    outputs: [
+      { internalType: 'uint160', name: 'sqrtPriceX96', type: 'uint160' },
+      { internalType: 'int24', name: 'tick', type: 'int24' }
+      // Aerodrome 可能只返回这两个字段
+    ],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'token0',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'token1',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'tickSpacing',  // Aerodrome 使用 tickSpacing 而不是 fee
+    outputs: [{ internalType: 'int24', name: '', type: 'int24' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'liquidity',
+    outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }],
+    stateMutability: 'view',
+    type: 'function'
+  }
+];
 
 // Uniswap V3 Pool ABI（简化版，只包含需要的函数）
 const POOL_ABI = [
@@ -185,10 +235,25 @@ const FACTORY_ABI = [
   }
 ]
 
-// BSC上的Position Manager地址
+// Aerodrome Factory ABI (使用 tickSpacing 而不是 fee)
+const AERODROME_FACTORY_ABI = [
+  {
+    "inputs": [
+      { "internalType": "address", "name": "tokenA", "type": "address" },
+      { "internalType": "address", "name": "tokenB", "type": "address" },
+      { "internalType": "int24", "name": "tickSpacing", "type": "int24" }  // 注意: int24 而不是 uint24
+    ],
+    "name": "getPool",
+    "outputs": [{ "internalType": "address", "name": "pool", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+
+// BASE上的Position Manager地址
 const POSITION_MANAGER_ADDRESSES = {
-  PANCAKESWAP_V3: '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364',
-  UNISWAP_V3: '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613', // Uniswap V3在BSC上的Position Manager (官方部署)
+  AERODROME: '0x827922686190790b37229fd06084350E74485b72', // Aerodrome Position Manager on BASE
+  UNISWAP_V3: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1', // Uniswap V3 Position Manager on BASE
 };
 
 /**
@@ -197,16 +262,24 @@ const POSITION_MANAGER_ADDRESSES = {
  * @returns {Object} 协议信息
  */
 function identifyProtocol(factoryAddress) {
+  if (!factoryAddress) {
+    console.warn('Factory address is undefined');
+    return {
+      name: 'Unknown',
+      displayName: '未知协议',
+      factory: null
+    };
+  }
   const upperFactory = factoryAddress.toUpperCase();
 
-  if (upperFactory === PROTOCOL_FACTORIES.PANCAKESWAP_V3.toUpperCase()) {
+  if (upperFactory === PROTOCOL_FACTORIES.AERODROME?.toUpperCase()) {
     return {
-      name: 'PanCake V3',
-      icon: '🥞',
-      color: 'bg-yellow-100 text-yellow-800',
-      borderColor: 'border-yellow-300'
+      name: 'Aerodrome',
+      icon: '✈️',
+      color: 'bg-blue-100 text-blue-800',
+      borderColor: 'border-blue-300'
     };
-  } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3.toUpperCase()) {
+  } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3?.toUpperCase()) {
     return {
       name: 'Uni V3',
       icon: '🦄',
@@ -338,6 +411,9 @@ async function getBatchLPInfo(poolAddresses) {
         }, 'latest']
       };
 
+      // 对于不同协议，使用不同的函数名
+      // Uniswap 使用 'fee'，Aerodrome 使用 'tickSpacing'
+      // 我们同时请求两个，然后根据结果判断
       const feeData = {
         jsonrpc: '2.0',
         id: `${poolAddress}-fee`,
@@ -347,6 +423,20 @@ async function getBatchLPInfo(poolAddresses) {
           data: encodeFunctionData({
             abi: POOL_ABI,
             functionName: 'fee'
+          })
+        }, 'latest']
+      };
+
+      // 添加 tickSpacing 请求（用于 Aerodrome）
+      const tickSpacingData = {
+        jsonrpc: '2.0',
+        id: `${poolAddress}-tickSpacing`,
+        method: 'eth_call',
+        params: [{
+          to: poolAddress,
+          data: encodeFunctionData({
+            abi: AERODROME_POOL_ABI,
+            functionName: 'tickSpacing'
           })
         }, 'latest']
       };
@@ -364,7 +454,7 @@ async function getBatchLPInfo(poolAddresses) {
         }, 'latest']
       };
 
-      return [factoryData, slot0Data, token0Data, token1Data, feeData, liquidityData];
+      return [factoryData, slot0Data, token0Data, token1Data, feeData, liquidityData, tickSpacingData];
     });
 
     // 2. 执行批量RPC调用
@@ -386,40 +476,155 @@ async function getBatchLPInfo(poolAddresses) {
     const poolInfos = [];
 
     for (let i = 0; i < poolAddresses.length; i++) {
-      const baseIndex = i * 6;
+      const baseIndex = i * 7; // 现在每个池子有7个请求
       const [
         factoryResult,
         slot0Result,
         token0Result,
         token1Result,
         feeResult,
-        liquidityResult
-      ] = basicInfoResults.slice(baseIndex, baseIndex + 6);
+        liquidityResult,
+        tickSpacingResult
+      ] = basicInfoResults.slice(baseIndex, baseIndex + 7);
 
       if (factoryResult.error || slot0Result.error || token0Result.error ||
-        token1Result.error || feeResult.error || liquidityResult.error) {
-        throw new Error(`RPC call failed: ${JSON.stringify(basicInfoResults.slice(baseIndex, baseIndex + 6))}`);
+        token1Result.error || liquidityResult.error) {
+        throw new Error(`RPC call failed: ${JSON.stringify(basicInfoResults.slice(baseIndex, baseIndex + 7))}`);
       }
 
-      const factoryAddress = decodeAbiParameters([{ type: 'address' }], factoryResult.result)[0];
+      let factoryAddress = null;
+      try {
+        if (factoryResult.result && factoryResult.result !== '0x') {
+          factoryAddress = decodeAbiParameters([{ type: 'address' }], factoryResult.result)[0];
+        }
+      } catch (e) {
+        console.warn('Failed to decode factory address for pool:', poolAddresses[i]);
+      }
       const token0Address = decodeAbiParameters([{ type: 'address' }], token0Result.result)[0];
       const token1Address = decodeAbiParameters([{ type: 'address' }], token1Result.result)[0];
-      const fee = Number(decodeAbiParameters([{ type: 'uint24' }], feeResult.result)[0]);
+
+      // 尝试解析 fee 和 tickSpacing
+      let fee, tickSpacing;
+
+      // 首先尝试解析 fee（Uniswap）
+      if (!feeResult.error && feeResult.result && feeResult.result !== '0x') {
+        try {
+          fee = Number(decodeAbiParameters([{ type: 'uint24' }], feeResult.result)[0]);
+        } catch (e) {
+          console.warn('Failed to decode fee:', e);
+        }
+      }
+
+      // 然后尝试解析 tickSpacing（Aerodrome）
+      if (!tickSpacingResult.error && tickSpacingResult.result && tickSpacingResult.result !== '0x') {
+        try {
+          tickSpacing = Number(decodeAbiParameters([{ type: 'int24' }], tickSpacingResult.result)[0]);
+          console.log('Pool has actual tickSpacing:', tickSpacing, 'for pool:', poolAddresses[i]);
+
+          // 重要：对于 Aerodrome，保持原始的 tickSpacing 值
+          // 不要映射到 fee，因为 Aerodrome 使用 tickSpacing 来标识池子
+          // fee 值仅用于显示，实际添加流动性时使用 tickSpacing
+
+          if (!fee && tickSpacing) {
+            // 仅用于UI显示的映射，不影响实际操作
+            // 注意：这个映射可能不准确，最好从池子直接获取 fee
+            console.log('No fee found, keeping tickSpacing as is:', tickSpacing);
+            // 不设置默认 fee，让它保持 undefined
+          }
+        } catch (e) {
+          console.warn('Failed to decode tickSpacing:', e);
+        }
+      }
+
+      // 如果都失败，使用默认值
+      if (!fee && !tickSpacing) {
+        fee = 3000; // 默认 0.3%
+        tickSpacing = 60; // 默认 tickSpacing
+        console.warn('Using default fee/tickSpacing for pool:', poolAddresses[i]);
+      }
+
       const liquidity = BigInt(decodeAbiParameters([{ type: 'uint128' }], liquidityResult.result)[0]);
 
       // 解析slot0数据
-      const slot0Decoded = decodeAbiParameters([
-        { type: 'uint160' },
-        { type: 'int24' },
-        { type: 'uint16' },
-        { type: 'uint16' },
-        { type: 'uint16' },
-        { type: 'uint8' },
-        { type: 'bool' }
-      ], slot0Result.result);
+      let sqrtPriceX96, tick;
 
-      const sqrtPriceX96 = slot0Decoded[0];
-      const tick = Number(slot0Decoded[1]);
+      // 检查返回数据的长度来决定如何解码
+      const dataLength = (slot0Result.result.length - 2) / 2; // 去掉 '0x' 前缀，每2个字符是1字节
+
+      console.log(`Pool ${poolAddresses[i]} slot0 data length: ${dataLength} bytes, data: ${slot0Result.result}`);
+
+      if (dataLength < 24) {
+        // 数据太短，可能有错误
+        console.error('slot0 data too short:', slot0Result.result);
+        throw new Error(`slot0 data too short for pool ${poolAddresses[i]}`);
+      } else if (dataLength <= 32) {
+        // Aerodrome 格式：只有 sqrtPriceX96 (160 bits = 20 bytes) 和 tick (24 bits = 3 bytes)
+        // 总共 23 bytes，但通常会被填充到 32 bytes (一个完整的字)
+        try {
+          // 手动解析前 20 字节为 uint160，接下来 3 字节为 int24
+          const dataHex = slot0Result.result.slice(2); // 去掉 '0x'
+          const sqrtPriceHex = '0x' + dataHex.slice(0, 40); // 前 20 字节（40个十六进制字符）
+          const tickHex = '0x' + dataHex.slice(40, 46); // 接下来 3 字节（6个十六进制字符）
+
+          sqrtPriceX96 = BigInt(sqrtPriceHex);
+          // 处理 int24 的符号扩展
+          let tickValue = parseInt(tickHex, 16);
+          if (tickValue > 0x7FFFFF) { // 如果最高位是1，表示负数
+            tickValue = tickValue - 0x1000000;
+          }
+          tick = tickValue;
+
+          console.log('Decoded Aerodrome slot0:', { sqrtPriceX96: sqrtPriceX96.toString(), tick });
+        } catch (e) {
+          console.error('Failed to decode Aerodrome slot0:', e);
+          // 如果手动解析失败，尝试使用 viem 的方式只解析前两个字段
+          try {
+            const slot0Decoded = decodeAbiParameters([
+              { type: 'uint160' },
+              { type: 'int24' }
+            ], slot0Result.result);
+
+            sqrtPriceX96 = slot0Decoded[0];
+            tick = Number(slot0Decoded[1]);
+            console.log('Decoded using viem (2 fields):', { sqrtPriceX96: sqrtPriceX96.toString(), tick });
+          } catch (e2) {
+            console.error('Also failed with viem 2-field decode:', e2);
+            throw new Error(`Cannot decode Aerodrome slot0 data for pool ${poolAddresses[i]}`);
+          }
+        }
+      } else {
+        // Uniswap V3 格式：包含更多字段
+        try {
+          const slot0Decoded = decodeAbiParameters([
+            { type: 'uint160' },
+            { type: 'int24' },
+            { type: 'uint16' },
+            { type: 'uint16' },
+            { type: 'uint16' },
+            { type: 'uint8' },
+            { type: 'bool' }
+          ], slot0Result.result);
+
+          sqrtPriceX96 = slot0Decoded[0];
+          tick = Number(slot0Decoded[1]);
+        } catch (e) {
+          console.error('Failed to decode Uniswap V3 slot0:', e);
+          // 回退：尝试只解析前两个字段
+          try {
+            const slot0Decoded = decodeAbiParameters([
+              { type: 'uint160' },
+              { type: 'int24' }
+            ], slot0Result.result);
+
+            sqrtPriceX96 = slot0Decoded[0];
+            tick = Number(slot0Decoded[1]);
+            console.log('Decoded using simplified format:', { sqrtPriceX96: sqrtPriceX96.toString(), tick });
+          } catch (e2) {
+            console.error('Also failed with simplified decode:', e2);
+            throw new Error(`Cannot decode slot0 data for pool ${poolAddresses[i]}`);
+          }
+        }
+      }
 
       // 准备代币信息请求
       tokenRequests.push(
@@ -506,6 +711,7 @@ async function getBatchLPInfo(poolAddresses) {
         token0Address,
         token1Address,
         fee,
+        tickSpacing, // 添加 tickSpacing 到池子信息
         liquidity
       });
     }
@@ -543,13 +749,50 @@ async function getBatchLPInfo(poolAddresses) {
         throw new Error(`Token RPC call failed: ${JSON.stringify(tokenResults.slice(tokenBaseIndex, tokenBaseIndex + 6))}`);
       }
 
-      // 使用 viem 解码结果
-      const token0Symbol = decodeAbiParameters([{ type: 'string' }], token0SymbolResult.result)[0];
-      const token1Symbol = decodeAbiParameters([{ type: 'string' }], token1SymbolResult.result)[0];
-      const token0Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token0DecimalsResult.result)[0]);
-      const token1Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token1DecimalsResult.result)[0]);
-      const token0Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token0BalanceResult.result)[0]);
-      const token1Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token1BalanceResult.result)[0]);
+      // 使用 viem 解码结果，添加错误处理
+      let token0Symbol, token1Symbol, token0Decimals, token1Decimals, token0Balance, token1Balance;
+
+      try {
+        token0Symbol = decodeAbiParameters([{ type: 'string' }], token0SymbolResult.result)[0];
+      } catch (e) {
+        console.warn('Failed to decode token0 symbol:', e);
+        token0Symbol = 'UNKNOWN';
+      }
+
+      try {
+        token1Symbol = decodeAbiParameters([{ type: 'string' }], token1SymbolResult.result)[0];
+      } catch (e) {
+        console.warn('Failed to decode token1 symbol:', e);
+        token1Symbol = 'UNKNOWN';
+      }
+
+      try {
+        token0Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token0DecimalsResult.result)[0]);
+      } catch (e) {
+        console.warn('Failed to decode token0 decimals:', e);
+        token0Decimals = 18; // 默认值
+      }
+
+      try {
+        token1Decimals = Number(decodeAbiParameters([{ type: 'uint8' }], token1DecimalsResult.result)[0]);
+      } catch (e) {
+        console.warn('Failed to decode token1 decimals:', e);
+        token1Decimals = 18; // 默认值
+      }
+
+      try {
+        token0Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token0BalanceResult.result)[0]);
+      } catch (e) {
+        console.warn('Failed to decode token0 balance:', e);
+        token0Balance = BigInt(0);
+      }
+
+      try {
+        token1Balance = BigInt(decodeAbiParameters([{ type: 'uint256' }], token1BalanceResult.result)[0]);
+      } catch (e) {
+        console.warn('Failed to decode token1 balance:', e);
+        token1Balance = BigInt(0);
+      }
 
       const [sqrtPriceX96, tick] = poolInfo.slot0Data;
       const price = calculatePriceFromSqrtPriceX96(sqrtPriceX96, token0Decimals, token1Decimals);
@@ -573,8 +816,9 @@ async function getBatchLPInfo(poolAddresses) {
           balance: formatBalance(token1Balance, token1Decimals),
           rawBalance: token1Balance.toString()
         },
-        fee: Number(poolInfo.fee),
-        feePercentage: Number(poolInfo.fee) / 10000,
+        fee: poolInfo.fee ? Number(poolInfo.fee) : undefined,
+        feePercentage: poolInfo.fee ? Number(poolInfo.fee) / 10000 : undefined,
+        tickSpacing: poolInfo.tickSpacing, // 添加 tickSpacing 到最终结果
         tick: Number(tick),
         liquidity: poolInfo.liquidity.toString(),
         sqrtPriceX96: sqrtPriceX96.toString(),
@@ -614,15 +858,20 @@ async function getLPInfo(poolAddress) {
  * @returns {string} Position Manager地址
  */
 function getPositionManagerAddress(factoryAddress) {
+  if (!factoryAddress) {
+    console.warn('Factory address is undefined, defaulting to Uniswap V3');
+    return POSITION_MANAGER_ADDRESSES.UNISWAP_V3;
+  }
+
   const upperFactory = factoryAddress.toUpperCase();
 
-  if (upperFactory === PROTOCOL_FACTORIES.PANCAKESWAP_V3.toUpperCase()) {
-    return POSITION_MANAGER_ADDRESSES.PANCAKESWAP_V3;
-  } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3.toUpperCase()) {
+  if (upperFactory === PROTOCOL_FACTORIES.AERODROME?.toUpperCase()) {
+    return POSITION_MANAGER_ADDRESSES.AERODROME;
+  } else if (upperFactory === PROTOCOL_FACTORIES.UNISWAP_V3?.toUpperCase()) {
     return POSITION_MANAGER_ADDRESSES.UNISWAP_V3;
   } else {
-    // 默认使用PancakeSwap V3的Position Manager
-    return POSITION_MANAGER_ADDRESSES.PANCAKESWAP_V3;
+    // 默认使用Uniswap V3的Position Manager
+    return POSITION_MANAGER_ADDRESSES.UNISWAP_V3;
   }
 }
 
@@ -961,28 +1210,54 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
       throw new Error(`Owner call failed: ${ownerResult.error.message}`);
     }
 
-    // 解码position数据
-    const positionData = decodeAbiParameters([
-      { type: 'uint96' },   // nonce
-      { type: 'address' },  // operator
-      { type: 'address' },  // token0
-      { type: 'address' },  // token1
-      { type: 'uint24' },   // fee
-      { type: 'int24' },    // tickLower
-      { type: 'int24' },    // tickUpper
-      { type: 'uint128' },  // liquidity
-      { type: 'uint256' },  // feeGrowthInside0LastX128
-      { type: 'uint256' },  // feeGrowthInside1LastX128
-      { type: 'uint128' },  // tokensOwed0
-      { type: 'uint128' }   // tokensOwed1
-    ], positionResult.result);
+    // 判断是否为 Aerodrome（根据 factory 地址）
+    const isAerodrome = lpInfo.factoryAddress.toLowerCase() === PROTOCOL_FACTORIES.AERODROME.toLowerCase();
 
-    const [
+    // 根据协议类型使用不同的 ABI 解码
+    let positionData;
+    let nonce, operator, token0, token1, feeOrTickSpacing, tickLower, tickUpper, liquidity;
+    let feeGrowthInside0LastX128, feeGrowthInside1LastX128, tokensOwed0, tokensOwed1;
+
+    if (isAerodrome) {
+      // Aerodrome 使用 tickSpacing 而不是 fee
+      positionData = decodeAbiParameters([
+        { type: 'uint96' },   // nonce
+        { type: 'address' },  // operator
+        { type: 'address' },  // token0
+        { type: 'address' },  // token1
+        { type: 'int24' },    // tickSpacing (注意：int24 而不是 uint24)
+        { type: 'int24' },    // tickLower
+        { type: 'int24' },    // tickUpper
+        { type: 'uint128' },  // liquidity
+        { type: 'uint256' },  // feeGrowthInside0LastX128
+        { type: 'uint256' },  // feeGrowthInside1LastX128
+        { type: 'uint128' },  // tokensOwed0
+        { type: 'uint128' }   // tokensOwed1
+      ], positionResult.result);
+    } else {
+      // Uniswap V3 使用 fee
+      positionData = decodeAbiParameters([
+        { type: 'uint96' },   // nonce
+        { type: 'address' },  // operator
+        { type: 'address' },  // token0
+        { type: 'address' },  // token1
+        { type: 'uint24' },   // fee
+        { type: 'int24' },    // tickLower
+        { type: 'int24' },    // tickUpper
+        { type: 'uint128' },  // liquidity
+        { type: 'uint256' },  // feeGrowthInside0LastX128
+        { type: 'uint256' },  // feeGrowthInside1LastX128
+        { type: 'uint128' },  // tokensOwed0
+        { type: 'uint128' }   // tokensOwed1
+      ], positionResult.result);
+    }
+
+    [
       nonce,
       operator,
       token0,
       token1,
-      fee,
+      feeOrTickSpacing,
       tickLower,
       tickUpper,
       liquidity,
@@ -993,6 +1268,8 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     ] = positionData;
 
     console.log('positionData', positionData);
+    console.log('协议类型:', isAerodrome ? 'Aerodrome' : 'Uniswap V3');
+    console.log(isAerodrome ? 'tickSpacing:' : 'fee:', feeOrTickSpacing);
 
     // 解码collect数据（真实的手续费金额）
     const collectData = decodeAbiParameters([
@@ -1010,9 +1287,27 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
     const [owner] = ownerData;
 
     // 验证NFT是否属于当前池子
-    const isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
-      token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
-      Number(fee) === lpInfo.fee;
+    let isValidPool;
+
+    if (isAerodrome) {
+      // Aerodrome: 比较 token 地址和 tickSpacing
+      isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
+        token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
+        Number(feeOrTickSpacing) === lpInfo.tickSpacing;
+
+      console.log('Aerodrome 池子验证:', {
+        token0Match: token0.toLowerCase() === lpInfo.token0.address.toLowerCase(),
+        token1Match: token1.toLowerCase() === lpInfo.token1.address.toLowerCase(),
+        tickSpacingMatch: Number(feeOrTickSpacing) === lpInfo.tickSpacing,
+        nftTickSpacing: Number(feeOrTickSpacing),
+        poolTickSpacing: lpInfo.tickSpacing
+      });
+    } else {
+      // Uniswap V3: 比较 token 地址和 fee
+      isValidPool = token0.toLowerCase() === lpInfo.token0.address.toLowerCase() &&
+        token1.toLowerCase() === lpInfo.token1.address.toLowerCase() &&
+        Number(feeOrTickSpacing) === lpInfo.fee;
+    }
 
     if (!isValidPool) {
       throw new Error('NFT不属于当前池子');
@@ -1109,6 +1404,8 @@ async function getNFTPositionInfo(nftId, poolAddress, lpInfo) {
  */
 export async function findNftPositionsByOwner(ownerAddress) {
   console.log(`🔍 正在为地址 ${ownerAddress} 查找 LP NFT...`);
+  console.log('Position Manager 地址:', POSITION_MANAGER_ADDRESSES);
+  console.log('Protocol Factories:', PROTOCOL_FACTORIES);
   const rpcUrl = getRpcUrl();
   let allFoundPositions = [];
   let idCounter = 0; // 用于批量请求的唯一ID
@@ -1153,7 +1450,9 @@ export async function findNftPositionsByOwner(ownerAddress) {
       const NFT_LIMIT = 50; // 只获取最新的50个NFT
       const startIndex = Math.max(0, balance - NFT_LIMIT);
 
-      console.log(`在 ${protocol} 中发现 ${balance} 个NFT，将从索引 ${startIndex} 开始获取最新的 ${balance - startIndex} 个。`);
+      console.log(`✅ 在 ${protocol} 中发现 ${balance} 个NFT`);
+      console.log(`  Manager 地址: ${managerAddress}`);
+      console.log(`  将从索引 ${startIndex} 开始获取最新的 ${balance - startIndex} 个`);
 
       for (let i = startIndex; i < balance; i++) {
         tokenIdRequests.push({
@@ -1217,26 +1516,108 @@ export async function findNftPositionsByOwner(ownerAddress) {
       if (result.error || result.result === '0x') continue;
 
       const [protocol, , tokenId] = result.id.split('-');
-      const position = decodeAbiParameters([
-        { type: 'uint96' }, { type: 'address' }, { type: 'address' }, { type: 'address' },
-        { type: 'uint24' }, { type: 'int24' }, { type: 'int24' }, { type: 'uint128' }
-      ], result.result);
+      console.log(`\n📍 处理 ${protocol} NFT #${tokenId}`);
+      console.log(`  数据长度: ${result.result.length}`);
 
-      const [token0, token1, fee, liquidity] = [position[2], position[3], position[4], position[7]];
-      if (liquidity === 0n) continue; // 忽略没有流动性的仓位
+      // 根据协议类型使用不同的解析方式
+      let position;
+      let token0, token1, feeOrTickSpacing, liquidity;
+
+      if (protocol === 'AERODROME') {
+        console.log('  使用 Aerodrome 解析方式');
+        // Aerodrome 使用 tickSpacing (int24) 而不是 fee (uint24)
+        position = decodeAbiParameters([
+          { type: 'uint96' },   // nonce
+          { type: 'address' },  // operator
+          { type: 'address' },  // token0
+          { type: 'address' },  // token1
+          { type: 'int24' },    // tickSpacing
+          { type: 'int24' },    // tickLower
+          { type: 'int24' },    // tickUpper
+          { type: 'uint128' }   // liquidity
+        ], result.result);
+      } else {
+        // Uniswap V3 使用 fee (uint24)
+        position = decodeAbiParameters([
+          { type: 'uint96' },   // nonce
+          { type: 'address' },  // operator
+          { type: 'address' },  // token0
+          { type: 'address' },  // token1
+          { type: 'uint24' },   // fee
+          { type: 'int24' },    // tickLower
+          { type: 'int24' },    // tickUpper
+          { type: 'uint128' }   // liquidity
+        ], result.result);
+      }
+
+      [token0, token1, feeOrTickSpacing, liquidity] = [position[2], position[3], position[4], position[7]];
+
+      console.log(`  Token0: ${token0}`);
+      console.log(`  Token1: ${token1}`);
+      console.log(`  ${protocol === 'AERODROME' ? 'TickSpacing' : 'Fee'}: ${feeOrTickSpacing}`);
+      console.log(`  Liquidity: ${liquidity}`);
+
+      if (liquidity === 0n) {
+        console.log('  ❌ 跳过：没有流动性');
+        continue;
+      }
 
       const factoryAddress = PROTOCOL_FACTORIES[protocol];
-      const positionKey = `${protocol}-${token0}-${token1}-${fee}`;
+      console.log(`  Factory 地址: ${factoryAddress}`);
+
+      const positionKey = `${protocol}-${token0}-${token1}-${feeOrTickSpacing}`;
       nftToPositionKey[tokenId] = positionKey;
+      console.log(`  Position Key: ${positionKey}`);
 
       if (!positionsData[positionKey]) {
-        positionsData[positionKey] = { protocol, factoryAddress, token0, token1, fee };
-        poolAddressRequests.push({
-          jsonrpc: '2.0',
-          id: `pool-${positionKey}`,
-          method: 'eth_call',
-          params: [{ to: factoryAddress, data: encodeFunctionData({ abi: FACTORY_ABI, functionName: 'getPool', args: [token0, token1, fee] }) }, 'latest']
-        });
+        positionsData[positionKey] = { protocol, factoryAddress, token0, token1, feeOrTickSpacing };
+        console.log(`  创建新的池子查询任务`);
+
+        // 根据协议类型使用不同的 getPool 调用和 ABI
+        if (protocol === 'AERODROME') {
+          // Aerodrome 的 getPool 使用 tickSpacing 和专用 ABI
+          const encodedData = encodeFunctionData({
+            abi: AERODROME_FACTORY_ABI,  // 使用 Aerodrome 专用 ABI
+            functionName: 'getPool',
+            args: [token0, token1, Number(feeOrTickSpacing)] // tickSpacing as int24
+          });
+
+          poolAddressRequests.push({
+            jsonrpc: '2.0',
+            id: `pool-${positionKey}`,
+            method: 'eth_call',
+            params: [{
+              to: factoryAddress,
+              data: encodedData
+            }, 'latest']
+          });
+          console.log(`  📞 调用 Aerodrome getPool:`);
+          console.log(`    - tokenA: ${token0}`);
+          console.log(`    - tokenB: ${token1}`);
+          console.log(`    - tickSpacing (int24): ${feeOrTickSpacing}`);
+          console.log(`    - Factory: ${factoryAddress}`);
+          console.log(`    - Encoded data: ${encodedData}`);
+        } else {
+          // Uniswap V3 的 getPool 使用 fee
+          poolAddressRequests.push({
+            jsonrpc: '2.0',
+            id: `pool-${positionKey}`,
+            method: 'eth_call',
+            params: [{
+              to: factoryAddress,
+              data: encodeFunctionData({
+                abi: FACTORY_ABI,  // 使用标准 Uniswap V3 ABI
+                functionName: 'getPool',
+                args: [token0, token1, Number(feeOrTickSpacing)] // fee as uint24
+              })
+            }, 'latest']
+          });
+          console.log(`  📞 调用 Uniswap getPool:`);
+          console.log(`    - tokenA: ${token0}`);
+          console.log(`    - tokenB: ${token1}`);
+          console.log(`    - fee: ${feeOrTickSpacing}`);
+          console.log(`    - Factory: ${factoryAddress}`);
+        }
       }
 
       if (!uniqueTokens.has(token0)) {
@@ -1273,13 +1654,32 @@ export async function findNftPositionsByOwner(ownerAddress) {
       return acc;
     }, {});
 
+    console.log('\n📋 处理池子地址响应:');
+    console.log(`  收到 ${poolAddressResults.length} 个池子查询结果`);
+
     const poolAddressMapping = {};
     for (const result of poolAddressResults) {
-      if (result.error || result.result === '0x') continue;
+      const positionKey = result.id.substring(5); // 移除 'pool-' 前缀
+      console.log(`  检查池子 ${positionKey}...`);
+
+      if (result.error) {
+        console.error(`❌ 获取池子地址失败 ${positionKey}:`, result.error);
+        continue;
+      }
+
+      if (result.result === '0x' || result.result === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        console.warn(`⚠️ 池子不存在或返回零地址 ${positionKey}`);
+        console.warn(`  原始结果: ${result.result}`);
+        continue;
+      }
+
       const poolAddress = decodeAbiParameters([{ type: 'address' }], result.result)[0];
+      console.log(`✅ 找到池子地址 ${positionKey}: ${poolAddress}`);
+
       if (poolAddress !== '0x0000000000000000000000000000000000000000') {
-        const positionKey = result.id.substring(5);
         poolAddressMapping[positionKey] = poolAddress;
+      } else {
+        console.warn(`池子地址为零地址 ${positionKey}`);
       }
     }
 
@@ -1293,12 +1693,19 @@ export async function findNftPositionsByOwner(ownerAddress) {
         protocol: identifyProtocol(data.factoryAddress),
         token0: { address: data.token0, symbol: tokenSymbols[data.token0] || '?' },
         token1: { address: data.token1, symbol: tokenSymbols[data.token1] || '?' },
-        fee: data.fee,
+        fee: data.protocol === 'AERODROME' ? undefined : Number(data.feeOrTickSpacing), // Aerodrome 不使用 fee
+        tickSpacing: data.protocol === 'AERODROME' ? Number(data.feeOrTickSpacing) : undefined, // Aerodrome 使用 tickSpacing
         nftIds: [tokenId.toString()] // 每个仓位只包含自己的NFT ID
       };
     }).filter(p => p !== null);
 
-    console.log(`✅ 成功找到 ${allFoundPositions.length} 个有效的 LP 仓位。`, allFoundPositions);
+    console.log(`\n📊 搜索结果汇总:`);
+    console.log(`  - 找到的有效仓位数: ${allFoundPositions.length}`);
+    allFoundPositions.forEach(pos => {
+      console.log(`  - ${pos.protocol.name}: ${pos.token0.symbol}/${pos.token1.symbol} (${pos.fee !== undefined ? `fee: ${pos.fee}` : `tickSpacing: ${pos.tickSpacing}`})`);
+      console.log(`    池子地址: ${pos.poolAddress}`);
+      console.log(`    NFT IDs: ${pos.nftIds.join(', ')}`);
+    });
     return allFoundPositions;
   } catch (error) {
     console.error('❌ 查找 LP NFT 时出错:', error);

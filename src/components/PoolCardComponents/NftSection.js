@@ -464,7 +464,7 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                     <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">仓位详情</div>
                                     {nftInfo?.owner && (
                                         <button
-                                            onClick={() => window.open(`https://bscscan.com/address/${nftInfo.owner}`, '_blank')}
+                                            onClick={() => window.open(`https://basescan.org/address/${nftInfo.owner}`, '_blank')}
                                             className="flex text-xs font-mono px-2 py-0.5 rounded-full border
                                                  bg-neutral-50 text-neutral-600 border-neutral-200
                                                  dark:bg-neutral-800/50 dark:text-neutral-400 dark:border-neutral-600
@@ -675,7 +675,8 @@ const NftSection = ({ pool, nftId, onNftIdChange, onNftInfoUpdate }) => {
                                 const viewPriceUpper = displayPriceUpper + padding;
                                 const viewRange = viewPriceUpper - viewPriceLower;
 
-                                const tickSpacing = getTickSpacing(pool.lpInfo.fee);
+                                // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
+                                const tickSpacing = pool.lpInfo.tickSpacing || getTickSpacing(pool.lpInfo.fee);
                                 const numTicks = (nftInfo.tickUpper - nftInfo.tickLower) / tickSpacing;
 
                                 const priceToPercentage = (price) => {
