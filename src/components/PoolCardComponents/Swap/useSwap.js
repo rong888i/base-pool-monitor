@@ -118,9 +118,11 @@ export const useSwap = (poolInfo, isVisible, onClose) => {
             await checkApprovalStatus();
             if (tokenInNeedsApproval) { setError('请先完成代币授权'); setIsSwapping(false); return; }
             const amountInWei = parseTokenAmount(fromAmount, fromToken.decimals || 18);
-            // 简化的最小输出：按滑点做 1:1 折扣
+            // 计算预期输出量（基于当前价格）
+            const expectedOut = toAmount ? parseTokenAmount(toAmount, toToken.decimals || 18) : amountInWei;
+            // 根据滑点计算最小输出量，默认滑点设置为1%
             const effSlip = typeof slippage === 'number' && slippage > 0 && slippage <= 50 ? slippage : 1.0;
-            const minOut = (BigInt(amountInWei) * BigInt(Math.floor((100 - effSlip) * 100))) / BigInt(10000);
+            const minOut = (BigInt(expectedOut) * BigInt(Math.floor((100 - effSlip) * 100))) / BigInt(10000);
             const tx = await swapExactInputSingle({
                 tokenIn: fromToken.address,
                 tokenOut: toToken.address,
