@@ -6,8 +6,6 @@ const nextConfig = {
             exclude: ['error'] // 保留console.error
         } : false,
     },
-    // 输出配置
-    output: 'standalone',
     // 其他配置选项
     experimental: {
         // 如果需要其他实验性功能可以在这里添加

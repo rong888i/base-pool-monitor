@@ -1,11 +1,7 @@
 {
-    "env": {
-        "NODE_ENV": "production",
-        "VERCEL": "1"
-    },
-    "build": {
-        "env": {
-            "NODE_ENV": "production"
-        }
-    }
+    "framework": "nextjs",
+    "buildCommand": "next build",
+    "devCommand": "next dev",
+    "installCommand": "npm install",
+    "outputDirectory": ".next"
 }
