@@ -149,7 +149,11 @@
       "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\src\\components\\sidebar/**)",
       "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\src\\components\\sidebar/**)",
       "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\public/**)",
-      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\public/**)"
+      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\public/**)",
+      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor/**)",
+      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor/**)",
+      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor/**)",
+      "Read(/C:\\Users\\333xz\\Desktop\\监控pool\\base-pool-monitor\\src\\app/**)"
     ],
     "deny": []
   }
