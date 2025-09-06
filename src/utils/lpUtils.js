@@ -1,4 +1,4 @@
-import { createPublicClient, http, encodeFunctionData, decodeAbiParameters } from 'viem';
+import { createPublicClient, http, encodeFunctionData, decodeAbiParameters, decodeFunctionResult } from 'viem';
 import { base } from 'viem/chains';
 
 // 获取RPC URL
@@ -1859,6 +1859,301 @@ async function getPoolAddressFromNftId(nftId) {
       success: false,
       error: error.message
     };
+  }
+}
+
+/**
+ * 计算给定tick的sqrt价格
+ * @param {number} tick - tick值
+ * @returns {bigint} sqrt价格 (Q96格式)
+ */
+function getSqrtRatioAtTick(tick) {
+  const sqrtPrice = Math.sqrt(Math.pow(1.0001, tick));
+  const Q96 = 2 ** 96;
+  return BigInt(Math.floor(sqrtPrice * Q96));
+}
+
+/**
+ * 简化版获取tick流动性数据（直接查询，不使用bitmap）
+ * @param {string} poolAddress - 池子地址
+ * @param {number} currentTick - 当前tick
+ * @param {number} tickSpacing - tick间隔
+ * @param {number} range - 获取范围（上下各多少格）
+ * @param {number} decimals0 - token0的小数位数
+ * @param {number} decimals1 - token1的小数位数
+ * @param {string} sqrtPriceX96 - 当前sqrt价格
+ * @returns {Promise<Array>} tick流动性数据数组
+ */
+export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickSpacing, range = 15, decimals0 = 18, decimals1 = 18, sqrtPriceX96 = null) {
+  const rpcUrl = getRpcUrl();
+
+  try {
+    // 计算起始和结束tick，确保对齐到 tickSpacing
+    const alignedCurrentTick = Math.round(currentTick / tickSpacing) * tickSpacing;
+    const startTick = alignedCurrentTick - range * tickSpacing;
+    const endTick = alignedCurrentTick + range * tickSpacing;
+
+    console.log('--- getTickLiquidityDataSimple Debug ---');
+    console.log('currentTick:', currentTick);
+    console.log('tickSpacing:', tickSpacing);
+    console.log('range:', range);
+    console.log('alignedCurrentTick:', alignedCurrentTick);
+    console.log('startTick:', startTick);
+    console.log('endTick:', endTick);
+    console.log('------------------------------------');
+
+    // Pool合约ABI（只包含需要的函数）
+    const POOL_ABI = [
+      {
+        inputs: [{ name: "tick", type: "int24" }],
+        name: "ticks",
+        outputs: [
+          { name: "liquidityGross", type: "uint128" },
+          { name: "liquidityNet", type: "int128" },
+          { name: "feeGrowthOutside0X128", type: "uint256" },
+          { name: "feeGrowthOutside1X128", type: "uint256" },
+          { name: "tickCumulativeOutside", type: "int56" },
+          { name: "secondsPerLiquidityOutsideX128", type: "uint160" },
+          { name: "secondsOutside", type: "uint32" },
+          { name: "initialized", type: "bool" }
+        ],
+        stateMutability: "view",
+        type: "function"
+      }
+    ];
+
+    // 构建所有需要查询的tick  
+    const ticksToQuery = [];
+    for (let tick = startTick; tick <= endTick; tick += tickSpacing) {
+      ticksToQuery.push(tick);
+    }
+
+    // 批量查询tick数据
+    const tickRequests = ticksToQuery.map(tick => ({
+      jsonrpc: '2.0',
+      id: `tick-${tick}`,
+      method: 'eth_call',
+      params: [{
+        to: poolAddress,
+        data: encodeFunctionData({
+          abi: POOL_ABI,
+          functionName: 'ticks',
+          args: [tick]
+        })
+      }, 'latest']
+    }));
+
+    // 执行查询
+    const tickResults = await executeBatchRpc(tickRequests);
+
+    // 整理tick数据
+    const allTicks = [];
+
+    // 首先收集所有tick数据
+    const tickDataList = [];
+    for (let i = 0; i < ticksToQuery.length; i++) {
+      const tick = ticksToQuery[i];
+      const result = tickResults[i];
+
+      let liquidityNet = 0n;
+      let liquidityGross = 0n;
+      let initialized = false;
+
+      if (!result.error && result.result && result.result !== '0x') {
+        try {
+          // 处理返回的数据 - result.result 应该是一个完整的 ABI 编码值
+          // 对于 ticks 函数，返回值是一个 tuple
+          // 先打印看看数据格式
+          if (result.result !== '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000') {
+            console.log('Non-zero tick data for tick', tick, ':', result.result);
+          }
+          
+          // 将返回值作为单个 tuple 解码
+          const decoded = decodeAbiParameters(
+            [{
+              type: 'tuple',
+              components: [
+                { name: 'liquidityGross', type: 'uint128' },
+                { name: 'liquidityNet', type: 'int128' },
+                { name: 'feeGrowthOutside0X128', type: 'uint256' },
+                { name: 'feeGrowthOutside1X128', type: 'uint256' },
+                { name: 'tickCumulativeOutside', type: 'int56' },
+                { name: 'secondsPerLiquidityOutsideX128', type: 'uint160' },
+                { name: 'secondsOutside', type: 'uint32' },
+                { name: 'initialized', type: 'bool' }
+              ]
+            }],
+            result.result
+          );
+          
+          const tickData = decoded[0];
+          liquidityGross = tickData.liquidityGross;
+          liquidityNet = tickData.liquidityNet;
+          initialized = tickData.initialized;
+        } catch (e) {
+          // 如果 tuple 解码失败，尝试直接解码为独立的参数
+          try {
+            // 移除 0x 前缀
+            const data = result.result.slice(2);
+            
+            // 每个参数占 32 字节（64 个十六进制字符）
+            // liquidityGross (uint128) - 32 bytes
+            const liquidityGrossHex = '0x' + data.slice(0, 64);
+            // liquidityNet (int128) - 32 bytes  
+            const liquidityNetHex = '0x' + data.slice(64, 128);
+            // 跳过其他参数，直接获取 initialized (最后 32 bytes)
+            const initializedHex = '0x' + data.slice(448, 512);
+            
+            liquidityGross = BigInt(liquidityGrossHex);
+            
+            // liquidityNet 是有符号的 int128，需要正确处理负数
+            const liquidityNetBigInt = BigInt(liquidityNetHex);
+            // 检查是否为负数（最高位为1）
+            const isNegative = liquidityNetBigInt >= (1n << 127n);
+            if (isNegative) {
+              // 转换为负数：减去 2^128
+              liquidityNet = liquidityNetBigInt - (1n << 128n);
+            } else {
+              liquidityNet = liquidityNetBigInt;
+            }
+            
+            // initialized 是 bool，检查最后一个字节
+            initialized = initializedHex !== '0x0000000000000000000000000000000000000000000000000000000000000000';
+            
+            if (liquidityGross > 0n || liquidityNet !== 0n || initialized) {
+              console.log(`Tick ${tick}: liquidityGross=${liquidityGross}, liquidityNet=${liquidityNet}, initialized=${initialized}`);
+            }
+          } catch (e2) {
+            console.log('Manual decode error for tick', tick, 'Error:', e2.message);
+            // 保持默认值
+          }
+        }
+      }
+
+      tickDataList.push({ tick, liquidityGross, liquidityNet, initialized });
+    }
+
+    // 重新实现流动性累积逻辑
+    // 在 Uniswap V3 中，流动性从低 tick 向高 tick 累积
+    // 但我们需要考虑当前价格的位置
+    let cumulativeLiquidity = 0n;
+    const processedTicks = [];
+    
+    console.log('Processing ticks, currentTick:', currentTick);
+    
+    // 首先，找出所有初始化的 ticks 并按 tick 值排序
+    const initializedTicks = tickDataList.filter(t => t.initialized).sort((a, b) => a.tick - b.tick);
+    console.log('Initialized ticks:', initializedTicks.map(t => ({ tick: t.tick, liquidityNet: t.liquidityNet.toString() })));
+    
+    // 计算当前价格处的流动性
+    // 需要累加所有低于当前价格的 tick 的 liquidityNet
+    let currentLiquidity = 0n;
+    for (const tickData of initializedTicks) {
+      if (tickData.tick <= currentTick) {
+        currentLiquidity += tickData.liquidityNet;
+      }
+    }
+    console.log('Current liquidity at tick', currentTick, ':', currentLiquidity);
+
+    // 现在处理每个 tick 区间
+    for (let i = 0; i < tickDataList.length; i++) {
+      const { tick, liquidityGross, liquidityNet, initialized } = tickDataList[i];
+      
+      // 计算这个 tick 区间内的流动性
+      // 需要累加所有 <= tick 的 liquidityNet
+      let tickLiquidity = 0n;
+      for (const t of initializedTicks) {
+        if (t.tick <= tick) {
+          tickLiquidity += t.liquidityNet;
+        }
+      }
+      
+      // 如果流动性为负，说明没有活跃的流动性
+      let displayLiquidity = tickLiquidity < 0n ? 0n : tickLiquidity;
+      
+      if (displayLiquidity > 0n || initialized) {
+        console.log(`Tick ${tick}: liquidity=${displayLiquidity}, initialized=${initialized}`);
+      }
+
+      let amount0 = '0';
+      let amount1 = '0';
+
+      // 只有当有活跃流动性时才计算token数量
+      if (displayLiquidity > 0n) {
+        try {
+          const sqrtRatioA = getSqrtRatioAtTick(tick);
+          const sqrtRatioB = getSqrtRatioAtTick(tick + tickSpacing);
+          const sqrtRatioCurrent = sqrtPriceX96 ? BigInt(sqrtPriceX96) : getSqrtRatioAtTick(currentTick);
+          const Q96 = 2n ** 96n;
+
+          // 根据当前价格与tick区间的关系计算token数量
+          if (currentTick < tick) { // 当前价格在tick区间上方（价格更高），只有token0
+            if (sqrtRatioB > 0n && sqrtRatioA > 0n) {
+              amount0 = (displayLiquidity * Q96 * (sqrtRatioB - sqrtRatioA) / (sqrtRatioB * sqrtRatioA)).toString();
+            }
+            amount1 = '0';
+          } else if (currentTick >= tick + tickSpacing) { // 当前价格在tick区间下方（价格更低），只有token1
+            const deltaPrice = sqrtRatioB - sqrtRatioA;
+            amount1 = (displayLiquidity * deltaPrice / Q96).toString();
+            amount0 = '0';
+          } else { // currentTick 在 [tick, tick + tickSpacing) 区间内，两种token都有
+            const deltaPrice1 = sqrtRatioCurrent - sqrtRatioA;
+            amount1 = (displayLiquidity * deltaPrice1 / Q96).toString();
+
+            if (sqrtRatioB > 0n && sqrtRatioCurrent > 0n) {
+              amount0 = (displayLiquidity * Q96 * (sqrtRatioB - sqrtRatioCurrent) / (sqrtRatioB * sqrtRatioCurrent)).toString();
+            }
+          }
+        } catch (e) {
+          console.log('Token amount calculation error for tick', tick, e);
+          // 备用计算：如果计算失败，简单估算
+          if (currentTick < tick) {
+            amount0 = displayLiquidity.toString();
+            amount1 = '0';
+          } else if (currentTick >= tick + tickSpacing) {
+            amount0 = '0';
+            amount1 = displayLiquidity.toString();
+          } else {
+            amount0 = (displayLiquidity / 2n).toString();
+            amount1 = (displayLiquidity / 2n).toString();
+          }
+        }
+      }
+
+      processedTicks.push({
+        tick,
+        liquidityGross: liquidityGross.toString(),
+        liquidityNet: liquidityNet.toString(),
+        initialized: initialized,
+        activeLiquidity: displayLiquidity.toString(), // 每个tick区间的活跃流动性
+        amount0,
+        amount1,
+        decimals0,
+        decimals1
+      });
+    }
+
+    return processedTicks;
+
+  } catch (error) {
+    console.error('获取tick流动性数据失败(简化版):', error);
+    // 返回默认数据，避免完全失败
+    const defaultTicks = [];
+    const alignedCurrentTick = Math.round(currentTick / tickSpacing) * tickSpacing;
+    for (let tick = alignedCurrentTick - range * tickSpacing; tick <= alignedCurrentTick + range * tickSpacing; tick += tickSpacing) {
+      defaultTicks.push({
+        tick,
+        liquidityGross: '0',
+        liquidityNet: '0',
+        initialized: false,
+        activeLiquidity: '0',
+        amount0: '0',
+        amount1: '0',
+        decimals0,
+        decimals1
+      });
+    }
+    return defaultTicks;
   }
 }
 

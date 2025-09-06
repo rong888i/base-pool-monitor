@@ -7,6 +7,7 @@ import { PriceInput, TokenInput, SlippageSelector } from './components';
 import { useLiquidityManagement } from './hooks/useLiquidityManagement';
 import WalletStatus from './ui/WalletStatus';
 import ApprovalSection from './ui/ApprovalSection';
+import SimpleLiquidityChart from '../SimpleLiquidityChart';
 
 // 滑点预设选项
 const slippageOptions = [
@@ -58,6 +59,7 @@ const LiquidityAdder = ({
         handlePriceBlur,
         handleAmountChange,
         handleAmountBlur,
+        handleChartPriceSelect,
     } = useLiquidityManagement(poolInfo, isVisible, onClose);
 
     const isToken0Insufficient = useMemo(() => !balances.token0 || (amount0 && parseFloat(amount0) > parseFloat(balances.token0)), [amount0, balances.token0]);
@@ -199,6 +201,30 @@ const LiquidityAdder = ({
                                                     </svg>
                                                 </button>
                                             </div>
+                                            
+                                            {/* 流动性分布柱状图 */}
+                                            <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                                                <SimpleLiquidityChart 
+                                                    pool={{ lpInfo: poolInfo }} 
+                                                    range={20} 
+                                                    isReversed={isReversed}
+                                                    onPriceRangeSelect={(range) => {
+                                                        console.log('Price range selected:', range);
+                                                        // range中的价格已经是根据isReversed调整过的显示价格
+                                                        const lowerPrice = Math.min(range.minPrice, range.maxPrice);
+                                                        const upperPrice = Math.max(range.minPrice, range.maxPrice);
+                                                        
+                                                        console.log('Calling handleChartPriceSelect with:', { 
+                                                            lowerPrice, 
+                                                            upperPrice 
+                                                        });
+                                                        
+                                                        // 使用专门的处理函数
+                                                        handleChartPriceSelect(lowerPrice, upperPrice);
+                                                    }}
+                                                />
+                                            </div>
+                                            
                                             <div className="grid grid-cols-2 gap-3">
                                                 <PriceInput
                                                     label=""

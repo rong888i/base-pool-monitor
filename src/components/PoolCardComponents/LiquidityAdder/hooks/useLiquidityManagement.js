@@ -590,6 +590,68 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         return () => clearInterval(balanceInterval);
     }, [isVisible, connected, provider, account, poolInfo, fetchBalances]);
 
+    // 专门处理从图表拖动选择的价格范围
+    const handleChartPriceSelect = useCallback((minPrice, maxPrice) => {
+        if (!poolInfo) return;
+        
+        const { token0, token1, fee } = poolInfo;
+        const tickSpacing = getTickSpacing(fee);
+        
+        // 传入的价格已经是显示价格
+        // 当价格反转时，显示价格和内部tick的关系是相反的
+        // 较小的显示价格对应较大的tick（因为显示价格 = 1 / 内部价格）
+        
+        let lowerDisplayPrice, upperDisplayPrice;
+        let lowerInternalPrice, upperInternalPrice;
+        
+        if (isReversed) {
+            // 反转模式下：
+            // minPrice（较小的显示价格）对应较大的内部价格（较大的tick）
+            // maxPrice（较大的显示价格）对应较小的内部价格（较小的tick）
+            lowerDisplayPrice = minPrice.toString();
+            upperDisplayPrice = maxPrice.toString();
+            
+            // 转换为内部价格（注意顺序相反）
+            upperInternalPrice = 1 / minPrice;  // 较小的显示价格 -> 较大的内部价格 -> upperTick
+            lowerInternalPrice = 1 / maxPrice;  // 较大的显示价格 -> 较小的内部价格 -> lowerTick
+        } else {
+            // 正常模式下：显示价格和内部价格一致
+            lowerDisplayPrice = minPrice.toString();
+            upperDisplayPrice = maxPrice.toString();
+            lowerInternalPrice = minPrice;
+            upperInternalPrice = maxPrice;
+        }
+        
+        // 计算对应的tick
+        const lowerTick = calculateTickFromPrice(lowerInternalPrice, token0.decimals, token1.decimals);
+        const upperTick = calculateTickFromPrice(upperInternalPrice, token0.decimals, token1.decimals);
+        
+        // 对齐到tick间距
+        const alignedLowerTick = Math.round(lowerTick / tickSpacing) * tickSpacing;
+        const alignedUpperTick = Math.round(upperTick / tickSpacing) * tickSpacing;
+        
+        // 确保tick顺序正确
+        const finalLowerTick = Math.min(alignedLowerTick, alignedUpperTick);
+        const finalUpperTick = Math.max(alignedLowerTick, alignedUpperTick);
+        
+        // 重新计算对齐后的价格
+        const alignedLowerInternal = calculatePriceFromTick(finalLowerTick, token0.decimals, token1.decimals);
+        const alignedUpperInternal = calculatePriceFromTick(finalUpperTick, token0.decimals, token1.decimals);
+        
+        // 设置显示价格和tick
+        if (isReversed) {
+            setPriceLower((1 / alignedUpperInternal).toString());
+            setPriceUpper((1 / alignedLowerInternal).toString());
+            setTickLower(finalLowerTick);
+            setTickUpper(finalUpperTick);
+        } else {
+            setPriceLower(alignedLowerInternal.toString());
+            setPriceUpper(alignedUpperInternal.toString());
+            setTickLower(finalLowerTick);
+            setTickUpper(finalUpperTick);
+        }
+    }, [isReversed, poolInfo]);
+
     return {
         // State
         amount0, setAmount0,
@@ -633,6 +695,7 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         handlePriceBlur,
         handleAmountChange,
         handleAmountBlur,
+        handleChartPriceSelect,
 
         // Helpers
         getDisplayPrice
