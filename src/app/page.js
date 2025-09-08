@@ -69,6 +69,7 @@ export default function Home() {
 
           <PoolList
             isSidebarOpen={isSidebarOpen}
+            isRightSidebarOpen={isRightSidebarOpen}
             pools={pools}
             onDragEnd={handleDragEnd}
             onRemove={removePool}

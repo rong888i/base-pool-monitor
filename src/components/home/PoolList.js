@@ -30,6 +30,7 @@ function EmptyState() {
 
 export default function PoolList({
     isSidebarOpen,
+    isRightSidebarOpen,
     pools,
     onDragEnd,
     onRemove,
@@ -46,6 +47,23 @@ export default function PoolList({
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
+
+    // 根据侧边栏状态动态计算列数
+    const getColumnsClass = () => {
+        const bothOpen = isSidebarOpen && isRightSidebarOpen;
+        const oneOpen = isSidebarOpen || isRightSidebarOpen;
+
+        if (bothOpen) {
+            // 两个侧边栏都打开：在超大屏幕上显示3列，大屏幕2列
+            return 'columns-1 xl:columns-2 2xl:columns-3';
+        } else if (oneOpen) {
+            // 只有一个侧边栏打开：根据屏幕大小显示2-3列
+            return 'columns-1 md:columns-2 xl:columns-3';
+        } else {
+            // 两个侧边栏都关闭：保持原来的1-2-3列
+            return 'columns-1 md:columns-2 lg:columns-3';
+        }
+    };
 
     return (
         <div className={`${isSidebarOpen ? 'hidden lg:block' : 'block'}`}>
@@ -67,7 +85,7 @@ export default function PoolList({
                                 items={pools.map(pool => pool.uniqueId)}
                                 strategy={rectSortingStrategy}
                             >
-                                <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+                                <div className={`${getColumnsClass()} gap-4 transition-all duration-300`}>
                                     <AnimatePresence>
                                         {pools.map((pool) => (
                                             <SortablePoolCard
