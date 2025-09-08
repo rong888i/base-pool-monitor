@@ -19,7 +19,7 @@ export const getRpcUrl = (chainId) => {
     const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
 
     const rpcUrls = {
-        'base': settings.rpcUrl || 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
+        'base': settings.rpcUrl || 'https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d',
         'bsc': 'https://bsc-dataseed.binance.org/',
     };
     return rpcUrls[chainId.toLowerCase()];

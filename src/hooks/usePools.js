@@ -6,7 +6,7 @@ import { executeMonitorChecks } from '../utils/monitorUtils';
 
 // 预设的池子地址
 const DEFAULT_POOLS = [
-    '0x92b7807bF19b7DDdf89b706143896d05228f3121',
+    '0xd0b53d9277642d899df5c87a3966a349a798f224',
 ];
 
 export function usePools(settings) {
@@ -51,7 +51,7 @@ export function usePools(settings) {
             if (typeof window !== 'undefined') {
                 const savedData = localStorage.getItem('monitoredPools');
                 const savedArchivedData = localStorage.getItem('archivedPools');
-                
+
                 // 加载归档的池子
                 if (savedArchivedData) {
                     try {
@@ -67,7 +67,7 @@ export function usePools(settings) {
                         console.error('Failed to parse archived pools:', e);
                     }
                 }
-                
+
                 if (savedData) {
                     try {
                         const parsedData = JSON.parse(savedData);
@@ -359,50 +359,50 @@ export function usePools(settings) {
         setPools(newPools);
         savePoolsToStorage(newPools);
     }, [pools, savePoolsToStorage]);
-    
+
     // 归档池子
     const archivePool = useCallback((poolUniqueId) => {
         const poolToArchive = pools.find(p => p.uniqueId === poolUniqueId);
         if (!poolToArchive) return;
-        
+
         // 从活跃池子列表中移除
         const newPools = pools.filter(p => p.uniqueId !== poolUniqueId);
         setPools(newPools);
         savePoolsToStorage(newPools);
-        
+
         // 添加到归档列表
         const archivedPool = { ...poolToArchive, isArchived: true };
         const newArchivedPools = [...archivedPools, archivedPool];
         setArchivedPools(newArchivedPools);
-        
+
         // 保存归档池子到localStorage
         if (typeof window !== 'undefined') {
             localStorage.setItem('archivedPools', JSON.stringify(newArchivedPools));
         }
     }, [pools, archivedPools, savePoolsToStorage]);
-    
+
     // 恢复归档池子
     const restorePool = useCallback((poolUniqueId) => {
         const poolToRestore = archivedPools.find(p => p.uniqueId === poolUniqueId);
         if (!poolToRestore) return;
-        
+
         // 从归档列表中移除
         const newArchivedPools = archivedPools.filter(p => p.uniqueId !== poolUniqueId);
         setArchivedPools(newArchivedPools);
-        
+
         // 保存更新后的归档列表
         if (typeof window !== 'undefined') {
             localStorage.setItem('archivedPools', JSON.stringify(newArchivedPools));
         }
-        
+
         // 恢复到活跃池子列表
         const restoredPool = { ...poolToRestore };
         delete restoredPool.isArchived;
-        
+
         const newPools = [...pools, restoredPool];
         setPools(newPools);
         savePoolsToStorage(newPools);
-        
+
         // 如果池子信息需要刷新，触发刷新
         if (restoredPool.address) {
             fetchPoolInfo(restoredPool.address, restoredPool.uniqueId);

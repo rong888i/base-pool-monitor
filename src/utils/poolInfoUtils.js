@@ -48,7 +48,7 @@ const createProvider = (rpcUrl) => {
 };
 
 // 默认RPC URL (作为后备)
-const DEFAULT_RPC_URL = 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
+const DEFAULT_RPC_URL = 'https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d';
 
 /**
  * 检查池子是否包含常用代币

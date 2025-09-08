@@ -4,7 +4,7 @@ import { base } from 'viem/chains';
 // 获取RPC URL
 const getRpcUrl = () => {
   const settings = JSON.parse(localStorage.getItem('poolMonitorSettings') || '{}');
-  return settings.rpcUrl || 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79';
+  return settings.rpcUrl || 'https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d';
 };
 
 // BASE主网配置
@@ -1967,7 +1967,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
           if (result.result !== '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000') {
             console.log('Non-zero tick data for tick', tick, ':', result.result);
           }
-          
+
           // 将返回值作为单个 tuple 解码
           const decoded = decodeAbiParameters(
             [{
@@ -1985,7 +1985,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
             }],
             result.result
           );
-          
+
           const tickData = decoded[0];
           liquidityGross = tickData.liquidityGross;
           liquidityNet = tickData.liquidityNet;
@@ -1995,7 +1995,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
           try {
             // 移除 0x 前缀
             const data = result.result.slice(2);
-            
+
             // 每个参数占 32 字节（64 个十六进制字符）
             // liquidityGross (uint128) - 32 bytes
             const liquidityGrossHex = '0x' + data.slice(0, 64);
@@ -2003,9 +2003,9 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
             const liquidityNetHex = '0x' + data.slice(64, 128);
             // 跳过其他参数，直接获取 initialized (最后 32 bytes)
             const initializedHex = '0x' + data.slice(448, 512);
-            
+
             liquidityGross = BigInt(liquidityGrossHex);
-            
+
             // liquidityNet 是有符号的 int128，需要正确处理负数
             const liquidityNetBigInt = BigInt(liquidityNetHex);
             // 检查是否为负数（最高位为1）
@@ -2016,10 +2016,10 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
             } else {
               liquidityNet = liquidityNetBigInt;
             }
-            
+
             // initialized 是 bool，检查最后一个字节
             initialized = initializedHex !== '0x0000000000000000000000000000000000000000000000000000000000000000';
-            
+
             if (liquidityGross > 0n || liquidityNet !== 0n || initialized) {
               console.log(`Tick ${tick}: liquidityGross=${liquidityGross}, liquidityNet=${liquidityNet}, initialized=${initialized}`);
             }
@@ -2038,13 +2038,13 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
     // 但我们需要考虑当前价格的位置
     let cumulativeLiquidity = 0n;
     const processedTicks = [];
-    
+
     console.log('Processing ticks, currentTick:', currentTick);
-    
+
     // 首先，找出所有初始化的 ticks 并按 tick 值排序
     const initializedTicks = tickDataList.filter(t => t.initialized).sort((a, b) => a.tick - b.tick);
     console.log('Initialized ticks:', initializedTicks.map(t => ({ tick: t.tick, liquidityNet: t.liquidityNet.toString() })));
-    
+
     // 计算当前价格处的流动性
     // 需要累加所有低于当前价格的 tick 的 liquidityNet
     let currentLiquidity = 0n;
@@ -2058,7 +2058,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
     // 现在处理每个 tick 区间
     for (let i = 0; i < tickDataList.length; i++) {
       const { tick, liquidityGross, liquidityNet, initialized } = tickDataList[i];
-      
+
       // 计算这个 tick 区间内的流动性
       // 需要累加所有 <= tick 的 liquidityNet
       let tickLiquidity = 0n;
@@ -2067,10 +2067,10 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
           tickLiquidity += t.liquidityNet;
         }
       }
-      
+
       // 如果流动性为负，说明没有活跃的流动性
       let displayLiquidity = tickLiquidity < 0n ? 0n : tickLiquidity;
-      
+
       if (displayLiquidity > 0n || initialized) {
         console.log(`Tick ${tick}: liquidity=${displayLiquidity}, initialized=${initialized}`);
       }

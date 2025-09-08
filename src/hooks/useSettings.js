@@ -5,7 +5,7 @@ export function useSettings() {
         autoRefresh: true,
         refreshInterval: 3,
         defaultSlippage: 1.0,
-        rpcUrl: 'https://rpc.ankr.com/base/a2b51312ef9d86e0e1241bf58e5faac15e59c394ff4fe64318a61126e5d9fc79',
+        rpcUrl: 'https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d',
 
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
