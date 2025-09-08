@@ -201,30 +201,30 @@ const LiquidityAdder = ({
                                                     </svg>
                                                 </button>
                                             </div>
-                                            
+
                                             {/* 流动性分布柱状图 */}
                                             <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                                                <SimpleLiquidityChart 
-                                                    pool={{ lpInfo: poolInfo }} 
-                                                    range={20} 
+                                                <SimpleLiquidityChart
+                                                    pool={{ lpInfo: poolInfo }}
+                                                    range={20}  // 显示上下20个价格点
                                                     isReversed={isReversed}
                                                     onPriceRangeSelect={(range) => {
                                                         console.log('Price range selected:', range);
                                                         // range中的价格已经是根据isReversed调整过的显示价格
                                                         const lowerPrice = Math.min(range.minPrice, range.maxPrice);
                                                         const upperPrice = Math.max(range.minPrice, range.maxPrice);
-                                                        
-                                                        console.log('Calling handleChartPriceSelect with:', { 
-                                                            lowerPrice, 
-                                                            upperPrice 
+
+                                                        console.log('Calling handleChartPriceSelect with:', {
+                                                            lowerPrice,
+                                                            upperPrice
                                                         });
-                                                        
+
                                                         // 使用专门的处理函数
                                                         handleChartPriceSelect(lowerPrice, upperPrice);
                                                     }}
                                                 />
                                             </div>
-                                            
+
                                             <div className="grid grid-cols-2 gap-3">
                                                 <PriceInput
                                                     label=""
@@ -241,12 +241,6 @@ const LiquidityAdder = ({
                                                     onBlur={() => handlePriceBlur('upper')}
                                                 />
                                             </div>
-                                            {/* <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-2 flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                                </svg>
-                                                输入完成后价格将自动调整到最接近的有效区间
-                                            </div> */}
                                         </div>
 
                                         <div className="space-y-2">
@@ -342,4 +336,4 @@ const LiquidityAdder = ({
     );
 };
 
-export default LiquidityAdder; 
+export default LiquidityAdder;

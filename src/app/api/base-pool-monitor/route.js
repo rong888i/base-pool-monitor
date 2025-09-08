@@ -1,5 +1,5 @@
 // 使用环境变量配置后端API地址，如果没有配置则使用默认值
-const API_BASE_URL = process.env.POOL_MONITOR_API_URL || 'http://107.175.36.39:6786';
+const API_BASE_URL = process.env.POOL_MONITOR_API_URL || 'http://107.175.36.39:6787';
 
 // 禁用缓存，确保每次请求都获取最新数据
 export const dynamic = 'force-dynamic';

@@ -28,9 +28,9 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
     // 获取工厂徽章颜色
     const getFactoryBadgeColor = (factory) => {
         switch (factory) {
-            case 'PancakeswapV3':
-                return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-            case 'UniswapV3':
+            case 'Aerodrome':
+                return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+            case 'Uniswap V3':
                 return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300';
             default:
                 return 'bg-neutral-100 text-neutral-800 dark:bg-neutral-900/30 dark:text-neutral-300';
@@ -156,8 +156,8 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                         {/* 协议和费用信息 */}
                         <div className="flex items-center gap-2">
                             <span className={`px-2 py-1 text-xs rounded ${getFactoryBadgeColor(pool.factory)}`} data-tooltip-id="my-tooltip" data-tooltip-content={pool.factory}>
-                                {pool.factory === 'PancakeswapV3' ? 'PanCake V3' :
-                                    pool.factory === 'UniswapV3' ? 'Uni V3' :
+                                {pool.factory === 'Aerodrome' ? 'Aerodrome' :
+                                    pool.factory === 'Uniswap V3' ? 'Uni V3' :
                                         pool.factory}
                             </span>
                             <div className="ml-auto flex items-center gap-1">

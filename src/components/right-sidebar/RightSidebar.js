@@ -168,7 +168,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
             if (filters.tokens.length > 0) {
                 // 检查池子的代币符号是否包含任何筛选的代币
                 const poolTokens = pool.pair ? pool.pair.toUpperCase() : '';
-                const hasMatchingToken = filters.tokens.some(token => 
+                const hasMatchingToken = filters.tokens.some(token =>
                     poolTokens.includes(token.toUpperCase())
                 );
                 if (!hasMatchingToken) return false;
@@ -240,7 +240,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
     return (
         <div className={`${isOpen ? 'w-full lg:w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
-            {/* <button
+            <button
                 onClick={handleToggle}
                 className={`fixed top-1/2 -translate-y-1/2 z-10 rounded-full p-1.5
                 bg-white/60 dark:bg-neutral-800/60 backdrop-blur-sm
@@ -257,7 +257,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                     fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-            </button> */}
+            </button>
 
             {/* 主容器 */}
             <div className={`h-full bg-neutral-50 dark:bg-neutral-950 border-l border-neutral-200 dark:border-neutral-800/50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -348,8 +348,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                                 <button
                                     onClick={() => handleSortChange('fees')}
                                     className={`px-2 py-1 text-xs font-medium rounded transition-colors ${sortBy === 'fees'
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
                                     费用
@@ -357,8 +357,8 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                                 <button
                                     onClick={() => handleSortChange('volume')}
                                     className={`px-2 py-1 text-xs font-medium rounded transition-colors ${sortBy === 'volume'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400'
                                         }`}
                                 >
                                     交易量
