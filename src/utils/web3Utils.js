@@ -213,29 +213,29 @@ export const getTokenInfo = async (tokenAddress, provider) => {
 export const getTokenBalance = async (tokenAddress, userAddress, provider) => {
     try {
         if (!tokenAddress || !userAddress || !provider) {
-            console.error('getTokenBalance 缺少参数:', { 
-                tokenAddress, 
-                userAddress, 
-                provider: !!provider 
+            console.error('getTokenBalance 缺少参数:', {
+                tokenAddress,
+                userAddress,
+                provider: !!provider
             });
             return BigInt(0);
         }
-        
+
         // 创建合约实例
         const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-        
+
         // 调用 balanceOf 函数
         const balance = await tokenContract.balanceOf(userAddress);
-        
+
         // 打印成功信息
-        console.log(`✅ 获取余额成功: ${tokenAddress.slice(0,6)}...${tokenAddress.slice(-4)} = ${balance.toString()}`);
-        
+        console.log(`✅ 获取余额成功: ${tokenAddress.slice(0, 6)}...${tokenAddress.slice(-4)} = ${balance.toString()}`);
+
         return balance;
     } catch (error) {
         console.error('❌ 获取代币余额失败:', {
             message: error.message,
-            tokenAddress: tokenAddress?.slice(0,10) + '...',
-            userAddress: userAddress?.slice(0,10) + '...',
+            tokenAddress: tokenAddress?.slice(0, 10) + '...',
+            userAddress: userAddress?.slice(0, 10) + '...',
             code: error.code
         });
         return BigInt(0); // 出错时返回 0 而不是抛出异常
@@ -253,7 +253,7 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
         let positionManagerAddress;
         let positionManagerABI;
         const isAerodrome = protocolName.toLowerCase().includes('aerodrome') || protocolName.toLowerCase().includes('aero');
-        
+
         if (protocolName.toLowerCase().includes('pancake')) {
             positionManagerAddress = contracts.PANCAKESWAP_V3_POSITION_MANAGER;
             positionManagerABI = POSITION_MANAGER_ABI;
@@ -295,16 +295,16 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
         const slippageAmount1 = (BigInt(params.amount1Desired) * slippageMultiplier) / BigInt(10000);
 
         let mintParams;
-        
+
         if (isAerodrome) {
             // Aerodrome 需要特殊的参数结构
             // 对于已存在的池子，sqrtPriceX96 应该传 0
             // 只有创建新池子时才需要非零的 sqrtPriceX96
             const sqrtPriceX96Value = '0';
-            
+
             // 确保 tickSpacing 是一个数字
             const tickSpacingValue = params.tickSpacing ? Number(params.tickSpacing) : 10;
-            
+
             mintParams = {
                 token0: params.token0,
                 token1: params.token1,
@@ -319,7 +319,7 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
                 deadline: Math.floor(Date.now() / 1000) + 1200, // 20分钟后过期
                 sqrtPriceX96: sqrtPriceX96Value // Aerodrome 需要这个额外参数
             };
-            
+
             console.log('=== Aerodrome Mint 参数详情 ===');
             console.log('协议:', protocolName);
             console.log('Position Manager 地址:', positionManagerAddress);
@@ -351,7 +351,7 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
                 amount1Min: slippageAmount1.toString(),
                 deadline: Math.floor(Date.now() / 1000) + 1200 // 20分钟后过期
             };
-            
+
             console.log('=== Uniswap/PancakeSwap Mint 参数 ===');
             console.log('协议:', protocolName);
             console.log('Position Manager 地址:', positionManagerAddress);
@@ -359,25 +359,8 @@ export const addLiquidity = async (params, signer, chainId, slippage = 0.5, prot
             console.log('=====================================');
         }
 
-        // 检查是否需要发送ETH/BNB
-        const nativeTokenAddress = chainId === 56 ? CONTRACTS[chainId]?.WBNB?.toLowerCase() : 
-                                   chainId === 8453 ? CONTRACTS[chainId]?.WETH?.toLowerCase() : 
-                                   CONTRACTS[chainId]?.WETH?.toLowerCase();
-        const isToken0Native = params.token0.toLowerCase() === nativeTokenAddress;
-        const isToken1Native = params.token1.toLowerCase() === nativeTokenAddress;
-
-        let value = "0";
-        if (isToken0Native) {
-            value = params.amount0Desired;
-        } else if (isToken1Native) {
-            value = params.amount1Desired;
-        }
-
-        console.log('准备调用 mint，参数:', mintParams);
-        console.log('value (ETH):', value);
-        
         try {
-            const tx = await positionManager.mint(mintParams, { value });
+            const tx = await positionManager.mint(mintParams);
             console.log('交易发送成功:', tx.hash);
             return tx;
         } catch (error) {
@@ -405,14 +388,14 @@ export const formatTokenAmount = (amount, decimals) => {
 export const parseTokenAmount = (amount, decimals) => {
     try {
         const amountStr = amount.toString();
-        
+
         // 处理科学计数法
         if (amountStr.includes('e') || amountStr.includes('E')) {
             const num = Number(amountStr);
             if (isNaN(num)) throw new Error('Invalid number');
             return ethers.parseUnits(num.toFixed(decimals), decimals);
         }
-        
+
         // 限制小数位数，避免超过 decimals
         const parts = amountStr.split('.');
         if (parts.length > 1 && parts[1].length > decimals) {
@@ -420,7 +403,7 @@ export const parseTokenAmount = (amount, decimals) => {
             const truncated = parts[0] + '.' + parts[1].substring(0, decimals);
             return ethers.parseUnits(truncated, decimals);
         }
-        
+
         return ethers.parseUnits(amountStr, decimals);
     } catch (error) {
         console.error('parseTokenAmount error:', error, { amount, decimals });
@@ -443,14 +426,14 @@ const V3_SWAP_ROUTER_ABI_AERO = [
         "inputs": [
             {
                 "components": [
-                    {"internalType": "address", "name": "tokenIn", "type": "address"},
-                    {"internalType": "address", "name": "tokenOut", "type": "address"},
-                    {"internalType": "int24", "name": "tickSpacing", "type": "int24"},
-                    {"internalType": "address", "name": "recipient", "type": "address"},
-                    {"internalType": "uint256", "name": "deadline", "type": "uint256"},
-                    {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
-                    {"internalType": "uint256", "name": "amountOutMinimum", "type": "uint256"},
-                    {"internalType": "uint160", "name": "sqrtPriceLimitX96", "type": "uint160"}
+                    { "internalType": "address", "name": "tokenIn", "type": "address" },
+                    { "internalType": "address", "name": "tokenOut", "type": "address" },
+                    { "internalType": "int24", "name": "tickSpacing", "type": "int24" },
+                    { "internalType": "address", "name": "recipient", "type": "address" },
+                    { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amountIn", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amountOutMinimum", "type": "uint256" },
+                    { "internalType": "uint160", "name": "sqrtPriceLimitX96", "type": "uint160" }
                 ],
                 "internalType": "struct ISwapRouter.ExactInputSingleParams",
                 "name": "params",
@@ -459,7 +442,7 @@ const V3_SWAP_ROUTER_ABI_AERO = [
         ],
         "name": "exactInputSingle",
         "outputs": [
-            {"internalType": "uint256", "name": "amountOut", "type": "uint256"}
+            { "internalType": "uint256", "name": "amountOut", "type": "uint256" }
         ],
         "stateMutability": "payable",
         "type": "function"
@@ -530,7 +513,7 @@ const getSwapRouterAddress = (protocolName = '', chainId = 8453) => {
     const isPancake = protocolName.toLowerCase().includes('pancake');
     const isAero = protocolName.toLowerCase().includes('aerodrome') || protocolName.toLowerCase().includes('aero');
     const isUni = protocolName.toLowerCase().includes('uniswap') || protocolName.toLowerCase().includes('uni');
-    
+
     if (isPancake) {
         if (!contracts.PANCAKESWAP_V3_SWAP_ROUTER) throw new Error('当前网络未配置 PancakeSwap V3 SwapRouter 地址');
         return contracts.PANCAKESWAP_V3_SWAP_ROUTER;
@@ -568,7 +551,7 @@ export const swapExactInputSingle = async ({
         const routerAddress = getSwapRouterAddress(protocolName, chainId);
         const isPancake = (protocolName || '').toLowerCase().includes('pancake');
         const isAero = (protocolName || '').toLowerCase().includes('aerodrome') || (protocolName || '').toLowerCase().includes('aero');
-        
+
         // 选择正确的 ABI
         let routerABI;
         if (isAero) {
@@ -578,7 +561,7 @@ export const swapExactInputSingle = async ({
         } else {
             routerABI = V3_SWAP_ROUTER_ABI_UNI;
         }
-        
+
         const router = new ethers.Contract(routerAddress, routerABI, signer);
 
         let params;

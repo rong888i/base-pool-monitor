@@ -81,8 +81,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
             const lowerTick = calculateTickFromPrice(lowerPrice, token0.decimals, token1.decimals);
             const upperTick = calculateTickFromPrice(upperPrice, token0.decimals, token1.decimals);
-            setTickLower(Math.round(lowerTick / tickSpacing) * tickSpacing);
-            setTickUpper(Math.round(upperTick / tickSpacing) * tickSpacing);
+            setTickLower(Math.floor(lowerTick / tickSpacing) * tickSpacing);
+            setTickUpper(Math.floor(upperTick / tickSpacing) * tickSpacing);
             setIsInitialized(true);
         }
     }, [poolInfo, isVisible, isInitialized]);
@@ -308,17 +308,27 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
             console.log('tickLower:', tickLower);
             console.log('tickUpper:', tickUpper);
             
-            // 验证 tick 对齐
+            // 验证 tick 对齐（修复负数 tick 的对齐检查）
+            let alignedTickLower = tickLower;
+            let alignedTickUpper = tickUpper;
+            
             if (poolInfo.tickSpacing) {
-                const lowerAligned = tickLower % poolInfo.tickSpacing === 0;
-                const upperAligned = tickUpper % poolInfo.tickSpacing === 0;
-                console.log('Tick 对齐检查:');
-                console.log(`  tickLower (${tickLower}) % ${poolInfo.tickSpacing} = ${tickLower % poolInfo.tickSpacing}, 对齐: ${lowerAligned}`);
-                console.log(`  tickUpper (${tickUpper}) % ${poolInfo.tickSpacing} = ${tickUpper % poolInfo.tickSpacing}, 对齐: ${upperAligned}`);
+                const tickSpacing = poolInfo.tickSpacing;
                 
-                if (!lowerAligned || !upperAligned) {
-                    console.error('⚠️ Tick 值未正确对齐到 tickSpacing!');
+                // 重新对齐 tick 值（确保完全对齐）
+                alignedTickLower = Math.floor(tickLower / tickSpacing) * tickSpacing;
+                alignedTickUpper = Math.floor(tickUpper / tickSpacing) * tickSpacing;
+                
+                // 如果 tick 值没有对齐，进行修正
+                if (tickLower !== alignedTickLower || tickUpper !== alignedTickUpper) {
+                    console.log('⚠️ 检测到 tick 未对齐，正在修正...');
+                    console.log(`  原 tickLower: ${tickLower} -> 修正为: ${alignedTickLower}`);
+                    console.log(`  原 tickUpper: ${tickUpper} -> 修正为: ${alignedTickUpper}`);
                 }
+                
+                console.log('Tick 对齐检查:');
+                console.log(`  tickLower: ${alignedTickLower} (已对齐)`);
+                console.log(`  tickUpper: ${alignedTickUpper} (已对齐)`);
             }
             console.log('amount0:', amount0);
             console.log('amount1:', amount1);
@@ -347,8 +357,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
                 token1: poolInfo.token1?.address,
                 fee: poolInfo.fee,
                 tickSpacing: isAerodrome ? actualTickSpacing : undefined, // Aerodrome 使用实际的 tickSpacing
-                tickLower,
-                tickUpper,
+                tickLower: alignedTickLower, // 使用对齐后的值
+                tickUpper: alignedTickUpper, // 使用对齐后的值
                 amount0Desired: amount0Wei,
                 amount1Desired: amount1Wei,
                 recipient: account,
@@ -441,8 +451,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         // 对于 Aerodrome，使用实际的 tickSpacing；否则从 fee 计算
         const tickSpacing = poolInfo.tickSpacing || getTickSpacing(fee);
 
-        const newTickLower = Math.round(calculateTickFromPrice(newLowerInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
-        const newTickUpper = Math.round(calculateTickFromPrice(newUpperInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
+        const newTickLower = Math.floor(calculateTickFromPrice(newLowerInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
+        const newTickUpper = Math.floor(calculateTickFromPrice(newUpperInternalPrice, token0.decimals, token1.decimals) / tickSpacing) * tickSpacing;
 
         setTickLower(newTickLower);
         setTickUpper(newTickUpper);
@@ -480,7 +490,7 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
 
         // 2. 计算对齐的tick和新的显示价格
         const rawTick = calculateTickFromPrice(internalPrice, token0.decimals, token1.decimals);
-        const alignedTick = Math.round(rawTick / tickSpacing) * tickSpacing;
+        const alignedTick = Math.floor(rawTick / tickSpacing) * tickSpacing;
         const newInternalPrice = calculatePriceFromTick(alignedTick, token0.decimals, token1.decimals);
         const newDisplayPrice = getDisplayPrice(newInternalPrice);
 
@@ -627,8 +637,8 @@ export const useLiquidityManagement = (poolInfo, isVisible, onClose) => {
         const upperTick = calculateTickFromPrice(upperInternalPrice, token0.decimals, token1.decimals);
         
         // 对齐到tick间距
-        const alignedLowerTick = Math.round(lowerTick / tickSpacing) * tickSpacing;
-        const alignedUpperTick = Math.round(upperTick / tickSpacing) * tickSpacing;
+        const alignedLowerTick = Math.floor(lowerTick / tickSpacing) * tickSpacing;
+        const alignedUpperTick = Math.floor(upperTick / tickSpacing) * tickSpacing;
         
         // 确保tick顺序正确
         const finalLowerTick = Math.min(alignedLowerTick, alignedUpperTick);

@@ -1,0 +1,17 @@
+{
+  "name": "BASE Pool Monitor",
+  "short_name": "池子监控",
+  "description": "实时监控 BASE 池子数据、流动性和交易信息",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#3B82F6",
+  "background_color": "#ffffff"
+}
