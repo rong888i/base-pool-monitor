@@ -238,7 +238,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
 
 
     return (
-        <div className={`${isOpen ? 'w-full lg:w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
+        <div className={`${isOpen ? 'w-full sm:w-96' : 'w-0'} transition-[width] duration-300 ease-in-out relative overflow-hidden`}>
             {/* 收起/展开按钮 */}
             <button
                 onClick={handleToggle}
@@ -248,7 +248,7 @@ const RightSidebar = ({ settings = {}, isOpen, onToggle, onAddPool, isLeftSideba
                 shadow-md hover:shadow-lg
                 hover:bg-white/90 dark:hover:bg-neutral-800
                 transition-all duration-300
-                ${isOpen ? 'right-[calc(100%-3.25rem)] lg:right-[23rem]' : 'right-2'}
+                ${isOpen ? 'right-[calc(100%-3.25rem)] sm:right-[23rem]' : 'right-2'}
                 ${isLeftSidebarOpen ? 'lg:block hidden' : ''}`}
                 aria-label={isOpen ? "收起右侧栏" : "展开右侧栏"}
             >
