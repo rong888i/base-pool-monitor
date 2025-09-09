@@ -20,7 +20,6 @@ export const getRpcUrl = (chainId) => {
 
     const rpcUrls = {
         'base': settings.rpcUrl || 'https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d',
-        'bsc': 'https://bsc-dataseed.binance.org/',
     };
     return rpcUrls[chainId.toLowerCase()];
 };

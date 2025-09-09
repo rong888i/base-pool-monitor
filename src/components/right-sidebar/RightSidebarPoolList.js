@@ -201,7 +201,7 @@ const RightSidebarPoolList = ({ pools, isLoading, selectedTimeWindow, currentTim
                                         window.open(`https://basescan.org/address/${pool.address}`, '_blank');
                                     }}
                                     data-tooltip-id="my-tooltip"
-                                    data-tooltip-content="在 BscScan 中查看"
+                                    data-tooltip-content="在 BaseScan 中查看"
                                 >
                                     <FaExternalLinkAlt className="h-2.5 w-2.5" />
                                 </button>

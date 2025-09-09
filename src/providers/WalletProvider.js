@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { ethers } from 'ethers';
 import { createAppKit, useAppKitAccount, modal, useAppKitProvider } from '@reown/appkit/react';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { bsc, mainnet, arbitrum, base } from '@reown/appkit/networks';
+import { base } from '@reown/appkit/networks';
 
 const WalletContext = createContext();
 

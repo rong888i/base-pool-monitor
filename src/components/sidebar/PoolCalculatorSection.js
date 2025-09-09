@@ -84,9 +84,10 @@ const PoolCalculatorSection = ({ onAddPool }) => {
     };
 
     const factoryAddresses = {
-        uniswap: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7', // Uniswap V3 Factory on BSC
-        pancakeswap: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865', // PancakeSwap V3 Factory on BSC
+        uniswap: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1', // Uniswap V3 Factory on BASE
+        pancakeswap: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865', // PancakeSwap V3 Factory on BASE
     };
+};
 
     const V3_FACTORY_ABI = [
         'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)',
@@ -114,7 +115,7 @@ const PoolCalculatorSection = ({ onAddPool }) => {
                 return;
             }
 
-            const provider = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org/');
+            const provider = new ethers.JsonRpcProvider('https://base-mainnet.blastapi.io/fe9c30fc-3bc5-4064-91e2-6ab5887f8f4d');
             const factoryAddress = factoryAddresses[dex];
             const factoryContract = new Contract(factoryAddress, V3_FACTORY_ABI, provider);
 
