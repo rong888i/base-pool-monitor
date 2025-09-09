@@ -1884,7 +1884,7 @@ function getSqrtRatioAtTick(tick) {
  * @param {string} sqrtPriceX96 - 当前sqrt价格
  * @returns {Promise<Array>} tick流动性数据数组
  */
-export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickSpacing, range = 15, decimals0 = 18, decimals1 = 18, sqrtPriceX96 = null) {
+export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickSpacing, range = 15, decimals0 = 18, decimals1 = 18, sqrtPriceX96 = null, poolLiquidity = null) {
   const rpcUrl = getRpcUrl();
 
   try {
@@ -2033,43 +2033,137 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
       tickDataList.push({ tick, liquidityGross, liquidityNet, initialized });
     }
 
-    // 重新实现流动性累积逻辑
-    // 在 Uniswap V3 中，流动性从低 tick 向高 tick 累积
-    // 但我们需要考虑当前价格的位置
-    let cumulativeLiquidity = 0n;
-    const processedTicks = [];
-
-    console.log('Processing ticks, currentTick:', currentTick);
-
-    // 首先，找出所有初始化的 ticks 并按 tick 值排序
-    const initializedTicks = tickDataList.filter(t => t.initialized).sort((a, b) => a.tick - b.tick);
-    console.log('Initialized ticks:', initializedTicks.map(t => ({ tick: t.tick, liquidityNet: t.liquidityNet.toString() })));
-
-    // 计算当前价格处的流动性
-    // 需要累加所有低于当前价格的 tick 的 liquidityNet
-    let currentLiquidity = 0n;
-    for (const tickData of initializedTicks) {
-      if (tickData.tick <= currentTick) {
-        currentLiquidity += tickData.liquidityNet;
+    // 获取池子的总流动性（如果没有提供，尝试获取）
+    let totalPoolLiquidity = 0n;
+    if (poolLiquidity !== null) {
+      totalPoolLiquidity = BigInt(poolLiquidity);
+    } else {
+      // 如果没有提供池子总流动性，尝试获取
+      try {
+        const liquidityRequest = {
+          jsonrpc: '2.0',
+          id: 'pool-liquidity',
+          method: 'eth_call',
+          params: [{
+            to: poolAddress,
+            data: encodeFunctionData({
+              abi: [{
+                inputs: [],
+                name: 'liquidity',
+                outputs: [{ name: '', type: 'uint128' }],
+                stateMutability: 'view',
+                type: 'function'
+              }],
+              functionName: 'liquidity'
+            })
+          }, 'latest']
+        };
+        
+        const liquidityResponse = await executeBatchRpc([liquidityRequest]);
+        if (liquidityResponse[0] && !liquidityResponse[0].error && liquidityResponse[0].result !== '0x') {
+          const decoded = decodeAbiParameters(
+            [{ name: 'liquidity', type: 'uint128' }],
+            liquidityResponse[0].result
+          );
+          totalPoolLiquidity = decoded[0];
+        }
+      } catch (e) {
+        console.log('Failed to fetch pool liquidity:', e);
       }
     }
-    console.log('Current liquidity at tick', currentTick, ':', currentLiquidity);
 
-    // 现在处理每个 tick 区间
-    for (let i = 0; i < tickDataList.length; i++) {
-      const { tick, liquidityGross, liquidityNet, initialized } = tickDataList[i];
+    console.log('Total pool liquidity:', totalPoolLiquidity.toString());
 
-      // 计算这个 tick 区间内的流动性
-      // 需要累加所有 <= tick 的 liquidityNet
-      let tickLiquidity = 0n;
-      for (const t of initializedTicks) {
-        if (t.tick <= tick) {
-          tickLiquidity += t.liquidityNet;
+    // 重新实现流动性累积逻辑
+    const processedTicks = [];
+    
+    // 找到当前tick所在的位置
+    const currentTickIndex = tickDataList.findIndex(data => 
+      currentTick >= data.tick && currentTick < data.tick + tickSpacing
+    );
+    
+    // 如果当前tick在显示范围内，从当前tick的流动性开始
+    if (currentTickIndex >= 0 && totalPoolLiquidity > 0n) {
+      // 当前tick区间的流动性就是池子的总流动性
+      processedTicks[currentTickIndex] = {
+        tick: tickDataList[currentTickIndex].tick,
+        liquidityGross: tickDataList[currentTickIndex].liquidityGross,
+        liquidityNet: tickDataList[currentTickIndex].liquidityNet,
+        initialized: tickDataList[currentTickIndex].initialized,
+        activeLiquidity: totalPoolLiquidity
+      };
+      
+      // 向左计算（价格更低的方向）
+      // 当我们从当前价格向左移动时，相当于价格从高向低移动
+      // 需要反向累积liquidityNet
+      let currentLiquidity = totalPoolLiquidity;
+      for (let i = currentTickIndex - 1; i >= 0; i--) {
+        const { tick, liquidityGross, liquidityNet, initialized } = tickDataList[i + 1];
+        
+        // 从tick[i+1]移动到tick[i]，相当于价格从高到低穿过tick[i+1]
+        // 所以要减去tick[i+1]的liquidityNet
+        if (initialized) {
+          currentLiquidity -= liquidityNet;
         }
+        
+        processedTicks[i] = {
+          tick: tickDataList[i].tick,
+          liquidityGross: tickDataList[i].liquidityGross,
+          liquidityNet: tickDataList[i].liquidityNet,
+          initialized: tickDataList[i].initialized,
+          activeLiquidity: currentLiquidity > 0n ? currentLiquidity : 0n
+        };
       }
+      
+      // 向右计算（价格更高的方向）
+      // 当我们从当前价格向右移动时，相当于价格从低向高移动
+      // 正向累积liquidityNet
+      currentLiquidity = totalPoolLiquidity;
+      for (let i = currentTickIndex + 1; i < tickDataList.length; i++) {
+        const prevTickData = tickDataList[i - 1];
+        const currentTickData = tickDataList[i];
+        
+        // 从tick[i-1]移动到tick[i]，相当于价格从低到高穿过tick[i]
+        // 所以要加上tick[i]的liquidityNet
+        if (currentTickData.initialized) {
+          currentLiquidity += currentTickData.liquidityNet;
+        }
+        
+        processedTicks[i] = {
+          tick: currentTickData.tick,
+          liquidityGross: currentTickData.liquidityGross,
+          liquidityNet: currentTickData.liquidityNet,
+          initialized: currentTickData.initialized,
+          activeLiquidity: currentLiquidity > 0n ? currentLiquidity : 0n
+        };
+      }
+    } else {
+      // 如果当前tick不在范围内，或没有总流动性，使用原来的累积方法
+      let cumulativeLiquidity = 0n;
+      
+      for (let i = 0; i < tickDataList.length; i++) {
+        const { tick, liquidityGross, liquidityNet, initialized } = tickDataList[i];
+        
+        // 如果当前tick被初始化，累加其liquidityNet以反映流动性变化
+        if (initialized) {
+          cumulativeLiquidity += liquidityNet;
+        }
+        
+        processedTicks[i] = {
+          tick,
+          liquidityGross,
+          liquidityNet,
+          initialized,
+          activeLiquidity: cumulativeLiquidity > 0n ? cumulativeLiquidity : 0n
+        };
+      }
+    }
 
-      // 如果流动性为负，说明没有活跃的流动性
-      let displayLiquidity = tickLiquidity < 0n ? 0n : tickLiquidity;
+    // 处理每个tick的token数量计算
+    const finalProcessedTicks = [];
+    for (let i = 0; i < processedTicks.length; i++) {
+      const { tick, liquidityGross, liquidityNet, initialized, activeLiquidity } = processedTicks[i];
+      let displayLiquidity = activeLiquidity;
 
       if (displayLiquidity > 0n || initialized) {
         console.log(`Tick ${tick}: liquidity=${displayLiquidity}, initialized=${initialized}`);
@@ -2120,7 +2214,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
         }
       }
 
-      processedTicks.push({
+      finalProcessedTicks.push({
         tick,
         liquidityGross: liquidityGross.toString(),
         liquidityNet: liquidityNet.toString(),
@@ -2133,7 +2227,7 @@ export async function getTickLiquidityDataSimple(poolAddress, currentTick, tickS
       });
     }
 
-    return processedTicks;
+    return finalProcessedTicks;
 
   } catch (error) {
     console.error('获取tick流动性数据失败(简化版):', error);

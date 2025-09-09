@@ -47,7 +47,8 @@ const SimpleLiquidityChart = ({ pool, range = 15, isReversed = false, onPriceRan
                 range,
                 pool.lpInfo.token0.decimals,
                 pool.lpInfo.token1.decimals,
-                pool.lpInfo.sqrtPriceX96  // 传入实际的 sqrtPriceX96
+                pool.lpInfo.sqrtPriceX96,  // 传入实际的 sqrtPriceX96
+                pool.lpInfo.liquidity  // 传入池子的总流动性
             );
 
             // 转换为图表数据
