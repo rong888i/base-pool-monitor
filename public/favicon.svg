@@ -1,19 +1,87 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- 背景圆形 -->
-    <circle cx="16" cy="16" r="16" fill="url(#gradient)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- 背景圆形 -->
+  <circle cx="128" cy="128" r="120" fill="url(#gradient-bg)" />
+  
+  <!-- 水池波纹效果 -->
+  <path d="M 40 140 Q 80 120, 120 140 T 200 140 L 200 180 Q 160 200, 120 180 T 40 180 Z" 
+        fill="url(#wave-gradient)" 
+        opacity="0.9"/>
+  
+  <path d="M 50 160 Q 90 145, 128 160 T 206 160 L 206 190 Q 166 205, 128 190 T 50 190 Z" 
+        fill="url(#wave-gradient-2)" 
+        opacity="0.7"/>
+  
+  <!-- 中心监控图表 -->
+  <g transform="translate(128, 100)">
+    <!-- 图表背景 -->
+    <rect x="-45" y="-35" width="90" height="70" rx="8" fill="white" opacity="0.95"/>
     
-    <!-- 监控图标 -->
-    <rect x="8" y="8" width="16" height="16" rx="2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M12 16C12 16 14 14 16 14C18 14 20 16 20 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="16" cy="16" r="1" fill="white" />
-    <path d="M16 18V20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- 折线图 -->
+    <polyline points="-35,-15 -20,5 -5,-20 10,0 25,-10 35,10" 
+              stroke="#3B82F6" 
+              stroke-width="4" 
+              fill="none" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"/>
     
-    <!-- 渐变定义 -->
-    <defs>
-        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#3B82F6" />
-            <stop offset="100%" stop-color="#4F46E5" />
-        </linearGradient>
-    </defs>
-</svg> 
+    <!-- 数据点 -->
+    <circle cx="-35" cy="-15" r="3" fill="#3B82F6"/>
+    <circle cx="-20" cy="5" r="3" fill="#3B82F6"/>
+    <circle cx="-5" cy="-20" r="3" fill="#3B82F6"/>
+    <circle cx="10" cy="0" r="3" fill="#3B82F6"/>
+    <circle cx="25" cy="-10" r="3" fill="#3B82F6"/>
+    <circle cx="35" cy="10" r="3" fill="#10B981"/>
+    
+    <!-- 上升箭头指示器 -->
+    <path d="M 40 5 L 45 0 L 45 5 M 45 0 L 50 5" 
+          stroke="#10B981" 
+          stroke-width="3" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" 
+          fill="none"/>
+  </g>
+  
+  <!-- 外环监控指示器 -->
+  <circle cx="128" cy="128" r="115" 
+          stroke="url(#ring-gradient)" 
+          stroke-width="2" 
+          fill="none" 
+          stroke-dasharray="10 5" 
+          opacity="0.6">
+    <animateTransform
+      attributeName="transform"
+      attributeType="XML"
+      type="rotate"
+      from="0 128 128"
+      to="360 128 128"
+      dur="60s"
+      repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <!-- 背景渐变 -->
+    <linearGradient id="gradient-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 波纹渐变 -->
+    <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#2563EB;stop-opacity:0.6" />
+    </linearGradient>
+    
+    <linearGradient id="wave-gradient-2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#93C5FD;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:0.4" />
+    </linearGradient>
+    
+    <!-- 外环渐变 -->
+    <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
