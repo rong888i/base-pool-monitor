@@ -17,7 +17,7 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "BASE DeFi Pool Monitor",
+  title: "BASE Pool Monitor",
   description: "实时监控 BASE 池子数据、流动性和交易信息",
   manifest: '/manifest.json',
 };
